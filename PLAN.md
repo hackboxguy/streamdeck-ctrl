@@ -56,10 +56,10 @@
 ## Phase 5: Action Executor
 > Script and HTTP action execution with token substitution
 
-- [ ] Create `streamdeck_ctrl/action.py` — `{state}`, `{value}`, `{label}`, `{key_pos}` substitution, `subprocess.Popen` for scripts, `requests` for HTTP, async via `ThreadPoolExecutor`
-- [ ] Create `tests/test_action.py` — token substitution, script execution (mock subprocess), HTTP execution (mock requests), async behavior
-- [ ] **Test:** `pytest tests/test_action.py`
-- [ ] **Commit**
+- [x] Create `streamdeck_ctrl/action.py` — token substitution, subprocess scripts, requests HTTP, ThreadPoolExecutor async
+- [x] Create `tests/test_action.py` — 22 tests: substitution, script/HTTP execution (mocked), async dispatch
+- [x] **Test:** `pytest tests/test_action.py` — 22/22 passed
+- [x] **Commit**
 
 ## Phase 6: Notifier (Unix Socket Server)
 > Unix domain socket accept loop, JSON parse, dispatch to key_manager
