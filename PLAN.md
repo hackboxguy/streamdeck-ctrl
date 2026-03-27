@@ -48,10 +48,10 @@
 ## Phase 4: State Store
 > Runtime state persistence to/from JSON file
 
-- [ ] Create `streamdeck_ctrl/state_store.py` — load persisted state, atomic write (`os.replace`), thread-safe with `threading.Lock`
-- [ ] Create `tests/test_state_store.py` — save/load round-trip, atomic write (no partial file on crash), missing file returns empty, merge with initial_state
-- [ ] **Test:** `pytest tests/test_state_store.py`
-- [ ] **Commit**
+- [x] Create `streamdeck_ctrl/state_store.py` — atomic write (os.replace), thread-safe with Lock, auto-create parent dirs
+- [x] Create `tests/test_state_store.py` — 14 tests: load/save, thread safety, edge cases
+- [x] **Test:** `pytest tests/test_state_store.py` — 14/14 passed
+- [x] **Commit**
 
 ## Phase 5: Action Executor
 > Script and HTTP action execution with token substitution
