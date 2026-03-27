@@ -64,10 +64,10 @@
 ## Phase 6: Notifier (Unix Socket Server)
 > Unix domain socket accept loop, JSON parse, dispatch to key_manager
 
-- [ ] Create `streamdeck_ctrl/notifier.py` — `selectors`-based accept loop in own thread, JSON line parsing, dispatch to key_manager, response write-back, clean shutdown via event
-- [ ] Create `tests/test_notifier.py` — connect and send state update, send value update, unknown id error, invalid state error, multiple messages per connection
-- [ ] **Test:** `pytest tests/test_notifier.py`
-- [ ] **Commit**
+- [x] Create `streamdeck_ctrl/notifier.py` — selectors-based accept loop, JSON line parsing, dispatch, response write-back, clean shutdown
+- [x] Create `tests/test_notifier.py` — 10 tests: state/value notifications, errors, multi-message, multi-client
+- [x] **Test:** `pytest tests/test_notifier.py` — 10/10 passed
+- [x] **Commit**
 
 ## Phase 7: Daemon & Main Entry Point
 > USB lifecycle, reconnect loop, key callback routing, CLI parsing, signal handling
