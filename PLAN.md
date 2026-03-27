@@ -40,10 +40,10 @@
 ## Phase 3: Key Manager (State Machines)
 > Per-key state machines for all 4 icon types, render job enqueueing
 
-- [ ] Create `streamdeck_ctrl/key_manager.py` — `KeyState` class per key, press→next-state transitions, notify→jump-to-state, enqueue render jobs to a `queue.Queue`
-- [ ] Create `tests/test_key_manager.py` — static press, toggle cycle, multistate wrap-around, notify jump, invalid notify state rejected, live_value update
-- [ ] **Test:** `pytest tests/test_key_manager.py`
-- [ ] **Commit**
+- [x] Create `streamdeck_ctrl/key_manager.py` — KeyState + KeyManager, all 4 icon types, render queue, state persistence
+- [x] Create `tests/test_key_manager.py` — 43 tests: all icon types, press/notify/restore, KeyManager dispatch
+- [x] **Test:** `pytest tests/test_key_manager.py` — 43/43 passed
+- [x] **Commit**
 
 ## Phase 4: State Store
 > Runtime state persistence to/from JSON file
