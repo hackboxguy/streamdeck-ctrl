@@ -39,6 +39,24 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [0, 4],
+      "label": "Local Dimming",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "local-dimming-on.bmp",
+        "off": "local-dimming-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "display.local_dimming",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/brightness-demo/scripts/local-dimming-toggle.sh {state}",
+          "async": true
+        }
+      }
     }
   ]
 }
