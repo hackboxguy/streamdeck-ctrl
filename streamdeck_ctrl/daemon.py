@@ -304,7 +304,12 @@ class StreamDeckDaemon:
             deck.set_key_image(key_index, img.tobytes())
         else:
             from StreamDeck.ImageHelpers import PILHelper
-            native = PILHelper.to_native_key_format(deck, img)
+            # API name varies between library versions
+            to_native = getattr(PILHelper, 'to_native_key_format',
+                                getattr(PILHelper, 'to_native_format', None))
+            if to_native is None:
+                raise RuntimeError("PILHelper has no to_native_key_format or to_native_format")
+            native = to_native(deck, img)
             deck.set_key_image(key_index, native)
 
     def _start_poll_threads(self):
