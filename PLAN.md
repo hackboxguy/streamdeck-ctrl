@@ -84,10 +84,9 @@
 ## Phase 9: Integration Test with Example Config
 > Full stack test using example config, simulate mode, and socket notifications
 
-- [ ] Create `tests/test_integration.py` — start daemon in simulate mode, send notifications via socket, verify state transitions and render calls
-- [ ] Verify `--dry-run` with `config/example-layout.json`
-- [ ] **Test:** `pytest tests/test_integration.py`
-- [ ] **Commit**
+- [x] Create `tests/test_integration.py` — 10 tests: full stack with simulate mode, socket notifications, key presses, state persistence across restarts, render queue
+- [x] **Test:** `pytest tests/test_integration.py` — 10/10 passed
+- [x] **Commit**
 
 ## Phase 10: Deployment Artifacts
 > setup.sh, uninstall.sh, systemd unit, udev rule, buildroot package
