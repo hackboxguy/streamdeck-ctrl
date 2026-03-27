@@ -94,13 +94,20 @@ sed -e "s|{INSTALL_DIR}|${SCRIPT_DIR}|g" \
     "${SCRIPT_DIR}/streamdeck-ctrl.service.in" \
     > /etc/systemd/system/streamdeck-ctrl.service
 systemctl daemon-reload
-systemctl enable streamdeck-ctrl
-systemctl start streamdeck-ctrl || true   # don't fail if deck not plugged in yet
+
+# Start now if Stream Deck is plugged in, otherwise udev will start on next boot/plug
+if lsusb | grep -qi "0fd9"; then
+    systemctl start streamdeck-ctrl || true
+    echo ""
+    systemctl status streamdeck-ctrl --no-pager || true
+else
+    echo "[setup] No Stream Deck detected — service will start automatically on next boot"
+    echo "[setup] with the device connected (triggered by udev rule)."
+fi
 
 echo ""
-systemctl status streamdeck-ctrl --no-pager || true
-echo ""
 echo "[setup] Installation complete."
+echo "[setup] Service is udev-triggered: starts only when Stream Deck is present at boot."
 echo "[setup] Logs:   journalctl -u streamdeck-ctrl -f"
 echo "[setup] Socket: /run/streamdeck-ctrl/notify.sock"
 echo "[setup] Config: $CONFIG_FILE"
