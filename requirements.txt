@@ -1,3 +1,9 @@
+# Python dependencies for streamdeck-ctrl
+#
+# On Pi OS (Bookworm+), use apt instead of pip:
+#   sudo apt install python3-pil python3-requests python3-jsonschema python3-elgato-streamdeck
+#
+# pip/venv (non-Debian systems or Buildroot):
 streamdeck>=0.9.5
 Pillow>=9.0.0
 requests>=2.28.0

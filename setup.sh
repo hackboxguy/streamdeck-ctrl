@@ -48,14 +48,13 @@ echo "[setup] Config:    $CONFIG_FILE"
 echo "[setup] User:      $INSTALL_USER"
 echo ""
 
-# Step 1: System packages
-echo "[1/7] Installing system packages..."
+# Step 1: System and Python packages (all via apt, no pip needed)
+echo "[1/7] Installing system and Python packages..."
 apt-get update -qq
-apt-get install -y -qq libhidapi-hidraw0 libhidapi-libusb0 python3-pip socat
-
-# Step 2: Python packages
-echo "[2/7] Installing Python packages..."
-pip3 install --quiet streamdeck pillow requests jsonschema
+apt-get install -y -qq \
+    libhidapi-hidraw0 libhidapi-libusb0 socat \
+    python3 python3-pil python3-requests python3-jsonschema \
+    python3-elgato-streamdeck
 
 # Step 3: Resolve {INSTALL_DIR} in the config file
 echo "[3/7] Resolving {INSTALL_DIR} in config..."
