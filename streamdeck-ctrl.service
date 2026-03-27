@@ -1,0 +1,21 @@
+# streamdeck-ctrl.service
+[Unit]
+Description=Stream Deck Control Daemon
+After=multi-user.target
+# udev TAG+="systemd" also triggers this unit on USB plug-in
+
+[Service]
+Type=simple
+User=pi
+Group=plugdev
+# Note: --daemon is NOT used here; systemd manages the process lifecycle
+ExecStart=/usr/local/bin/streamdeck-ctrl --config=/etc/streamdeck-ctrl/layout.json
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+RuntimeDirectory=streamdeck-ctrl
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target

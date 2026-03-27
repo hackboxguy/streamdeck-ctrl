@@ -1,6 +1,6 @@
 # streamdeck-ctrl — Implementation Plan
 
-**Status:** In Progress
+**Status:** Complete
 **PRD:** [streamdeck-ctrl-prd.md](streamdeck-ctrl-prd.md)
 
 ---
@@ -91,13 +91,13 @@
 ## Phase 10: Deployment Artifacts
 > setup.sh, uninstall.sh, systemd unit, udev rule, buildroot package
 
-- [ ] Create `99-streamdeck.rules` (udev)
-- [ ] Create `streamdeck-ctrl.service` (systemd unit)
-- [ ] Create `setup.sh` — full installer per PRD section 8
-- [ ] Create `uninstall.sh` — reverse of setup.sh
-- [ ] Create `buildroot/Config.in` and `buildroot/streamdeck-ctrl.mk`
-- [ ] **Test:** shellcheck `setup.sh` and `uninstall.sh`
-- [ ] **Commit**
+- [x] Create `99-streamdeck.rules` (udev)
+- [x] Create `streamdeck-ctrl.service` (systemd unit)
+- [x] Create `setup.sh` — full installer per PRD section 8
+- [x] Create `uninstall.sh` — reverse of setup.sh
+- [x] Create `buildroot/Config.in`, `streamdeck-ctrl.mk`, wrapper script
+- [x] **Test:** shellcheck clean, 161/161 tests pass
+- [x] **Commit**
 
 ---
 

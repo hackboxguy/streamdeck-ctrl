@@ -1,0 +1,13 @@
+config BR2_PACKAGE_STREAMDECK_CTRL
+	bool "streamdeck-ctrl"
+	depends on BR2_PACKAGE_PYTHON3
+	depends on BR2_PACKAGE_PYTHON_PILLOW
+	depends on BR2_PACKAGE_PYTHON_REQUESTS
+	depends on BR2_PACKAGE_PYTHON_STREAMDECK
+	depends on BR2_PACKAGE_LIBHIDAPI
+	help
+	  Headless Stream Deck control daemon.
+	  Driven by a JSON layout config file.
+	  Supports toggle, multistate, static, and live_value key types.
+	  External state notifications via Unix domain socket.
+	  https://github.com/hackboxguy/streamdeck-ctrl

@@ -1,0 +1,5 @@
+# /etc/udev/rules.d/99-streamdeck.rules
+
+# Elgato Stream Deck (all models share vendor 0fd9)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0fd9", GROUP="plugdev", MODE="0660", \
+    TAG+="systemd", ENV{SYSTEMD_WANTS}="streamdeck-ctrl.service"
