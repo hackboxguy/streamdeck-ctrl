@@ -1,0 +1,44 @@
+{
+  "device": {
+    "brightness": 80,
+    "reconnect_timeout_sec": 0,
+    "reconnect_interval_sec": 2
+  },
+  "notification": {
+    "type": "unix_socket",
+    "socket_path": "/run/streamdeck-ctrl/notify.sock",
+    "state_persist_path": "{INSTALL_DIR}/state.json"
+  },
+  "keys": [
+    {
+      "position": [0, 0],
+      "label": "Brightness Up",
+      "icon_type": "static",
+      "icons": {
+        "default": "brightness-up.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/brightness-demo/scripts/brightness-up.sh",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [0, 1],
+      "label": "Brightness Down",
+      "icon_type": "static",
+      "icons": {
+        "default": "brightness-down.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/brightness-demo/scripts/brightness-down.sh",
+          "async": true
+        }
+      }
+    }
+  ]
+}

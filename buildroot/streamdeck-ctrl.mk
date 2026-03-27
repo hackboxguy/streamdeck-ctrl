@@ -29,8 +29,11 @@ define STREAMDECK_CTRL_INSTALL_TARGET_CMDS
 		$(TARGET_DIR)/etc/udev/rules.d/99-streamdeck.rules
 
 	mkdir -p $(TARGET_DIR)/etc/systemd/system
-	install -m 0644 $(@D)/streamdeck-ctrl.service \
-		$(TARGET_DIR)/etc/systemd/system/streamdeck-ctrl.service
+	sed -e 's|{INSTALL_DIR}|/usr/lib/streamdeck-ctrl|g' \
+		-e 's|{USER}|root|g' \
+		-e 's|{CONFIG_PATH}|/etc/streamdeck-ctrl/layout.json|g' \
+		$(@D)/streamdeck-ctrl.service.in \
+		> $(TARGET_DIR)/etc/systemd/system/streamdeck-ctrl.service
 
 	mkdir -p $(TARGET_DIR)/etc/tmpfiles.d
 	echo "d /run/streamdeck-ctrl 0755 root root -" > \
