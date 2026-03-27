@@ -1,0 +1,112 @@
+{
+  "device": {
+    "brightness": 80,
+    "reconnect_timeout_sec": 30,
+    "reconnect_interval_sec": 2
+  },
+  "notification": {
+    "type": "unix_socket",
+    "socket_path": "/run/streamdeck-ctrl/notify.sock",
+    "state_persist_path": "/run/streamdeck-ctrl/state.json"
+  },
+  "keys": [
+    {
+      "position": [0, 0],
+      "label": "Backlight",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "icons/backlight_on.png",
+        "off": "icons/backlight_off.png"
+      },
+      "initial_state": "off",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "/home/pi/scripts/backlight_toggle.sh {state}",
+          "async": true
+        }
+      },
+      "notification_id": "backlight.state"
+    },
+    {
+      "position": [0, 1],
+      "label": "Restart Kodi",
+      "icon_type": "static",
+      "icons": {
+        "default": "icons/kodi.png"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "/home/pi/scripts/restart_kodi.sh",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [0, 2],
+      "label": "Display Mode",
+      "icon_type": "multistate",
+      "states": ["sdr", "hdr", "night"],
+      "icons": {
+        "sdr": "icons/mode_sdr.png",
+        "hdr": "icons/mode_hdr.png",
+        "night": "icons/mode_night.png"
+      },
+      "initial_state": "sdr",
+      "action": {
+        "on_press": {
+          "type": "http",
+          "method": "POST",
+          "url": "http://localhost:8080/api/display/mode",
+          "body": { "mode": "{state}" },
+          "async": true
+        }
+      },
+      "notification_id": "display.mode"
+    },
+    {
+      "position": [1, 0],
+      "label": "CPU Temp",
+      "icon_type": "live_value",
+      "icons": {
+        "base": "icons/thermometer.png"
+      },
+      "live": {
+        "source": "poll",
+        "poll_command": "/home/pi/scripts/read_temp.sh",
+        "poll_interval_sec": 3,
+        "format": "{value:.1f}\u00b0C",
+        "text_anchor": "bottom",
+        "text_color": "#FFFFFF",
+        "font_size": 14
+      },
+      "notification_id": "sensor.temp",
+      "action": null
+    },
+    {
+      "position": [1, 1],
+      "label": "Brightness",
+      "icon_type": "live_value",
+      "icons": {
+        "base": "icons/brightness.png"
+      },
+      "live": {
+        "source": "notify_only",
+        "format": "{value}%",
+        "text_anchor": "bottom",
+        "text_color": "#FFD700",
+        "font_size": 14
+      },
+      "notification_id": "display.brightness",
+      "action": {
+        "on_press": {
+          "type": "http",
+          "method": "GET",
+          "url": "http://localhost:8080/api/brightness/cycle",
+          "async": true
+        }
+      }
+    }
+  ]
+}
