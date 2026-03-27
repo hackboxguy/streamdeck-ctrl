@@ -72,21 +72,14 @@
 ## Phase 7: Daemon & Main Entry Point
 > USB lifecycle, reconnect loop, key callback routing, CLI parsing, signal handling
 
-- [ ] Create `streamdeck_ctrl/daemon.py` — deck open/close, reconnect loop, key callback → key_manager, render_thread consuming render_queue → `deck.set_key_image()`, poll threads for live_value keys, simulate mode (log renders instead of HID)
-- [ ] Create `streamdeck_ctrl/main.py` — argparse CLI (`--config`, `--socket-path`, `--brightness`, `--dry-run`, `--simulate`, `--log-level`, `--daemon`, `--version`), signal handlers (SIGTERM/SIGINT), daemonize double-fork, wire all modules
-- [ ] Create `tests/test_daemon.py` — simulate mode startup/shutdown, key press routing, reconnect behavior (mocked deck)
-- [ ] **Test:** `pytest tests/test_daemon.py`
-- [ ] **Commit**
+- [x] Create `streamdeck_ctrl/daemon.py` — FakeDeck, StreamDeckDaemon, reconnect loop, render thread, poll threads, simulate mode
+- [x] Create `streamdeck_ctrl/main.py` — argparse CLI, signal handlers, daemonize, dry_run
+- [x] Create `tests/test_daemon.py` — 11 tests: FakeDeck, simulate start/stop/notifications/key press, dry_run
+- [x] **Test:** `pytest tests/` — 151/151 passed (full suite)
+- [x] **Commit**
 
-## Phase 8: Dry-Run & Simulate Modes
-> End-to-end validation without hardware
-
-- [ ] Implement `--dry-run` in `main.py` — load config, validate, print key layout table, verify icon files, exit
-- [ ] Implement `--simulate` in `daemon.py` — full daemon loop with a `FakeDeck` class that logs image updates instead of HID writes
-- [ ] Create `tests/test_dry_run.py` — dry-run output matches expected format
-- [ ] Create `tests/test_simulate.py` — simulate mode processes key presses and notifications correctly
-- [ ] **Test:** `pytest tests/test_dry_run.py tests/test_simulate.py`
-- [ ] **Commit**
+## ~~Phase 8: Dry-Run & Simulate Modes~~ (merged into Phase 7)
+> Dry-run and simulate were implemented directly in daemon.py/main.py and tested in test_daemon.py
 
 ## Phase 9: Integration Test with Example Config
 > Full stack test using example config, simulate mode, and socket notifications
