@@ -30,12 +30,12 @@
 ## Phase 2: Icon Renderer
 > PIL-based image rendering for all 4 icon types, LRU cache
 
-- [ ] Bundle `fonts/DejaVuSans-Bold.ttf` in repo
-- [ ] Create `streamdeck_ctrl/icon_renderer.py` — render static/toggle/multistate icons (PNG load + scale), live_value overlay (text on base PNG), LRU cache keyed on `(png_path, text, color, font_size)`
-- [ ] Create test PNG assets in `tests/fixtures/` (simple colored squares)
-- [ ] Create `tests/test_icon_renderer.py` — render each icon type, cache hit/miss, missing font fallback
-- [ ] **Test:** `pytest tests/test_icon_renderer.py`
-- [ ] **Commit**
+- [x] Bundle `fonts/DejaVuSans-Bold.ttf` in repo (693KB)
+- [x] Create `streamdeck_ctrl/icon_renderer.py` — PNG load+scale, text overlay with shadow, LRU cache, font fallback chain
+- [x] Create test PNG assets in `tests/fixtures/` (6 colored 72x72 squares)
+- [x] Create `tests/test_icon_renderer.py` — 21 tests: rendering, text overlay, cache behavior, edge cases
+- [x] **Test:** `pytest tests/test_icon_renderer.py` — 21/21 passed
+- [x] **Commit**
 
 ## Phase 3: Key Manager (State Machines)
 > Per-key state machines for all 4 icon types, render job enqueueing
