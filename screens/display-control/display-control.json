@@ -21,7 +21,7 @@
         "on_press": {
           "type": "script",
           "command": "{INSTALL_DIR}/screens/display-control/scripts/brightness-up.sh",
-          "async": true
+          "async": false
         }
       }
     },
@@ -36,7 +36,7 @@
         "on_press": {
           "type": "script",
           "command": "{INSTALL_DIR}/screens/display-control/scripts/brightness-down.sh",
-          "async": true
+          "async": false
         }
       }
     },
