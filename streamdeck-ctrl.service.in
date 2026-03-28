@@ -16,6 +16,7 @@ Group=plugdev
 WorkingDirectory={INSTALL_DIR}
 Environment=PYTHONPATH={INSTALL_DIR}
 ExecStart=/usr/bin/python3 {INSTALL_DIR}/streamdeck_ctrl/main.py --config={CONFIG_PATH}
+ExecStartPost=-{INSTALL_DIR}/screens/display-control/scripts/sync-als-dimmer.sh
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
