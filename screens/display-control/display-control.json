@@ -20,7 +20,7 @@
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/brightness-demo/scripts/brightness-up.sh",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/brightness-up.sh",
           "async": true
         }
       }
@@ -35,7 +35,43 @@
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/brightness-demo/scripts/brightness-down.sh",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/brightness-down.sh",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [0, 2],
+      "label": "Video Loop",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "video-loop-on.bmp",
+        "off": "video-loop-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "display.video_loop",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/video-loop-toggle.sh {state}",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [0, 3],
+      "label": "ALS Adaptive",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "als-adaptive-on.bmp",
+        "off": "als-adaptive-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "display.als_adaptive",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/als-adaptive-toggle.sh {state}",
           "async": true
         }
       }
@@ -53,7 +89,7 @@
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/brightness-demo/scripts/local-dimming-toggle.sh {state}",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/local-dimming-toggle.sh {state}",
           "async": true
         }
       }
