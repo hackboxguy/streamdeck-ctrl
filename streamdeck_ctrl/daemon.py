@@ -419,7 +419,8 @@ def dry_run(config_path):
     print(f"[DRY RUN] Config loaded: {os.path.abspath(config_path)}")
     print(f"[DRY RUN] Device brightness: {config['device']['brightness']}")
     print(f"[DRY RUN] Notify socket: {config['notification']['socket_path']}")
-    print(f"[DRY RUN] Key layout ({len(config['keys'])} keys, 3 rows x 5 cols):")
+    layout = config["device"].get("layout", [3, 5])
+    print(f"[DRY RUN] Key layout ({len(config['keys'])} keys, {layout[0]} rows x {layout[1]} cols):")
 
     for key in sorted(config["keys"], key=lambda k: (k["position"][0], k["position"][1])):
         pos = key["position"]

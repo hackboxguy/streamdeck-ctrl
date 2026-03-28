@@ -83,7 +83,6 @@ class Notifier:
         try:
             os.makedirs(os.path.dirname(self._socket_path), exist_ok=True)
             self._server_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            self._server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self._server_sock.bind(self._socket_path)
             self._server_sock.listen(5)
             self._server_sock.setblocking(False)

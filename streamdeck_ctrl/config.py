@@ -197,6 +197,13 @@ CONFIG_SCHEMA = {
                     "type": "integer",
                     "minimum": 1,
                 },
+                "layout": {
+                    "type": "array",
+                    "items": {"type": "integer", "minimum": 1},
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "description": "[rows, cols] — e.g. [3,5] for 15-key, [2,3] for Mini",
+                },
             },
         },
         "notification": {
@@ -231,6 +238,7 @@ CONFIG_SCHEMA = {
 
 DEVICE_DEFAULTS = {
     "brightness": 80,
+    "layout": [3, 5],
     "reconnect_timeout_sec": 30,
     "reconnect_interval_sec": 2,
 }
@@ -291,7 +299,8 @@ def load_config(path, *, validate_icons=True):
         _inject_key_defaults(key)
 
     # --- semantic validation ---
-    _validate_positions(cfg["keys"])
+    layout = cfg["device"]["layout"]
+    _validate_positions(cfg["keys"], max_rows=layout[0], max_cols=layout[1])
     _validate_notification_ids(cfg["keys"])
     _validate_multistate_keys(cfg["keys"])
     _warn_stateful_keys_without_notification_id(cfg["keys"])

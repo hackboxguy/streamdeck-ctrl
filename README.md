@@ -16,7 +16,7 @@ Headless, config-driven daemon for controlling an Elgato Stream Deck on Linux sy
 ## Hardware
 
 - Raspberry Pi 4 (or any Linux system with USB)
-- Elgato Stream Deck 15-key (5×3 grid, 72×72 pixel keys)
+- Elgato Stream Deck — 15-key (5×3), Mini (3×2), or XL (8×4). Set `device.layout` in config.
 - Pi OS Lite (Bookworm) or Buildroot-based embedded Linux
 
 ## Quick Start
@@ -110,6 +110,7 @@ A config file declares the device settings, notification socket, and key layout.
 | Field | Default | Description |
 |---|---|---|
 | `device.brightness` | `80` | Key backlight brightness (0–100) |
+| `device.layout` | `[3, 5]` | `[rows, cols]` — grid size. `[3,5]` for 15-key, `[2,3]` for Mini, `[4,8]` for XL |
 | `device.reconnect_timeout_sec` | `30` | Give up reconnecting after N seconds (0 = forever) |
 | `device.reconnect_interval_sec` | `2` | Interval between reconnect attempts |
 | `notification.socket_path` | `/run/streamdeck-ctrl/notify.sock` | Unix domain socket path |
@@ -119,10 +120,10 @@ A config file declares the device settings, notification socket, and key layout.
 
 | Field | Required | Description |
 |---|---|---|
-| `position` | yes | `[row, col]` — zero-indexed. Row 0–2, Col 0–4 for 15-key deck |
+| `position` | yes | `[row, col]` — zero-indexed, within `device.layout` bounds |
 | `label` | yes | Human-readable name (used in logs and dry-run) |
 | `icon_type` | yes | `static`, `toggle`, `multistate`, or `live_value` |
-| `notification_id` | no | Dot-separated ID for external state/value updates |
+| `notification_id` | no | Dot-separated ID for external state/value updates. Required for state persistence across restarts and socket notifications. |
 | `action` | no | Action to execute on key press (see below) |
 
 ### Actions

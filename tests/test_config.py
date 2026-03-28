@@ -115,8 +115,23 @@ class TestValidConfigs:
         cfg_path = _write_config(tmpdir, _base_cfg([_minimal_static()]), ICONS)
         cfg = load_config(cfg_path)
         assert cfg["device"]["brightness"] == 80
+        assert cfg["device"]["layout"] == [3, 5]
         assert cfg["device"]["reconnect_timeout_sec"] == 30
         assert cfg["device"]["reconnect_interval_sec"] == 2
+
+    def test_custom_layout(self, tmpdir):
+        cfg = _base_cfg([_minimal_static(pos=(1, 2))])
+        cfg["device"] = {"layout": [2, 3]}
+        cfg_path = _write_config(tmpdir, cfg, ICONS)
+        result = load_config(cfg_path)
+        assert result["device"]["layout"] == [2, 3]
+
+    def test_custom_layout_rejects_out_of_bounds(self, tmpdir):
+        cfg = _base_cfg([_minimal_static(pos=(0, 3))])
+        cfg["device"] = {"layout": [2, 3]}
+        cfg_path = _write_config(tmpdir, cfg, ICONS)
+        with pytest.raises(ValueError, match="out of bounds"):
+            load_config(cfg_path)
 
     def test_notification_defaults_injected(self, tmpdir):
         cfg_path = _write_config(tmpdir, _base_cfg([_minimal_static()]), ICONS)

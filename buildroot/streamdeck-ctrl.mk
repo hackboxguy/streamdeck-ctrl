@@ -25,10 +25,11 @@ define STREAMDECK_CTRL_INSTALL_TARGET_CMDS
 	install -m 0755 $(@D)/buildroot/streamdeck-ctrl.wrapper \
 		$(TARGET_DIR)/usr/bin/streamdeck-ctrl
 
-	# Install default config
+	# Install default config (illustrative — action scripts are placeholders)
 	mkdir -p $(TARGET_DIR)/etc/streamdeck-ctrl/icons
 	install -m 0644 $(@D)/config/example-layout.json \
 		$(TARGET_DIR)/etc/streamdeck-ctrl/layout.json
+	cp $(@D)/config/icons/*.png $(TARGET_DIR)/etc/streamdeck-ctrl/icons/
 
 	# Install udev rule
 	mkdir -p $(TARGET_DIR)/etc/udev/rules.d
