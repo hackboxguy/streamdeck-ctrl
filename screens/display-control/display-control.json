@@ -93,6 +93,21 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [1, 0],
+      "label": "Kodi",
+      "icon_type": "static",
+      "icons": {
+        "default": "kodi.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-media-player.sh",
+          "async": true
+        }
+      }
     }
   ]
 }
