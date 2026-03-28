@@ -177,7 +177,7 @@ To restore placeholders after changes: `git checkout -- <config-file>`
 
 ## Real-World Example: Display Control
 
-The included `screens/display-control/` layout integrates with [als-dimmer](https://github.com/hackboxguy/als-dimmer) for display brightness and feature control:
+The included `screens/display-control/` layout integrates bidirectionally with [als-dimmer](https://github.com/hackboxguy/als-dimmer) for display brightness and feature control. Key presses send commands to als-dimmer, and als-dimmer's callback script pushes state changes back to update the deck icons in real time:
 
 ```
 Row 0:  [0,0] Brightness Up   [0,1] Brightness Down   [0,2] Video Loop   [0,3] ALS Adaptive   [0,4] Local Dimming
@@ -235,6 +235,34 @@ echo '{"id":"sensor.temp","value":"53.2"}' \
 {"status": "ok"}
 {"status": "error", "reason": "unknown notification_id: foo.bar"}
 ```
+
+### Receiving Events from External Services
+
+External daemons can push state changes to streamdeck-ctrl via a callback script that writes to the notification socket. This enables the Stream Deck to reflect state changes made outside of the deck (e.g. via a display's touch screen or another API).
+
+The pattern:
+1. Configure the external service to call a script on state change
+2. The script maps the event to a streamdeck-ctrl notification and sends it via `socat`
+
+Example bridge script (`als-dimmer-notify.sh`):
+```bash
+#!/bin/bash
+# Called by als-dimmer: $1=event_type $2=value
+SOCK="/run/streamdeck-ctrl/notify.sock"
+case "$1" in
+    mode_changed)
+        [ "$2" = "auto" ] && STATE="on" || STATE="off"
+        echo "{\"id\":\"display.als_adaptive\",\"state\":\"$STATE\"}" \
+            | socat - UNIX-CONNECT:"$SOCK" 2>/dev/null
+        ;;
+    brightness_changed)
+        echo "{\"id\":\"display.brightness\",\"value\":\"$2\"}" \
+            | socat - UNIX-CONNECT:"$SOCK" 2>/dev/null
+        ;;
+esac
+```
+
+This keeps both services fully decoupled — the external service doesn't know about streamdeck-ctrl, and streamdeck-ctrl doesn't know about the external service.
 
 ## Security
 
