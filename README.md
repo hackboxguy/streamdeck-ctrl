@@ -259,12 +259,12 @@ Options:
 
 **Validate a config:**
 ```bash
-python3 streamdeck_ctrl/main.py --config ./screens/display-control/display-control.json --dry-run
+python3 -m streamdeck_ctrl.main --config ./screens/display-control/display-control.json --dry-run
 ```
 
 **Test without hardware:**
 ```bash
-python3 streamdeck_ctrl/main.py --config ./screens/display-control/display-control.json --simulate
+python3 -m streamdeck_ctrl.main --config ./screens/display-control/display-control.json --simulate
 ```
 
 ## Creating a Screen

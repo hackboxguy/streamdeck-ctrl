@@ -175,7 +175,12 @@ class KeyState:
             live = self._live_config
             fmt = live.get("format", "{value}")
             try:
-                info["overlay_text"] = fmt.format(value=self._value)
+                # Attempt float conversion for numeric format specs like {value:.1f}
+                try:
+                    typed_value = float(self._value)
+                except (ValueError, TypeError):
+                    typed_value = self._value
+                info["overlay_text"] = fmt.format(value=typed_value)
             except (ValueError, KeyError):
                 info["overlay_text"] = str(self._value)
             info["live_config"] = live

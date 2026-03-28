@@ -306,6 +306,35 @@ class TestSemanticValidation:
         with pytest.raises(ValueError, match="initial_state"):
             load_config(cfg_path)
 
+    def test_position_out_of_bounds_row(self, tmpdir):
+        key = _minimal_static(pos=(3, 0), label="OOB")
+        cfg_path = _write_config(tmpdir, _base_cfg([key]), ICONS)
+        with pytest.raises(ValueError, match="out of bounds"):
+            load_config(cfg_path)
+
+    def test_position_out_of_bounds_col(self, tmpdir):
+        key = _minimal_static(pos=(0, 5), label="OOB")
+        cfg_path = _write_config(tmpdir, _base_cfg([key]), ICONS)
+        with pytest.raises(ValueError, match="out of bounds"):
+            load_config(cfg_path)
+
+    def test_position_max_valid(self, tmpdir):
+        key = _minimal_static(pos=(2, 4), label="MaxValid")
+        cfg_path = _write_config(tmpdir, _base_cfg([key]), ICONS)
+        cfg = load_config(cfg_path)
+        assert cfg["keys"][0]["position"] == [2, 4]
+
+    def test_duplicate_notification_id_rejected(self, tmpdir):
+        keys = [
+            _minimal_toggle(pos=(0, 0), label="K1"),
+            _minimal_toggle(pos=(0, 1), label="K2"),
+        ]
+        keys[0]["notification_id"] = "same.id"
+        keys[1]["notification_id"] = "same.id"
+        cfg_path = _write_config(tmpdir, _base_cfg(keys), ICONS)
+        with pytest.raises(ValueError, match="Duplicate notification_id"):
+            load_config(cfg_path)
+
     def test_missing_icon_file(self, tmpdir):
         key = _minimal_static(icon="icons/nonexistent.png")
         cfg_path = _write_config(tmpdir, _base_cfg([key]), ICONS)

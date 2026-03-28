@@ -292,6 +292,7 @@ def load_config(path, *, validate_icons=True):
 
     # --- semantic validation ---
     _validate_positions(cfg["keys"])
+    _validate_notification_ids(cfg["keys"])
     _validate_multistate_keys(cfg["keys"])
 
     # --- resolve icon paths ---
@@ -319,17 +320,39 @@ def _inject_key_defaults(key):
             key["live"].setdefault(k, v)
 
 
-def _validate_positions(keys):
-    """Ensure no two keys share the same position."""
+def _validate_positions(keys, max_rows=3, max_cols=5):
+    """Ensure no two keys share the same position and all are within bounds."""
     seen = {}
     for key in keys:
         pos = tuple(key["position"])
+        row, col = pos
+        if row >= max_rows or col >= max_cols:
+            raise ValueError(
+                f"Key '{key['label']}': position {list(pos)} is out of bounds "
+                f"for {max_rows}x{max_cols} deck (max row={max_rows - 1}, "
+                f"max col={max_cols - 1})"
+            )
         if pos in seen:
             raise ValueError(
                 f"Duplicate position {list(pos)}: "
                 f"'{key['label']}' and '{seen[pos]}'"
             )
         seen[pos] = key["label"]
+
+
+def _validate_notification_ids(keys):
+    """Ensure no two keys share the same notification_id."""
+    seen = {}
+    for key in keys:
+        nid = key.get("notification_id")
+        if nid is None:
+            continue
+        if nid in seen:
+            raise ValueError(
+                f"Duplicate notification_id '{nid}': "
+                f"'{key['label']}' and '{seen[nid]}'"
+            )
+        seen[nid] = key["label"]
 
 
 def _validate_multistate_keys(keys):

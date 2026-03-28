@@ -227,6 +227,24 @@ class TestLiveValueKey:
         info = ks.get_render_info()
         assert info["overlay_text"] == "42.5°C"
 
+    def test_notify_value_float_format_spec(self):
+        """Format specs like {value:.1f} should work with numeric values."""
+        cfg = live_cfg()
+        cfg["live"]["format"] = "{value:.1f}°C"
+        ks = KeyState(cfg, make_queue())
+        ks.notify_value("42.56")
+        info = ks.get_render_info()
+        assert info["overlay_text"] == "42.6°C"
+
+    def test_notify_value_string_fallback(self):
+        """Non-numeric values should still render with simple format."""
+        cfg = live_cfg()
+        cfg["live"]["format"] = "{value}"
+        ks = KeyState(cfg, make_queue())
+        ks.notify_value("N/A")
+        info = ks.get_render_info()
+        assert info["overlay_text"] == "N/A"
+
     def test_poll_update(self):
         ks = KeyState(live_cfg(), make_queue())
         ks.update_poll_value("55")

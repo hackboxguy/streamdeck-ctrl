@@ -27,6 +27,8 @@ class Notifier:
         self._socket_path = socket_path
         self._on_notification = on_notification
         self._shutdown_event = threading.Event()
+        self._ready_event = threading.Event()
+        self._start_error = None
         self._thread = None
         self._server_sock = None
 
@@ -34,12 +36,30 @@ class Notifier:
     def socket_path(self):
         return self._socket_path
 
-    def start(self):
-        """Start the notifier thread."""
+    def start(self, timeout=5):
+        """Start the notifier thread and wait for socket to be ready.
+
+        Args:
+            timeout: Seconds to wait for socket bind. 0 = don't wait.
+
+        Raises:
+            RuntimeError: If the socket fails to bind within timeout.
+        """
         self._thread = threading.Thread(
             target=self._run, name="notifier", daemon=True
         )
         self._thread.start()
+
+        if timeout > 0:
+            if not self._ready_event.wait(timeout=timeout):
+                raise RuntimeError(
+                    f"Notifier failed to start within {timeout}s: "
+                    f"socket {self._socket_path}"
+                )
+            if self._start_error:
+                raise RuntimeError(
+                    f"Notifier failed to bind socket: {self._start_error}"
+                )
         logger.info("Notifier started on %s", self._socket_path)
 
     def stop(self):
@@ -60,13 +80,20 @@ class Notifier:
     def _run(self):
         """Main accept loop using selectors for clean shutdown."""
         self._cleanup_socket()
-        os.makedirs(os.path.dirname(self._socket_path), exist_ok=True)
+        try:
+            os.makedirs(os.path.dirname(self._socket_path), exist_ok=True)
+            self._server_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            self._server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self._server_sock.bind(self._socket_path)
+            self._server_sock.listen(5)
+            self._server_sock.setblocking(False)
+        except Exception as e:
+            self._start_error = str(e)
+            self._ready_event.set()
+            logger.error("Notifier failed to bind %s: %s", self._socket_path, e)
+            return
 
-        self._server_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self._server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._server_sock.bind(self._socket_path)
-        self._server_sock.listen(5)
-        self._server_sock.setblocking(False)
+        self._ready_event.set()
 
         sel = selectors.DefaultSelector()
         sel.register(self._server_sock, selectors.EVENT_READ)
