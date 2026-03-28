@@ -3,8 +3,10 @@ config BR2_PACKAGE_STREAMDECK_CTRL
 	depends on BR2_PACKAGE_PYTHON3
 	depends on BR2_PACKAGE_PYTHON_PILLOW
 	depends on BR2_PACKAGE_PYTHON_REQUESTS
+	depends on BR2_PACKAGE_PYTHON_JSONSCHEMA
 	depends on BR2_PACKAGE_PYTHON_STREAMDECK
 	depends on BR2_PACKAGE_LIBHIDAPI
+	depends on BR2_PACKAGE_SOCAT
 	help
 	  Headless Stream Deck control daemon.
 	  Driven by a JSON layout config file.
