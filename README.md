@@ -2,9 +2,6 @@
 
 Headless, config-driven daemon for controlling an Elgato Stream Deck on Linux systems with no desktop environment. All behaviour — key layout, icons, actions, states — is declared in a single JSON configuration file. External services can push state changes via a Unix domain socket.
 
-![Stream Deck in action](images/streamdeck-screenshot.png)
-<!-- Replace with actual screenshot when available -->
-
 ## Features
 
 - **Zero desktop dependency** — runs on framebuffer-only or fully headless systems
@@ -181,9 +178,6 @@ To restore placeholders after changes: `git checkout -- <config-file>`
 
 The included `screens/display-control/` layout integrates with [als-dimmer](https://github.com/hackboxguy/als-dimmer) for display brightness and feature control:
 
-![Display Control Layout](images/display-control-screenshot.png)
-<!-- Replace with actual screenshot when available -->
-
 ```
 Row 0:  [0,0] Brightness Up   [0,1] Brightness Down   [0,2] Video Loop   [0,3] ALS Adaptive   [0,4] Local Dimming
              (static)              (static)              (toggle)           (toggle)             (toggle)
@@ -240,6 +234,12 @@ echo '{"id":"sensor.temp","value":"53.2"}' \
 {"status": "ok"}
 {"status": "error", "reason": "unknown notification_id: foo.bar"}
 ```
+
+## Security
+
+`streamdeck-ctrl` is designed for **trusted, single-operator environments** (e.g. a dedicated Pi appliance). Script actions use `shell=True` with token substitution, and the Unix socket accepts connections from any local process. This is intentional for ease of integration with shell scripts and local services.
+
+Do not expose the notification socket to untrusted networks or allow untrusted users to modify config files or notification payloads.
 
 ## CLI Reference
 

@@ -20,8 +20,10 @@ logger = logging.getLogger(__name__)
 class FakeDeck:
     """Simulated Stream Deck for --simulate mode. Logs image updates."""
 
-    def __init__(self):
-        self._key_count = 15
+    def __init__(self, cols=5, rows=3):
+        self._key_count = rows * cols
+        self._cols = cols
+        self._rows = rows
         self._brightness = 0
         self._open = True
         self._callback = None
@@ -29,6 +31,9 @@ class FakeDeck:
 
     def key_count(self):
         return self._key_count
+
+    def key_layout(self):
+        return (self._rows, self._cols)
 
     def key_image_format(self):
         return {"size": (72, 72), "format": "BMP", "rotation": 0, "flip": (True, True)}
@@ -80,6 +85,7 @@ class StreamDeckDaemon:
         self._shutdown_event = threading.Event()
         self._render_queue = queue.Queue(maxsize=256)
         self._deck = None
+        self._deck_cols = 5  # default, overridden in _setup_deck
         self._key_manager = None
         self._notifier = None
         self._state_store = None
@@ -199,6 +205,14 @@ class StreamDeckDaemon:
 
     def _setup_deck(self, deck):
         """Configure deck: brightness, key images, callback, render thread."""
+        # Detect column count from deck layout or key count
+        if hasattr(deck, 'key_layout'):
+            _, self._deck_cols = deck.key_layout()
+        else:
+            # Real StreamDeck: infer from key count (15→5, 6→3, 32→8)
+            key_count = deck.key_count()
+            self._deck_cols = {6: 3, 15: 5, 32: 8}.get(key_count, 5)
+
         deck.set_brightness(self._config["device"]["brightness"])
 
         # Start render thread
@@ -219,8 +233,8 @@ class StreamDeckDaemon:
         if not pressed:
             return  # only handle key-down
 
-        # Map linear key index to (row, col) for 5-column deck
-        cols = 5
+        # Map linear key index to (row, col)
+        cols = self._deck_cols
         row = key_index // cols
         col = key_index % cols
         position = (row, col)
@@ -281,7 +295,7 @@ class StreamDeckDaemon:
             return
 
         # Map (row, col) to linear key index
-        key_index = position[0] * 5 + position[1]
+        key_index = position[0] * self._deck_cols + position[1]
 
         if info["icon_type"] == "live_value":
             live = info.get("live_config", {})

@@ -8,9 +8,14 @@ from PIL import Image, ImageDraw, ImageFont
 
 logger = logging.getLogger(__name__)
 
-# Default font bundled with the project
-_DEFAULT_FONT_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)), "fonts", "DejaVuSans-Bold.ttf"
+# Default font — search relative to package, then system paths
+_FONT_SEARCH_PATHS = [
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), "fonts", "DejaVuSans-Bold.ttf"),
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+]
+_DEFAULT_FONT_PATH = next(
+    (p for p in _FONT_SEARCH_PATHS if os.path.isfile(p)),
+    _FONT_SEARCH_PATHS[0],  # fallback to first path even if missing
 )
 
 # Default key size (Stream Deck MK.2); overridden at runtime by deck.key_image_format()

@@ -294,6 +294,7 @@ def load_config(path, *, validate_icons=True):
     _validate_positions(cfg["keys"])
     _validate_notification_ids(cfg["keys"])
     _validate_multistate_keys(cfg["keys"])
+    _warn_stateful_keys_without_notification_id(cfg["keys"])
 
     # --- resolve icon paths ---
     _resolve_icon_paths(cfg["keys"], config_dir)
@@ -374,6 +375,19 @@ def _validate_multistate_keys(keys):
                 f"Key '{key['label']}': initial_state "
                 f"'{key['initial_state']}' not in states {states}"
             )
+
+
+def _warn_stateful_keys_without_notification_id(keys):
+    """Warn about toggle/multistate/live_value keys without notification_id."""
+    for key in keys:
+        if key["icon_type"] in ("toggle", "multistate", "live_value"):
+            if not key.get("notification_id"):
+                logger.warning(
+                    "Key '%s' (type=%s) has no notification_id — "
+                    "state will not persist across restarts and cannot "
+                    "be updated via notifications",
+                    key["label"], key["icon_type"],
+                )
 
 
 def _resolve_icon_paths(keys, config_dir):

@@ -1,2 +1,2 @@
 #!/bin/sh
-exec python3 /usr/lib/streamdeck-ctrl/main.py "$@"
+PYTHONPATH=/usr/lib/streamdeck-ctrl exec python3 -m streamdeck_ctrl.main "$@"
