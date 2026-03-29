@@ -108,6 +108,21 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [1, 1],
+      "label": "Display Settings",
+      "icon_type": "static",
+      "icons": {
+        "default": "settings.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-disp-settings.sh",
+          "async": true
+        }
+      }
     }
   ]
 }
