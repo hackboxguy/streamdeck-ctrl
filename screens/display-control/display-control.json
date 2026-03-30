@@ -138,6 +138,21 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [1, 4],
+      "label": "Home",
+      "icon_type": "static",
+      "icons": {
+        "default": "home.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-home.sh",
+          "async": true
+        }
+      }
     }
   ]
 }
