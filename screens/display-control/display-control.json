@@ -123,6 +123,21 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [1, 2],
+      "label": "Slideshow",
+      "icon_type": "static",
+      "icons": {
+        "default": "slideshow.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-slideshow.sh",
+          "async": true
+        }
+      }
     }
   ]
 }
