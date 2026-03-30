@@ -12,36 +12,51 @@
   "keys": [
     {
       "position": [0, 0],
-      "label": "Brightness Up",
+      "label": "Home",
       "icon_type": "static",
       "icons": {
-        "default": "brightness-up.bmp"
+        "default": "home.bmp"
       },
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/brightness-up.sh",
-          "async": false
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-home.sh",
+          "async": true
         }
       }
     },
     {
       "position": [0, 1],
-      "label": "Brightness Down",
+      "label": "Media Player",
       "icon_type": "static",
       "icons": {
-        "default": "brightness-down.bmp"
+        "default": "kodi.bmp"
       },
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/brightness-down.sh",
-          "async": false
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-media-player.sh",
+          "async": true
         }
       }
     },
     {
       "position": [0, 2],
+      "label": "Slideshow",
+      "icon_type": "static",
+      "icons": {
+        "default": "slideshow.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-slideshow.sh",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [0, 3],
       "label": "Video Loop",
       "icon_type": "toggle",
       "icons": {
@@ -59,7 +74,52 @@
       }
     },
     {
-      "position": [0, 3],
+      "position": [0, 4],
+      "label": "Display Settings",
+      "icon_type": "static",
+      "icons": {
+        "default": "settings.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-disp-settings.sh",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [1, 0],
+      "label": "Brightness Up",
+      "icon_type": "static",
+      "icons": {
+        "default": "brightness-up.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/brightness-up.sh",
+          "async": false
+        }
+      }
+    },
+    {
+      "position": [1, 1],
+      "label": "Brightness Down",
+      "icon_type": "static",
+      "icons": {
+        "default": "brightness-down.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/brightness-down.sh",
+          "async": false
+        }
+      }
+    },
+    {
+      "position": [1, 2],
       "label": "ALS Adaptive",
       "icon_type": "toggle",
       "icons": {
@@ -77,7 +137,7 @@
       }
     },
     {
-      "position": [0, 4],
+      "position": [1, 3],
       "label": "Local Dimming",
       "icon_type": "toggle",
       "icons": {
@@ -90,66 +150,6 @@
         "on_press": {
           "type": "script",
           "command": "{INSTALL_DIR}/screens/display-control/scripts/local-dimming-toggle.sh {state}",
-          "async": true
-        }
-      }
-    },
-    {
-      "position": [1, 0],
-      "label": "Kodi",
-      "icon_type": "static",
-      "icons": {
-        "default": "kodi.bmp"
-      },
-      "action": {
-        "on_press": {
-          "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-media-player.sh",
-          "async": true
-        }
-      }
-    },
-    {
-      "position": [1, 1],
-      "label": "Display Settings",
-      "icon_type": "static",
-      "icons": {
-        "default": "settings.bmp"
-      },
-      "action": {
-        "on_press": {
-          "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-disp-settings.sh",
-          "async": true
-        }
-      }
-    },
-    {
-      "position": [1, 2],
-      "label": "Slideshow",
-      "icon_type": "static",
-      "icons": {
-        "default": "slideshow.bmp"
-      },
-      "action": {
-        "on_press": {
-          "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-slideshow.sh",
-          "async": true
-        }
-      }
-    },
-    {
-      "position": [1, 4],
-      "label": "Home",
-      "icon_type": "static",
-      "icons": {
-        "default": "home.bmp"
-      },
-      "action": {
-        "on_press": {
-          "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-home.sh",
           "async": true
         }
       }
