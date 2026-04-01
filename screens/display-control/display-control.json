@@ -153,6 +153,21 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [1, 4],
+      "label": "Cluster Demo",
+      "icon_type": "static",
+      "icons": {
+        "default": "cluster-demo.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-cluster-demo.sh",
+          "async": true
+        }
+      }
     }
   ]
 }
