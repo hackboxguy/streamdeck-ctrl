@@ -19,8 +19,8 @@ if [ "$RUNNING" = "media-player" ]; then
         exit 0
     fi
 else
-    # Kodi not running — stop current app and start it
-    "$LAUNCHER" --srv="$SRV" --command=stop-app
+    # Kodi not running — transition through Home first
+    [ "$RUNNING" != "none" ] && "$LAUNCHER" --srv="$SRV" --command=stop-app && sleep 0.5
     "$LAUNCHER" --srv="$SRV" --command=start-app --command-arg=media-player
     # Wait for Kodi JSON-RPC to become available
     for i in $(seq 1 15); do

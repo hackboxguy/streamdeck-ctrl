@@ -27,8 +27,8 @@ if [ "$RUNNING" = "media-player" ]; then
         -d '{"jsonrpc":"2.0","method":"Player.Stop","params":{"playerid":2},"id":1}' \
         --connect-timeout 2 > /dev/null 2>&1
 else
-    # Kodi not running — stop current app and start it
-    "$LAUNCHER" --srv="$SRV" --command=stop-app
+    # Kodi not running — transition through Home first
+    [ "$RUNNING" != "none" ] && "$LAUNCHER" --srv="$SRV" --command=stop-app && sleep 0.5
     "$LAUNCHER" --srv="$SRV" --command=start-app --command-arg=media-player
     # Wait for Kodi JSON-RPC to become available
     for i in $(seq 1 15); do
