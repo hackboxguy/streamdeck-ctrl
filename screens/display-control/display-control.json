@@ -222,6 +222,24 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [2, 3],
+      "label": "HDMI EDID",
+      "icon_type": "radio",
+      "icons": {
+        "on": "edid-on.bmp",
+        "off": "edid-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "hdmi.edid",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/apply-hdmi-edid.sh",
+          "async": true
+        }
+      }
     }
   ]
 }
