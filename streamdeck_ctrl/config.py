@@ -56,7 +56,7 @@ KEY_COMMON = {
         "label": {"type": "string"},
         "icon_type": {
             "type": "string",
-            "enum": ["static", "toggle", "multistate", "live_value"],
+            "enum": ["static", "toggle", "multistate", "live_value", "radio"],
         },
         "notification_id": {"type": "string"},
         "action": {
@@ -92,6 +92,30 @@ TOGGLE_KEY_SCHEMA = {
         {
             "properties": {
                 "icon_type": {"const": "toggle"},
+                "icons": {
+                    "type": "object",
+                    "properties": {
+                        "on": {"type": "string"},
+                        "off": {"type": "string"},
+                    },
+                    "required": ["on", "off"],
+                },
+                "initial_state": {
+                    "type": "string",
+                    "enum": ["on", "off"],
+                },
+            },
+            "required": ["icons"],
+        },
+    ]
+}
+
+RADIO_KEY_SCHEMA = {
+    "allOf": [
+        KEY_COMMON,
+        {
+            "properties": {
+                "icon_type": {"const": "radio"},
                 "icons": {
                     "type": "object",
                     "properties": {
@@ -225,6 +249,7 @@ CONFIG_SCHEMA = {
                     TOGGLE_KEY_SCHEMA,
                     MULTISTATE_KEY_SCHEMA,
                     LIVE_VALUE_KEY_SCHEMA,
+                    RADIO_KEY_SCHEMA,
                 ],
             },
         },
@@ -320,7 +345,7 @@ def _inject_key_defaults(key):
     """Inject per-key defaults based on icon_type."""
     icon_type = key["icon_type"]
 
-    if icon_type == "toggle":
+    if icon_type in ("toggle", "radio"):
         key.setdefault("initial_state", "off")
     elif icon_type == "multistate":
         key.setdefault("initial_state", key["states"][0])
@@ -387,9 +412,9 @@ def _validate_multistate_keys(keys):
 
 
 def _warn_stateful_keys_without_notification_id(keys):
-    """Warn about toggle/multistate/live_value keys without notification_id."""
+    """Warn about toggle/multistate/live_value/radio keys without notification_id."""
     for key in keys:
-        if key["icon_type"] in ("toggle", "multistate", "live_value"):
+        if key["icon_type"] in ("toggle", "multistate", "live_value", "radio"):
             if not key.get("notification_id"):
                 logger.warning(
                     "Key '%s' (type=%s) has no notification_id — "

@@ -73,6 +73,20 @@ def live_cfg(**overrides):
     return cfg
 
 
+def radio_cfg(**overrides):
+    cfg = {
+        "position": [0, 0],
+        "label": "Radio",
+        "icon_type": "radio",
+        "icons": {"on": "/icons/on.png", "off": "/icons/off.png"},
+        "initial_state": "off",
+        "notification_id": "test.radio",
+        "action": {"on_press": {"type": "script", "command": "echo pressed"}},
+    }
+    cfg.update(overrides)
+    return cfg
+
+
 # ---------------------------------------------------------------------------
 # KeyState — Static
 # ---------------------------------------------------------------------------
@@ -279,6 +293,78 @@ class TestLiveValueKey:
 
 
 # ---------------------------------------------------------------------------
+# KeyState — Radio
+# ---------------------------------------------------------------------------
+
+
+class TestRadioKey:
+    def test_initial_state_off(self):
+        ks = KeyState(radio_cfg(), make_queue())
+        assert ks.state == "off"
+
+    def test_initial_state_on(self):
+        ks = KeyState(radio_cfg(initial_state="on"), make_queue())
+        assert ks.state == "on"
+
+    def test_press_does_not_change_state(self):
+        """Radio press is action-only — no state change."""
+        ks = KeyState(radio_cfg(initial_state="off"), make_queue())
+        new_state, action = ks.press()
+        assert new_state == "off"
+        assert ks.state == "off"
+        # And again
+        ks.press()
+        assert ks.state == "off"
+
+    def test_press_fires_action(self):
+        ks = KeyState(radio_cfg(), make_queue())
+        _, action = ks.press()
+        assert action is not None
+
+    def test_press_does_not_enqueue_render(self):
+        """Radio press should not enqueue a render (Option A)."""
+        q = make_queue()
+        ks = KeyState(radio_cfg(), q)
+        while not q.empty():
+            q.get_nowait()
+        ks.press()
+        assert q.empty()
+
+    def test_notify_state_on(self):
+        q = make_queue()
+        ks = KeyState(radio_cfg(), q)
+        ok, err = ks.notify_state("on")
+        assert ok and err is None
+        assert ks.state == "on"
+
+    def test_notify_state_off(self):
+        ks = KeyState(radio_cfg(initial_state="on"), make_queue())
+        ok, _ = ks.notify_state("off")
+        assert ok
+        assert ks.state == "off"
+
+    def test_notify_invalid_state(self):
+        ks = KeyState(radio_cfg(), make_queue())
+        ok, err = ks.notify_state("invalid")
+        assert not ok
+        assert "invalid state" in err
+
+    def test_notify_enqueues_render(self):
+        q = make_queue()
+        ks = KeyState(radio_cfg(), q)
+        while not q.empty():
+            q.get_nowait()
+        ks.notify_state("on")
+        assert not q.empty()
+
+    def test_render_info_uses_state_icon(self):
+        ks = KeyState(radio_cfg(), make_queue())
+        assert ks.get_render_info()["icon_path"] == "/icons/off.png"
+        ks.notify_state("on")
+        assert ks.get_render_info()["icon_path"] == "/icons/on.png"
+
+
+# ---------------------------------------------------------------------------
 # KeyState — Restore
 # ---------------------------------------------------------------------------
 
@@ -303,6 +389,11 @@ class TestRestore:
         ks = KeyState(toggle_cfg(), make_queue())
         ks.restore_state({"state": "invalid"})
         assert ks.state == "off"  # unchanged
+
+    def test_restore_radio_state(self):
+        ks = KeyState(radio_cfg(), make_queue())
+        ks.restore_state({"state": "on"})
+        assert ks.state == "on"
 
 
 # ---------------------------------------------------------------------------

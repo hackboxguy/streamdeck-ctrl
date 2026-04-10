@@ -60,6 +60,10 @@ Use for: display mode (SDR/HDR/Night), fan speed, log level.
 Base icon with a runtime text overlay. Value updated by polling a script, Unix socket notification, or both.
 Use for: sensor readouts, brightness %, status strings.
 
+### `radio`
+Two states: `on` / `off`, each with its own icon. Unlike `toggle`, press does **not** cycle the state — it fires the action only. State is controlled entirely by external notifications. Useful for mutually-exclusive selections (radio groups) where a sync script pushes the current selection from an external source of truth.
+Use for: HDMI timing profiles, display modes, exclusive configuration choices.
+
 ## Configuration
 
 A config file declares the device settings, notification socket, and key layout. Icon paths are resolved relative to the config file's directory.
@@ -122,7 +126,7 @@ A config file declares the device settings, notification socket, and key layout.
 |---|---|---|
 | `position` | yes | `[row, col]` — zero-indexed, within `device.layout` bounds |
 | `label` | yes | Human-readable name (used in logs and dry-run) |
-| `icon_type` | yes | `static`, `toggle`, `multistate`, or `live_value` |
+| `icon_type` | yes | `static`, `toggle`, `multistate`, `live_value`, or `radio` |
 | `notification_id` | no | Dot-separated ID for external state/value updates. Required for state persistence across restarts and socket notifications. |
 | `action` | no | Action to execute on key press (see below) |
 

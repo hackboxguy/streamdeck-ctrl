@@ -67,6 +67,15 @@ def _minimal_live(pos=(0, 0), label="Live"):
     }
 
 
+def _minimal_radio(pos=(0, 0), label="Radio"):
+    return {
+        "position": list(pos),
+        "label": label,
+        "icon_type": "radio",
+        "icons": {"on": "icons/green.png", "off": "icons/red.png"},
+    }
+
+
 def _base_cfg(keys):
     return {"keys": keys}
 
@@ -101,6 +110,20 @@ class TestValidConfigs:
         cfg = load_config(cfg_path)
         key = cfg["keys"][0]
         assert key["initial_state"] == "a"  # defaults to first state
+
+    def test_radio_key_with_defaults(self, tmpdir):
+        cfg_path = _write_config(tmpdir, _base_cfg([_minimal_radio()]), ICONS)
+        cfg = load_config(cfg_path)
+        key = cfg["keys"][0]
+        assert key["icon_type"] == "radio"
+        assert key["initial_state"] == "off"  # default injected
+
+    def test_radio_key_initial_state_on(self, tmpdir):
+        key = _minimal_radio()
+        key["initial_state"] = "on"
+        cfg_path = _write_config(tmpdir, _base_cfg([key]), ICONS)
+        cfg = load_config(cfg_path)
+        assert cfg["keys"][0]["initial_state"] == "on"
 
     def test_live_value_defaults(self, tmpdir):
         cfg_path = _write_config(tmpdir, _base_cfg([_minimal_live()]), ICONS)

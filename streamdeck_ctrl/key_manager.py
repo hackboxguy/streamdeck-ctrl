@@ -1,4 +1,4 @@
-"""Per-key state machines for all 4 icon types, render job enqueueing."""
+"""Per-key state machines for all 5 icon types, render job enqueueing."""
 
 import logging
 import queue
@@ -25,6 +25,8 @@ class KeyState:
         if self.icon_type == "static":
             self._state = "default"
         elif self.icon_type == "toggle":
+            self._state = key_config.get("initial_state", "off")
+        elif self.icon_type == "radio":
             self._state = key_config.get("initial_state", "off")
         elif self.icon_type == "multistate":
             self._states = key_config["states"]
@@ -76,6 +78,12 @@ class KeyState:
             self._enqueue_render()
             return self._state, action
 
+        elif self.icon_type == "radio":
+            # Option A: action-only. State is controlled entirely by
+            # external notifications (e.g. a sync script). No state
+            # change, no render enqueued on press.
+            return self._state, action
+
         return self._state, None
 
     def notify_state(self, new_state):
@@ -87,10 +95,10 @@ class KeyState:
         Returns:
             tuple: (success: bool, error_message: str or None)
         """
-        if self.icon_type == "toggle":
+        if self.icon_type in ("toggle", "radio"):
             if new_state not in ("on", "off"):
                 return False, (
-                    f"invalid state '{new_state}' for toggle key "
+                    f"invalid state '{new_state}' for {self.icon_type} key "
                     f"'{self.label}', valid: on, off"
                 )
             self._state = new_state
@@ -143,7 +151,7 @@ class KeyState:
             persisted: dict with 'state' and/or 'value' keys.
         """
         if "state" in persisted:
-            if self.icon_type == "toggle" and persisted["state"] in ("on", "off"):
+            if self.icon_type in ("toggle", "radio") and persisted["state"] in ("on", "off"):
                 self._state = persisted["state"]
             elif self.icon_type == "multistate" and persisted["state"] in self._states:
                 self._state = persisted["state"]
@@ -167,6 +175,8 @@ class KeyState:
         if self.icon_type == "static":
             info["icon_path"] = icons.get("default")
         elif self.icon_type == "toggle":
+            info["icon_path"] = icons.get(self._state)
+        elif self.icon_type == "radio":
             info["icon_path"] = icons.get(self._state)
         elif self.icon_type == "multistate":
             info["icon_path"] = icons.get(self._state)
@@ -282,7 +292,7 @@ class KeyManager:
         """
         data = {}
         for nid, ks in self._keys_by_notification_id.items():
-            if ks.icon_type in ("toggle", "multistate"):
+            if ks.icon_type in ("toggle", "multistate", "radio"):
                 data[nid] = {"state": ks.state}
             elif ks.icon_type == "live_value" and ks.value:
                 data[nid] = {"value": ks.value}
