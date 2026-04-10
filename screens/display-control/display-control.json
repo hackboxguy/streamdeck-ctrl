@@ -183,6 +183,21 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [2, 1],
+      "label": "HDMI 15.6-2k5",
+      "icon_type": "static",
+      "icons": {
+        "default": "15-6-2k5.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/apply-hdmi-15-6-2k5.sh",
+          "async": true
+        }
+      }
     }
   ]
 }
