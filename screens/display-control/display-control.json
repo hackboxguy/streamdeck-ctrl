@@ -172,10 +172,13 @@
     {
       "position": [2, 0],
       "label": "HDMI 12.3-nq1",
-      "icon_type": "static",
+      "icon_type": "radio",
       "icons": {
-        "default": "12-3-nq1.bmp"
+        "on": "12-3-nq1-on.bmp",
+        "off": "12-3-nq1-off.bmp"
       },
+      "initial_state": "off",
+      "notification_id": "hdmi.12_3_nq1",
       "action": {
         "on_press": {
           "type": "script",
@@ -187,10 +190,13 @@
     {
       "position": [2, 1],
       "label": "HDMI 15.6-2k5",
-      "icon_type": "static",
+      "icon_type": "radio",
       "icons": {
-        "default": "15-6-2k5.bmp"
+        "on": "15-6-2k5-on.bmp",
+        "off": "15-6-2k5-off.bmp"
       },
+      "initial_state": "off",
+      "notification_id": "hdmi.15_6_2k5",
       "action": {
         "on_press": {
           "type": "script",
@@ -202,10 +208,13 @@
     {
       "position": [2, 2],
       "label": "HDMI 14.6-fhd",
-      "icon_type": "static",
+      "icon_type": "radio",
       "icons": {
-        "default": "14-6-fhd.bmp"
+        "on": "14-6-fhd-on.bmp",
+        "off": "14-6-fhd-off.bmp"
       },
+      "initial_state": "off",
+      "notification_id": "hdmi.14_6_fhd",
       "action": {
         "on_press": {
           "type": "script",

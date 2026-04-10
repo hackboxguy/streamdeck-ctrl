@@ -433,6 +433,8 @@ def dry_run(config_path):
             parts.append(f"default={icons.get('default', '?')}")
         elif icon_type == "toggle":
             parts.append(f"on={icons.get('on', '?')}  off={icons.get('off', '?')}")
+        elif icon_type == "radio":
+            parts.append(f"on={icons.get('on', '?')}  off={icons.get('off', '?')}")
         elif icon_type == "multistate":
             parts.append(f"states={','.join(key.get('states', []))}")
         elif icon_type == "live_value":
