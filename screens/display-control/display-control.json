@@ -198,6 +198,21 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [2, 2],
+      "label": "HDMI 14.6-fhd",
+      "icon_type": "static",
+      "icons": {
+        "default": "14-6-fhd.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/apply-hdmi-14-6-fhd.sh",
+          "async": true
+        }
+      }
     }
   ]
 }
