@@ -168,6 +168,21 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [2, 0],
+      "label": "HDMI 12.3-nq1",
+      "icon_type": "static",
+      "icons": {
+        "default": "12-3-nq1.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/apply-hdmi-12-3-nq1.sh",
+          "async": true
+        }
+      }
     }
   ]
 }
