@@ -325,7 +325,13 @@ def load_config(path, *, validate_icons=True):
 
     # --- semantic validation ---
     layout = cfg["device"]["layout"]
-    _validate_positions(cfg["keys"], max_rows=layout[0], max_cols=layout[1])
+    total_slots = layout[0] * layout[1]
+    # Only enforce position bounds when all keys fit on a single page.
+    # With pagination (>total_slots keys), positions are identifiers
+    # and the array order determines page layout.
+    check_bounds = len(cfg["keys"]) <= total_slots
+    _validate_positions(cfg["keys"], max_rows=layout[0], max_cols=layout[1],
+                        check_bounds=check_bounds)
     _validate_notification_ids(cfg["keys"])
     _validate_multistate_keys(cfg["keys"])
     _warn_stateful_keys_without_notification_id(cfg["keys"])
@@ -355,13 +361,13 @@ def _inject_key_defaults(key):
             key["live"].setdefault(k, v)
 
 
-def _validate_positions(keys, max_rows=3, max_cols=5):
-    """Ensure no two keys share the same position and all are within bounds."""
+def _validate_positions(keys, max_rows=3, max_cols=5, check_bounds=True):
+    """Ensure no two keys share the same position and optionally check bounds."""
     seen = {}
     for key in keys:
         pos = tuple(key["position"])
         row, col = pos
-        if row >= max_rows or col >= max_cols:
+        if check_bounds and (row >= max_rows or col >= max_cols):
             raise ValueError(
                 f"Key '{key['label']}': position {list(pos)} is out of bounds "
                 f"for {max_rows}x{max_cols} deck (max row={max_rows - 1}, "

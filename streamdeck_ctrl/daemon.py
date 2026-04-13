@@ -12,6 +12,7 @@ from streamdeck_ctrl.config import load_config
 from streamdeck_ctrl.icon_renderer import render_key_image, render_live_value_image
 from streamdeck_ctrl.key_manager import KeyManager
 from streamdeck_ctrl.notifier import Notifier
+from streamdeck_ctrl.page_manager import PageManager
 from streamdeck_ctrl.state_store import StateStore
 
 logger = logging.getLogger(__name__)
@@ -87,6 +88,7 @@ class StreamDeckDaemon:
         self._deck = None
         self._deck_cols = 5  # default, overridden in _setup_deck
         self._key_manager = None
+        self._page_manager = None
         self._notifier = None
         self._state_store = None
         self._poll_threads = []
@@ -109,6 +111,13 @@ class StreamDeckDaemon:
 
         # Initialize key manager
         self._key_manager = KeyManager(self._config["keys"], self._render_queue)
+
+        # Initialize page manager for auto-pagination
+        layout = self._config["device"].get("layout", [3, 5])
+        config_dir = os.path.dirname(os.path.abspath(self._config_path))
+        self._page_manager = PageManager(
+            self._config["keys"], layout, config_dir=config_dir
+        )
 
         # Load persisted state
         persist_path = self._config["notification"]["state_persist_path"]
@@ -224,9 +233,10 @@ class StreamDeckDaemon:
         # Set key callback
         deck.set_key_callback(self._key_callback)
 
-        # Render all keys
-        self._key_manager.enqueue_all_renders()
-        logger.info("Deck setup complete (%d keys configured)", len(self._key_manager.all_keys()))
+        # Render current page
+        self._render_current_page()
+        logger.info("Deck setup complete (%d keys, %d pages)",
+                     len(self._key_manager.all_keys()), self._page_manager.page_count)
 
     def _key_callback(self, deck, key_index, pressed):
         """Handle physical key press."""
@@ -237,7 +247,24 @@ class StreamDeckDaemon:
         cols = self._deck_cols
         row = key_index // cols
         col = key_index % cols
-        position = (row, col)
+        physical_pos = (row, col)
+
+        # Check if this is a navigation key (page switch)
+        if self._page_manager and self._page_manager.needs_pagination:
+            nav_dir = self._page_manager.is_nav_key(physical_pos)
+            if nav_dir:
+                if self._page_manager.switch_page(nav_dir):
+                    self._render_current_page()
+                return
+
+        # Map physical position to logical key via page manager
+        if self._page_manager and self._page_manager.needs_pagination:
+            key_cfg = self._page_manager.get_key_config_at(physical_pos)
+            if key_cfg is None:
+                return
+            position = tuple(key_cfg["position"])
+        else:
+            position = physical_pos
 
         result = self._key_manager.handle_press(position)
         if result is None:
@@ -258,11 +285,54 @@ class StreamDeckDaemon:
             }
             execute_action(action, context)
 
+    def _render_current_page(self):
+        """Render all keys for the current page, clearing unused positions."""
+        if not self._page_manager:
+            self._key_manager.enqueue_all_renders()
+            return
+
+        layout = self._page_manager.get_physical_layout()
+        rows, cols = self._config["device"].get("layout", [3, 5])
+
+        # Clear all keys first by enqueuing blank renders
+        for r in range(rows):
+            for c in range(cols):
+                pos = (r, c)
+                entry = layout.get(pos)
+                if entry is None:
+                    # Empty slot — enqueue a blank (no icon_path = skipped in render)
+                    self._render_queue.put_nowait({
+                        "position": pos,
+                        "icon_type": "__blank__",
+                        "icon_path": None,
+                        "label": "",
+                    })
+                elif entry.get("icon_type") == "__nav__":
+                    # Navigation arrow — render directly
+                    self._render_queue.put_nowait({
+                        "position": pos,
+                        "icon_type": "__nav__",
+                        "icon_path": entry["icon_path"],
+                        "label": entry["label"],
+                    })
+                else:
+                    # User key — get render info from key_manager
+                    key_pos = tuple(entry["position"])
+                    ks = self._key_manager.get_key(key_pos)
+                    if ks:
+                        info = ks.get_render_info()
+                        # Override position to physical deck position
+                        info["position"] = pos
+                        self._render_queue.put_nowait(info)
+
     def _handle_notification(self, notification_id, state=None, value=None):
         """Handle notification from Unix socket (runs in notifier thread)."""
         ok, err = self._key_manager.handle_notification(notification_id, state=state, value=value)
         if ok:
             self._persist_state()
+            # If pagination is active, re-render the key only if it's on the current page
+            if self._page_manager and self._page_manager.needs_pagination:
+                self._render_current_page()
         return ok, err
 
     def _persist_state(self):
@@ -281,6 +351,19 @@ class StreamDeckDaemon:
             except queue.Empty:
                 continue
 
+            # When pagination is active, skip renders from key_manager's
+            # auto-enqueue if the position doesn't match a physical slot
+            # on the current page. Page-driven renders use __nav__/__blank__
+            # or have their position remapped by _render_current_page().
+            if (self._page_manager and self._page_manager.needs_pagination
+                    and info.get("icon_type") not in ("__nav__", "__blank__")):
+                layout = self._page_manager.get_physical_layout()
+                pos = info["position"]
+                # Check if this position is a physical slot with a matching key
+                entry = layout.get(pos)
+                if entry is None or entry.get("icon_type") == "__nav__":
+                    continue  # skip — not on current page or is a nav slot
+
             try:
                 self._render_key(deck, info, key_size)
             except Exception:
@@ -289,9 +372,22 @@ class StreamDeckDaemon:
     def _render_key(self, deck, info, key_size):
         """Render a single key image and push it to the deck."""
         position = info["position"]
+        icon_type = info.get("icon_type", "")
         icon_path = info.get("icon_path")
 
-        if not icon_path:
+        # Handle blank keys (clear the key image)
+        if icon_type == "__blank__" or not icon_path:
+            key_index = position[0] * self._deck_cols + position[1]
+            from PIL import Image
+            blank = Image.new("RGB", key_size, (0, 0, 0))
+            if self._simulate:
+                deck.set_key_image(key_index, blank.tobytes())
+            else:
+                from StreamDeck.ImageHelpers import PILHelper
+                to_native = getattr(PILHelper, 'to_native_key_format',
+                                    getattr(PILHelper, 'to_native_format', None))
+                if to_native:
+                    deck.set_key_image(key_index, to_native(deck, blank))
             return
 
         # Map (row, col) to linear key index
