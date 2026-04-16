@@ -240,6 +240,24 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [2, 4],
+      "label": "HDMI 12.3-nq3",
+      "icon_type": "radio",
+      "icons": {
+        "on": "12-3-nq3-on.bmp",
+        "off": "12-3-nq3-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "hdmi.12_3_nq3",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/apply-hdmi-12-3-nq3.sh",
+          "async": true
+        }
+      }
     }
   ]
 }

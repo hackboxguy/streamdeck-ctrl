@@ -41,6 +41,7 @@ echo "[sync-hdmi] Current HDMI timing: $CURRENT"
 # Map config type → streamdeck notification_id
 # Only these three are currently wired up as buttons
 declare -A TIMING_TO_ID=(
+    ["12.3"]="hdmi.12_3_nq3"
     ["12.3-nq1"]="hdmi.12_3_nq1"
     ["15.6-2k5"]="hdmi.15_6_2k5"
     ["14.6-fhd"]="hdmi.14_6_fhd"
