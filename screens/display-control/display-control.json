@@ -225,6 +225,21 @@
     },
     {
       "position": [2, 3],
+      "label": "Sync Video",
+      "icon_type": "static",
+      "icons": {
+        "default": "sync-video.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/sync-video.sh",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [3, 0],
       "label": "HDMI EDID",
       "icon_type": "radio",
       "icons": {
@@ -242,7 +257,7 @@
       }
     },
     {
-      "position": [2, 4],
+      "position": [3, 1],
       "label": "HDMI 12.3-nq3",
       "icon_type": "radio",
       "icons": {
@@ -260,16 +275,37 @@
       }
     },
     {
-      "position": [3, 0],
-      "label": "Sync Video",
-      "icon_type": "static",
+      "position": [3, 2],
+      "label": "HDMI 14.6-2k5",
+      "icon_type": "radio",
       "icons": {
-        "default": "sync-video.bmp"
+        "on": "14-6-2k5-on.bmp",
+        "off": "14-6-2k5-off.bmp"
       },
+      "initial_state": "off",
+      "notification_id": "hdmi.14_6_2k5",
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/sync-video.sh",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/apply-hdmi-14-6-2k5.sh",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [3, 3],
+      "label": "HDMI 17.3-3k",
+      "icon_type": "radio",
+      "icons": {
+        "on": "17-3-3k-on.bmp",
+        "off": "17-3-3k-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "hdmi.17_3_3k",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/apply-hdmi-17-3-3k.sh",
           "async": true
         }
       }
