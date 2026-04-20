@@ -258,6 +258,21 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [3, 0],
+      "label": "Sync Video",
+      "icon_type": "static",
+      "icons": {
+        "default": "sync-video.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/sync-video.sh",
+          "async": true
+        }
+      }
     }
   ]
 }
