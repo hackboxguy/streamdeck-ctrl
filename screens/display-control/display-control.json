@@ -105,21 +105,6 @@
     },
     {
       "position": [1, 1],
-      "label": "Brightness Down",
-      "icon_type": "static",
-      "icons": {
-        "default": "brightness-down.bmp"
-      },
-      "action": {
-        "on_press": {
-          "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/brightness-down.sh",
-          "async": false
-        }
-      }
-    },
-    {
-      "position": [1, 2],
       "label": "ALS Adaptive",
       "icon_type": "toggle",
       "icons": {
@@ -137,7 +122,55 @@
       }
     },
     {
+      "position": [1, 2],
+      "label": "Cluster Demo",
+      "icon_type": "static",
+      "icons": {
+        "default": "cluster-demo.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-cluster-demo.sh",
+          "async": true
+        }
+      }
+    },
+    {
       "position": [1, 3],
+      "label": "Blank 1",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [1, 4],
+      "label": "Blank 2",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [2, 0],
+      "label": "Brightness Down",
+      "icon_type": "static",
+      "icons": {
+        "default": "brightness-down.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/brightness-down.sh",
+          "async": false
+        }
+      }
+    },
+    {
+      "position": [2, 1],
       "label": "Local Dimming",
       "icon_type": "toggle",
       "icons": {
@@ -155,22 +188,31 @@
       }
     },
     {
-      "position": [1, 4],
-      "label": "Cluster Demo",
+      "position": [2, 2],
+      "label": "Sync Video",
       "icon_type": "static",
       "icons": {
-        "default": "cluster-demo.bmp"
+        "default": "sync-video.bmp"
       },
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-cluster-demo.sh",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/sync-video.sh",
           "async": true
         }
       }
     },
     {
-      "position": [2, 0],
+      "position": [2, 3],
+      "label": "Blank 3",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [3, 0],
       "label": "HDMI 12.3-nq1",
       "icon_type": "radio",
       "icons": {
@@ -188,7 +230,7 @@
       }
     },
     {
-      "position": [2, 1],
+      "position": [3, 1],
       "label": "HDMI 15.6-2k5",
       "icon_type": "radio",
       "icons": {
@@ -206,7 +248,7 @@
       }
     },
     {
-      "position": [2, 2],
+      "position": [3, 2],
       "label": "HDMI 14.6-fhd",
       "icon_type": "radio",
       "icons": {
@@ -224,22 +266,7 @@
       }
     },
     {
-      "position": [2, 3],
-      "label": "Sync Video",
-      "icon_type": "static",
-      "icons": {
-        "default": "sync-video.bmp"
-      },
-      "action": {
-        "on_press": {
-          "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/sync-video.sh",
-          "async": true
-        }
-      }
-    },
-    {
-      "position": [3, 0],
+      "position": [3, 3],
       "label": "HDMI EDID",
       "icon_type": "radio",
       "icons": {
@@ -257,7 +284,7 @@
       }
     },
     {
-      "position": [3, 1],
+      "position": [3, 4],
       "label": "HDMI 12.3-nq3",
       "icon_type": "radio",
       "icons": {
@@ -275,7 +302,7 @@
       }
     },
     {
-      "position": [3, 2],
+      "position": [4, 0],
       "label": "HDMI 14.6-2k5",
       "icon_type": "radio",
       "icons": {
@@ -293,7 +320,7 @@
       }
     },
     {
-      "position": [3, 3],
+      "position": [4, 1],
       "label": "HDMI 17.3-3k",
       "icon_type": "radio",
       "icons": {
