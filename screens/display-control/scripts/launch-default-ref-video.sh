@@ -6,7 +6,7 @@ LAUNCHER="/home/pi/micropanel/usr/bin/launcher-client"
 SRV="127.0.0.1:8081"
 KODI="http://127.0.0.1:8080/jsonrpc"
 VIDEO_DIR="/home/pi/micropanel/usr/share/micropanel/media/videos"
-REF_VIDEO="$VIDEO_DIR/ref-video.mp4"
+REF_VIDEO="/home/pi/micropanel/share/sp6bins/config/ref-video.mp4"
 FLOWER="$VIDEO_DIR/flower.mkv"
 
 # Choose which video to play
