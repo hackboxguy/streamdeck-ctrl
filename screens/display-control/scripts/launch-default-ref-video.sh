@@ -48,6 +48,17 @@ else
             --connect-timeout 1 > /dev/null 2>&1 && break
         sleep 1
     done
+    # Give Kodi extra time to finish initializing after JSON-RPC ping
+    # responds — its HTTP server can answer before the player is ready
+    # and any autoresume of the last-played item has settled.
+    sleep 3
+    # Cancel any autoresume that Kodi may have started during boot
+    curl -s "$KODI" -H "Content-Type: application/json" \
+        -d '{"jsonrpc":"2.0","method":"Player.Stop","params":{"playerid":1},"id":1}' \
+        --connect-timeout 2 > /dev/null 2>&1
+    curl -s "$KODI" -H "Content-Type: application/json" \
+        -d '{"jsonrpc":"2.0","method":"Player.Stop","params":{"playerid":2},"id":1}' \
+        --connect-timeout 2 > /dev/null 2>&1
 fi
 
 # Play the chosen reference video
