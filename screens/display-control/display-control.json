@@ -7,7 +7,7 @@
   "notification": {
     "type": "unix_socket",
     "socket_path": "/run/streamdeck-ctrl/notify.sock",
-    "state_persist_path": "{INSTALL_DIR}/state.json"
+    "state_persist_path": "/tmp/streamdeck-ctrl/state.json"
   },
   "keys": [
     {
@@ -174,8 +174,14 @@
         "on": "local-dimming-on.bmp",
         "off": "local-dimming-off.bmp"
       },
-      "initial_state": "off",
+      "initial_state": "on",
       "notification_id": "display.local_dimming",
+      "state_watch": {
+        "path": "/tmp/fpga-ldpc-state.json",
+        "json_key": "local_dimming",
+        "poll_interval_sec": 1,
+        "default_state": "on"
+      },
       "action": {
         "on_press": {
           "type": "script",

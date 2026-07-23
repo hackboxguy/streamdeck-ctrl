@@ -59,6 +59,16 @@ KEY_COMMON = {
             "enum": ["static", "toggle", "multistate", "live_value", "radio"],
         },
         "notification_id": {"type": "string"},
+        "state_watch": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string"},
+                "json_key": {"type": "string"},
+                "poll_interval_sec": {"type": "integer", "minimum": 1},
+                "default_state": {"type": "string", "enum": ["on", "off"]},
+            },
+            "required": ["path", "json_key"],
+        },
         "action": {
             "oneOf": [
                 ACTION_SCHEMA,
@@ -334,6 +344,7 @@ def load_config(path, *, validate_icons=True):
                         check_bounds=check_bounds)
     _validate_notification_ids(cfg["keys"])
     _validate_multistate_keys(cfg["keys"])
+    _validate_state_watch_keys(cfg["keys"])
     _warn_stateful_keys_without_notification_id(cfg["keys"])
 
     # --- resolve icon paths ---
@@ -414,6 +425,21 @@ def _validate_multistate_keys(keys):
             raise ValueError(
                 f"Key '{key['label']}': initial_state "
                 f"'{key['initial_state']}' not in states {states}"
+            )
+
+
+def _validate_state_watch_keys(keys):
+    """Ensure JSON state watches can drive a named toggle key."""
+    for key in keys:
+        if "state_watch" not in key:
+            continue
+        if key["icon_type"] != "toggle":
+            raise ValueError(
+                f"Key '{key['label']}': state_watch is only supported on toggle keys"
+            )
+        if not key.get("notification_id"):
+            raise ValueError(
+                f"Key '{key['label']}': state_watch requires notification_id"
             )
 
 

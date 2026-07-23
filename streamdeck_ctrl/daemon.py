@@ -1,5 +1,6 @@
 """Deck lifecycle, reconnect loop, main event coordinator."""
 
+import json
 import logging
 import os
 import queue
@@ -132,6 +133,7 @@ class StreamDeckDaemon:
 
         # Start poll threads
         self._start_poll_threads()
+        self._start_state_watch_threads()
 
         # Install signal handlers (only works from main thread)
         import threading as _threading
@@ -472,6 +474,72 @@ class StreamDeckDaemon:
                 logger.exception("Poll error for '%s'", key_state.label)
 
             self._shutdown_event.wait(timeout=interval)
+
+    def _start_state_watch_threads(self):
+        """Synchronize toggle keys from small JSON state files.
+
+        This is intended for local hardware controls whose state is shared by
+        more than one UI.  The writer is responsible for atomically replacing
+        the JSON file; readers therefore see either the old complete value or
+        the new complete value.
+        """
+        for ks in self._key_manager.all_keys():
+            if ks.icon_type != "toggle" or not ks.notification_id:
+                continue
+
+            watch = ks.config.get("state_watch")
+            if not watch:
+                continue
+
+            path = watch["path"]
+            json_key = watch["json_key"]
+            interval = watch.get("poll_interval_sec", 1)
+            default_state = watch.get("default_state", "off")
+            t = threading.Thread(
+                target=self._state_watch_loop,
+                args=(ks, path, json_key, interval, default_state),
+                name=f"state-watch-{ks.label}",
+                daemon=True,
+            )
+            t.start()
+            self._poll_threads.append(t)
+            logger.info("Started state watch for '%s' (%s every %ds)",
+                        ks.label, path, interval)
+
+    def _state_watch_loop(self, key_state, path, json_key, interval, default_state):
+        """Poll a JSON boolean and use it as a toggle state notification."""
+        last_state = None
+        while not self._shutdown_event.is_set():
+            state = self._read_state_watch(path, json_key, default_state)
+            if state is not None and state != last_state:
+                ok, error = self._key_manager.handle_notification(
+                    key_state.notification_id, state=state)
+                if ok:
+                    self._persist_state()
+                    last_state = state
+                    logger.info("State watch: '%s' → %s", key_state.label, state)
+                else:
+                    logger.warning("State watch failed for '%s': %s",
+                                   key_state.label, error)
+            self._shutdown_event.wait(timeout=interval)
+
+    @staticmethod
+    def _read_state_watch(path, json_key, default_state):
+        """Read a boolean state from JSON; default only when the file is absent."""
+        try:
+            with open(path, "r") as state_file:
+                data = json.load(state_file)
+        except FileNotFoundError:
+            return default_state
+        except (json.JSONDecodeError, OSError) as error:
+            logger.warning("Unable to read state watch file %s: %s", path, error)
+            return None
+
+        value = data.get(json_key)
+        if isinstance(value, bool):
+            return "on" if value else "off"
+        logger.warning("State watch file %s has no boolean '%s'", path, json_key)
+        return None
 
     def _signal_handler(self, signum, frame):
         """Handle SIGTERM/SIGINT for graceful shutdown."""

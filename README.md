@@ -128,7 +128,21 @@ A config file declares the device settings, notification socket, and key layout.
 | `label` | yes | Human-readable name (used in logs and dry-run) |
 | `icon_type` | yes | `static`, `toggle`, `multistate`, `live_value`, or `radio` |
 | `notification_id` | no | Dot-separated ID for external state/value updates. Required for state persistence across restarts and socket notifications. |
+| `state_watch` | no | For a toggle with `notification_id`: polls an atomic JSON file and maps its boolean `json_key` to `on`/`off`. Supports `path`, `json_key`, `poll_interval_sec`, and `default_state`. |
 | `action` | no | Action to execute on key press (see below) |
+
+### Shared Toggle State
+
+Use `state_watch` when multiple local UIs control the same write-only device state. The action that changes hardware writes the JSON atomically; the Stream Deck polls it and renders the corresponding toggle state.
+
+```json
+"state_watch": {
+  "path": "/tmp/fpga-ldpc-state.json",
+  "json_key": "local_dimming",
+  "poll_interval_sec": 1,
+  "default_state": "on"
+}
+```
 
 ### Actions
 

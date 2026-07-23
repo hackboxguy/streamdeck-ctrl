@@ -293,6 +293,13 @@ class TestSchemaViolations:
         with pytest.raises(Exception):
             load_config(cfg_path, validate_icons=False)
 
+    def test_state_watch_requires_toggle_notification_id(self, tmpdir):
+        key = _minimal_static()
+        key["state_watch"] = {"path": "/tmp/state.json", "json_key": "enabled"}
+        cfg_path = _write_config(tmpdir, _base_cfg([key]))
+        with pytest.raises(ValueError, match="state_watch is only supported"):
+            load_config(cfg_path, validate_icons=False)
+
     def test_invalid_text_color(self, tmpdir):
         key = _minimal_live()
         key["live"] = {"source": "notify_only", "text_color": "red"}

@@ -199,6 +199,52 @@ class TestSimulateMode:
         daemon._shutdown_event.set()
         t.join(timeout=5)
 
+    def test_state_watch_synchronizes_toggle(self, tmpdir):
+        shared_state_path = os.path.join(tmpdir, "fpga-ldpc-state.json")
+        with open(shared_state_path, "w") as state_file:
+            json.dump({"local_dimming": True}, state_file)
+
+        keys = [
+            {
+                "position": [0, 0],
+                "label": "Local Dimming",
+                "icon_type": "toggle",
+                "icons": {"on": "icons/green.png", "off": "icons/red.png"},
+                "initial_state": "off",
+                "notification_id": "display.local_dimming",
+                "state_watch": {
+                    "path": shared_state_path,
+                    "json_key": "local_dimming",
+                    "poll_interval_sec": 1,
+                    "default_state": "on",
+                },
+            }
+        ]
+        config_path = _write_test_config(tmpdir, extra_keys=keys)
+        daemon = StreamDeckDaemon(config_path=config_path, simulate=True)
+        thread = threading.Thread(target=daemon.run)
+        thread.start()
+
+        for _ in range(100):
+            if daemon._key_manager:
+                key = daemon._key_manager.get_key((0, 0))
+                if key and key.state == "on":
+                    break
+            time.sleep(0.02)
+        assert daemon._key_manager.get_key((0, 0)).state == "on"
+
+        with open(shared_state_path, "w") as state_file:
+            json.dump({"local_dimming": False}, state_file)
+
+        for _ in range(100):
+            if daemon._key_manager.get_key((0, 0)).state == "off":
+                break
+            time.sleep(0.02)
+        assert daemon._key_manager.get_key((0, 0)).state == "off"
+
+        daemon._shutdown_event.set()
+        thread.join(timeout=5)
+
 
 # ---------------------------------------------------------------------------
 # Dry run
