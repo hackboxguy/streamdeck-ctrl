@@ -207,12 +207,27 @@
     },
     {
       "position": [2, 3],
-      "label": "Blank 3",
-      "icon_type": "static",
+      "label": "Pixel Compensation",
+      "icon_type": "toggle",
       "icons": {
-        "default": "blank.bmp"
+        "on": "pixel-compensation-on.bmp",
+        "off": "pixel-compensation-off.bmp"
       },
-      "action": null
+      "initial_state": "on",
+      "notification_id": "display.pixel_compensation",
+      "state_watch": {
+        "path": "/tmp/fpga-ldpc-state.json",
+        "json_key": "pixel_compensation",
+        "poll_interval_sec": 1,
+        "default_state": "on"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/pixel-compensation-toggle.sh {state}",
+          "async": true
+        }
+      }
     },
     {
       "position": [3, 0],
