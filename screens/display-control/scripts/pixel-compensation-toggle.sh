@@ -4,7 +4,9 @@
 
 set -u
 
-DISPTOOL="${DISPTOOL:-/bin/disptool}"
+# The Pi image installs disptool outside the Stream Deck service's PATH.
+# Keep DISPTOOL overridable for development and alternate deployments.
+DISPTOOL="${DISPTOOL:-/home/pi/micropanel/bin/disptool}"
 I2CDEV="${I2CDEV:-/dev/i2c-1}"
 SOCK="${STREAMDECK_SOCKET:-/run/streamdeck-ctrl/notify.sock}"
 STATE_FILE="${FPGA_LDPC_STATE_FILE:-/tmp/fpga-ldpc-state.json}"
