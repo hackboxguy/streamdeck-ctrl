@@ -91,6 +91,7 @@ echo "[7/7] Installing systemd service..."
 sed -e "s|{INSTALL_DIR}|${SCRIPT_DIR}|g" \
     -e "s|{USER}|${INSTALL_USER}|g" \
     -e "s|{CONFIG_PATH}|${CONFIG_FILE}|g" \
+    -e "s|{SCREEN_DIR}|$(dirname "${CONFIG_FILE}")|g" \
     "${SCRIPT_DIR}/streamdeck-ctrl.service.in" \
     > /etc/systemd/system/streamdeck-ctrl.service
 systemctl daemon-reload

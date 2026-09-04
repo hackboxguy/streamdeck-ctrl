@@ -1,0 +1,104 @@
+{
+  "device": {
+    "brightness": 80,
+    "reconnect_timeout_sec": 0,
+    "reconnect_interval_sec": 2
+  },
+  "notification": {
+    "type": "unix_socket",
+    "socket_path": "/run/streamdeck-ctrl/notify.sock",
+    "state_persist_path": "/tmp/streamdeck-ctrl/state.json"
+  },
+  "keys": [
+    {
+      "position": [0, 0],
+      "label": "Legacy theme",
+      "icon_type": "radio",
+      "icons": {
+        "on": "legacy-on.bmp",
+        "off": "legacy-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "cluster.theme_legacy",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/qt-cluster-demo/scripts/set-theme.sh legacy",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [0, 1],
+      "label": "EV theme",
+      "icon_type": "radio",
+      "icons": {
+        "on": "ev-on.bmp",
+        "off": "ev-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "cluster.theme_ev",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/qt-cluster-demo/scripts/set-theme.sh ev",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [0, 2],
+      "label": "Harman theme",
+      "icon_type": "radio",
+      "icons": {
+        "on": "harman-on.bmp",
+        "off": "harman-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "cluster.theme_harman",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/qt-cluster-demo/scripts/set-theme.sh harman",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [0, 3],
+      "label": "Harman + map",
+      "icon_type": "radio",
+      "icons": {
+        "on": "harman-map-on.bmp",
+        "off": "harman-map-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "cluster.theme_harman_map",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/qt-cluster-demo/scripts/set-theme.sh harman-map",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [0, 4],
+      "label": "Camera view",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "camera-on.bmp",
+        "off": "camera-off.bmp"
+      },
+      "initial_state": "on",
+      "notification_id": "cluster.camera",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/qt-cluster-demo/scripts/set-camera.sh {state}",
+          "async": true
+        }
+      }
+    }
+  ]
+}

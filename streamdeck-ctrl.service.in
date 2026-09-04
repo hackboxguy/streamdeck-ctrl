@@ -16,8 +16,13 @@ Group=plugdev
 WorkingDirectory={INSTALL_DIR}
 Environment=PYTHONPATH={INSTALL_DIR}
 ExecStart=/usr/bin/python3 {INSTALL_DIR}/streamdeck_ctrl/main.py --config={CONFIG_PATH}
-ExecStartPost=-{INSTALL_DIR}/screens/display-control/scripts/sync-als-dimmer.sh
-ExecStartPost=-{INSTALL_DIR}/screens/display-control/scripts/sync-hdmi-timing.sh
+# Push the real state of whatever this screen controls onto the keys at
+# startup: radio keys never light themselves, so without this they come up
+# blank until something else notifies them. Any sync-*.sh in the active
+# screen's scripts/ runs, so a screen adds one by dropping a file in.
+# NOTE the $$ escaping: systemd expands $s itself and would hand /bin/sh an
+# empty word.
+ExecStartPost=-/bin/sh -c 'for s in {SCREEN_DIR}/scripts/sync-*.sh; do [ -x "$$s" ] && "$$s"; done'
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
