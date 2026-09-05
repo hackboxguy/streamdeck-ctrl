@@ -135,6 +135,27 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [
+        1,
+        1
+      ],
+      "label": "Sharp lamps",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "lamps-on.bmp",
+        "off": "lamps-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "cluster.lamps",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/qt-cluster-demo/scripts/set-lamps.sh {state}",
+          "async": true
+        }
+      }
     }
   ]
 }
