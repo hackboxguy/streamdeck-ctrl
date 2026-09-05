@@ -19,7 +19,9 @@ if [ -z "$ARGS" ]; then
     exit 0
 fi
 
-theme=$(echo "$ARGS" | grep -oE -- '--theme=[a-z]+' | head -1 | cut -d= -f2)
+# [a-z0-9]: theme names carry digits (fable1), and [a-z]+ silently truncated
+# it to "fable", which matched no case and left every radio dark.
+theme=$(echo "$ARGS" | grep -oE -- '--theme=[a-z0-9]+' | head -1 | cut -d= -f2)
 map=$(echo "$ARGS"   | grep -oE -- '--map-backdrop=[a-z]+' | head -1 | cut -d= -f2)
 [ -z "$map" ] && map=$(echo "$ARGS" | grep -oE -- '--harman-map=[a-z]+' | head -1 | cut -d= -f2)
 cam=$(echo "$ARGS"   | grep -oE -- '--dms-video-view=[a-z]+' | head -1 | cut -d= -f2)
@@ -40,9 +42,11 @@ case "$theme" in
     analog) selected="cluster.theme_legacy" ;;
     ev)     selected="cluster.theme_ev" ;;
     harman) selected="cluster.theme_harman" ;;
+    fable1) selected="cluster.theme_fable1" ;;
 esac
 
-for id in cluster.theme_legacy cluster.theme_ev cluster.theme_harman; do
+for id in cluster.theme_legacy cluster.theme_ev cluster.theme_harman \
+          cluster.theme_fable1; do
     if [ "$id" = "$selected" ]; then notify "$id" on; else notify "$id" off; fi
 done
 notify cluster.map "$map"

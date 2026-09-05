@@ -78,39 +78,18 @@
         0,
         3
       ],
-      "label": "Map backdrop",
-      "icon_type": "toggle",
+      "label": "Fable Horizon",
+      "icon_type": "radio",
       "icons": {
-        "on": "map-on.bmp",
-        "off": "map-off.bmp"
+        "on": "fable1-on.bmp",
+        "off": "fable1-off.bmp"
       },
-      "initial_state": "on",
-      "notification_id": "cluster.map",
+      "initial_state": "off",
+      "notification_id": "cluster.theme_fable1",
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/qt-cluster-demo/scripts/set-map.sh {state}",
-          "async": true
-        }
-      }
-    },
-    {
-      "position": [
-        0,
-        4
-      ],
-      "label": "Camera view",
-      "icon_type": "toggle",
-      "icons": {
-        "on": "camera-on.bmp",
-        "off": "camera-off.bmp"
-      },
-      "initial_state": "on",
-      "notification_id": "cluster.camera",
-      "action": {
-        "on_press": {
-          "type": "script",
-          "command": "{INSTALL_DIR}/screens/qt-cluster-demo/scripts/set-camera.sh {state}",
+          "command": "{INSTALL_DIR}/screens/qt-cluster-demo/scripts/set-theme.sh fable1",
           "async": true
         }
       }
@@ -153,6 +132,48 @@
         "on_press": {
           "type": "script",
           "command": "{INSTALL_DIR}/screens/qt-cluster-demo/scripts/set-lamps.sh {state}",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [
+        1,
+        2
+      ],
+      "label": "Map backdrop",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "map-on.bmp",
+        "off": "map-off.bmp"
+      },
+      "initial_state": "on",
+      "notification_id": "cluster.map",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/qt-cluster-demo/scripts/set-map.sh {state}",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [
+        1,
+        3
+      ],
+      "label": "Camera view",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "camera-on.bmp",
+        "off": "camera-off.bmp"
+      },
+      "initial_state": "on",
+      "notification_id": "cluster.camera",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/qt-cluster-demo/scripts/set-camera.sh {state}",
           "async": true
         }
       }

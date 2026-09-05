@@ -1,5 +1,5 @@
 #!/bin/bash
-# Select the cluster's theme: legacy | ev | harman
+# Select the cluster's theme: legacy | ev | harman | fable1
 # The map backdrop is a separate key and is deliberately left alone here, so
 # switching theme keeps whatever backdrop choice is in effect.
 set -e
@@ -9,7 +9,8 @@ case "$1" in
     legacy) THEME="--theme=analog" ;;
     ev)     THEME="--theme=ev" ;;
     harman) THEME="--theme=harman" ;;
-    *) echo "usage: $0 legacy|ev|harman" >&2; exit 2 ;;
+    fable1) THEME="--theme=fable1" ;;
+    *) echo "usage: $0 legacy|ev|harman|fable1" >&2; exit 2 ;;
 esac
 
 # --theme=auto is what the proxy image ships; an explicit choice replaces it.
