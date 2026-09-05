@@ -43,6 +43,11 @@ write_cluster_args() {
     fi
     echo "[cluster] CLUSTER_ARGS=$new"
     sudo -n systemctl restart qt-cluster-demo
+    # cluster-video.service declares Conflicts=qt-cluster-demo.service, and
+    # Conflicts is bidirectional -- so starting the cluster here has just
+    # stopped any playback. Say so, or the video key stays lit for a video
+    # that is no longer on the panel. Harmless when nothing was playing.
+    notify cluster.video off
 }
 
 # notify <id> <on|off>

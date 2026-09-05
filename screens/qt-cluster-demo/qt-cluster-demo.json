@@ -114,6 +114,27 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [
+        1,
+        0
+      ],
+      "label": "Ref video",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "video-on.bmp",
+        "off": "video-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "cluster.video",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/qt-cluster-demo/scripts/set-video.sh {state}",
+          "async": true
+        }
+      }
     }
   ]
 }
