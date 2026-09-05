@@ -42,11 +42,22 @@ write_cluster_args() {
         echo "CLUSTER_ARGS=$new" >> "$ENV_FILE"
     fi
     echo "[cluster] CLUSTER_ARGS=$new"
+
+    # While a video is playing, stage the change instead of applying it.
+    #
+    # Restarting the cluster here would work -- Conflicts= is bidirectional, so
+    # it would stop playback -- but that makes every theme key a hidden second
+    # "stop video" button. Someone lining up the next theme mid-clip would kill
+    # the clip to do it. Writing the env file and stopping there keeps the press
+    # from being lost: the key lights immediately, and cluster-video's
+    # ExecStopPost starts the cluster with these arguments the moment the video
+    # key is pressed off. So video ends only when the video key ends it.
+    if systemctl is-active --quiet cluster-video.service 2>/dev/null; then
+        echo "[cluster] video playing; change staged until the video key is pressed off"
+        return 0
+    fi
+
     sudo -n systemctl restart qt-cluster-demo
-    # cluster-video.service declares Conflicts=qt-cluster-demo.service, and
-    # Conflicts is bidirectional -- so starting the cluster here has just
-    # stopped any playback. Say so, or the video key stays lit for a video
-    # that is no longer on the panel. Harmless when nothing was playing.
     notify cluster.video off
 }
 
