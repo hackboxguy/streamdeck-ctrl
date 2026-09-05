@@ -11,7 +11,10 @@
   },
   "keys": [
     {
-      "position": [0, 0],
+      "position": [
+        0,
+        0
+      ],
       "label": "Legacy theme",
       "icon_type": "radio",
       "icons": {
@@ -29,7 +32,10 @@
       }
     },
     {
-      "position": [0, 1],
+      "position": [
+        0,
+        1
+      ],
       "label": "EV theme",
       "icon_type": "radio",
       "icons": {
@@ -47,7 +53,10 @@
       }
     },
     {
-      "position": [0, 2],
+      "position": [
+        0,
+        2
+      ],
       "label": "Harman theme",
       "icon_type": "radio",
       "icons": {
@@ -65,25 +74,31 @@
       }
     },
     {
-      "position": [0, 3],
-      "label": "Harman + map",
-      "icon_type": "radio",
+      "position": [
+        0,
+        3
+      ],
+      "label": "Map backdrop",
+      "icon_type": "toggle",
       "icons": {
-        "on": "harman-map-on.bmp",
-        "off": "harman-map-off.bmp"
+        "on": "map-on.bmp",
+        "off": "map-off.bmp"
       },
-      "initial_state": "off",
-      "notification_id": "cluster.theme_harman_map",
+      "initial_state": "on",
+      "notification_id": "cluster.map",
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/qt-cluster-demo/scripts/set-theme.sh harman-map",
+          "command": "{INSTALL_DIR}/screens/qt-cluster-demo/scripts/set-map.sh {state}",
           "async": true
         }
       }
     },
     {
-      "position": [0, 4],
+      "position": [
+        0,
+        4
+      ],
       "label": "Camera view",
       "icon_type": "toggle",
       "icons": {
