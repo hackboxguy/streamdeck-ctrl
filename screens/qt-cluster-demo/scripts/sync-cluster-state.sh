@@ -43,10 +43,11 @@ case "$theme" in
     ev)     selected="cluster.theme_ev" ;;
     harman) selected="cluster.theme_harman" ;;
     fable1) selected="cluster.theme_fable1" ;;
+    tiles)  selected="cluster.theme_tiles" ;;
 esac
 
 for id in cluster.theme_legacy cluster.theme_ev cluster.theme_harman \
-          cluster.theme_fable1; do
+          cluster.theme_fable1 cluster.theme_tiles; do
     if [ "$id" = "$selected" ]; then notify "$id" on; else notify "$id" off; fi
 done
 notify cluster.map "$map"

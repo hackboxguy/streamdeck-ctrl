@@ -290,6 +290,21 @@ class StreamDeckDaemon:
     def _render_current_page(self):
         """Render all keys for the current page, clearing unused positions."""
         if not self._page_manager:
+            # Blank the positions no key occupies. Without this a single-page
+            # screen only ever paints the keys it defines, so a slot that used
+            # to hold a key keeps showing that key's image until the deck is
+            # unplugged -- a button that looks live and does nothing.
+            rows, cols = self._config["device"].get("layout", [3, 5])
+            used = set(self._key_manager.get_positions())
+            for r in range(rows):
+                for c in range(cols):
+                    if (r, c) not in used:
+                        self._render_queue.put_nowait({
+                            "position": (r, c),
+                            "icon_type": "__blank__",
+                            "icon_path": None,
+                            "label": "",
+                        })
             self._key_manager.enqueue_all_renders()
             return
 

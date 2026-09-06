@@ -279,6 +279,10 @@ class KeyManager:
         """Return all KeyState instances."""
         return list(self._keys_by_position.values())
 
+    def get_positions(self):
+        """Every position a key occupies, for blanking the rest."""
+        return list(self._keys_by_position.keys())
+
     def enqueue_all_renders(self):
         """Enqueue render jobs for all keys (used on initial draw)."""
         for ks in self._keys_by_position.values():

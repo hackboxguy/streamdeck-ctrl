@@ -96,6 +96,27 @@
     },
     {
       "position": [
+        0,
+        4
+      ],
+      "label": "Tiles theme",
+      "icon_type": "radio",
+      "icons": {
+        "on": "tiles-on.bmp",
+        "off": "tiles-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "cluster.theme_tiles",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/qt-cluster-demo/scripts/set-theme.sh tiles",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [
         1,
         0
       ],
