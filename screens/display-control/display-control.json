@@ -354,6 +354,24 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [4, 2],
+      "label": "HDMI 17.3-OTS-OLED",
+      "icon_type": "radio",
+      "icons": {
+        "on": "17-3-ots-oled-on.bmp",
+        "off": "17-3-ots-oled-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "hdmi.ots_oled_17",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/apply-hdmi-ots-oled-17.sh",
+          "async": true
+        }
+      }
     }
   ]
 }
