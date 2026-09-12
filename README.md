@@ -6,7 +6,7 @@ Headless, config-driven daemon for controlling an Elgato Stream Deck on Linux sy
 
 - **Zero desktop dependency** — runs on framebuffer-only or fully headless systems
 - **Fully declarative** — swap the JSON config to change the entire control panel
-- **4 key types** — static, toggle, multistate, live_value (with text overlay)
+- **6 key types** — static, toggle, multistate, live_value (with text overlay), radio, task
 - **Shell-scriptable notifications** — push state via `socat` or plain `write()` to a Unix socket
 - **State persistence** — survives crashes and reboots, restores last known state
 - **USB resilient** — auto-reconnect on disconnect, udev-triggered service start
@@ -63,6 +63,54 @@ Use for: sensor readouts, brightness %, status strings.
 ### `radio`
 Two states: `on` / `off`, each with its own icon. Unlike `toggle`, press does **not** cycle the state — it fires the action only. State is controlled entirely by external notifications. Useful for mutually-exclusive selections (radio groups) where a sync script pushes the current selection from an external source of truth.
 Use for: HDMI timing profiles, display modes, exclusive configuration choices.
+
+### `task`
+A one-shot job with a visible outcome. Four states — `idle`, `running`, `success`, `failure` — all sharing **one** icon; the state is drawn as a coloured border around it rather than as a separate image per state. Press starts the job: the key jumps to `running` and its border blinks. Presses are ignored while it runs, so the job cannot be started twice. The script the key launches reports the outcome over the notification socket, which leaves the border solid green or solid red until the next press.
+
+Use for: firmware flashing, backups, long-running maintenance jobs.
+
+```json
+{
+  "position": [4, 3],
+  "label": "983HH IOC Flash",
+  "icon_type": "task",
+  "icons": { "default": "983hh-ioc-flash.png" },
+  "notification_id": "ioc.flash_983hh",
+  "task": {
+    "blink_interval_sec": 0.5,
+    "border_width": 6,
+    "colors": { "running": "#00FF00", "success": "#00FF00", "failure": "#FF0000" }
+  },
+  "action": {
+    "on_press": {
+      "type": "script",
+      "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-983hh-ioc.sh",
+      "async": true,
+      "timeout_sec": 600
+    }
+  }
+}
+```
+
+The launched script reports back the same way any other service does:
+
+```bash
+echo '{"id":"ioc.flash_983hh","state":"success"}' \
+  | socat - UNIX-CONNECT:/run/streamdeck-ctrl/notify.sock
+```
+
+| `task` field | Default | Description |
+|---|---|---|
+| `blink_interval_sec` | `0.5` | Border blink period while `running` |
+| `border_width` | `6` | Border thickness in pixels |
+| `colors.running` | `#00FF00` | Blinking border while the job runs |
+| `colors.success` | `#00FF00` | Solid border after a successful run |
+| `colors.failure` | `#FF0000` | Solid border after a failed run |
+| `colors.idle` | *(none)* | No border — the bare icon |
+
+`notification_id` is **required**: without it the script has no way to report an outcome and the key would blink forever. Task state is deliberately *not* persisted — a restart returns the key to `idle` rather than restoring a stale result.
+
+Set `action.on_press.timeout_sec` to cover the worst-case run time. Script actions default to 30 s, which is far too short for flashing an MCU.
 
 ## Configuration
 
@@ -126,9 +174,10 @@ A config file declares the device settings, notification socket, and key layout.
 |---|---|---|
 | `position` | yes | `[row, col]` — zero-indexed, within `device.layout` bounds |
 | `label` | yes | Human-readable name (used in logs and dry-run) |
-| `icon_type` | yes | `static`, `toggle`, `multistate`, `live_value`, or `radio` |
+| `icon_type` | yes | `static`, `toggle`, `multistate`, `live_value`, `radio`, or `task` |
 | `notification_id` | no | Dot-separated ID for external state/value updates. Required for state persistence across restarts and socket notifications. |
 | `state_watch` | no | For a toggle with `notification_id`: polls an atomic JSON file and maps its boolean `json_key` to `on`/`off`. Supports `path`, `json_key`, `poll_interval_sec`, and `default_state`. |
+| `task` | no | For a `task` key: blink period, border width, and per-state border colours |
 | `action` | no | Action to execute on key press (see below) |
 
 ### Shared Toggle State
@@ -151,10 +200,13 @@ Use `state_watch` when multiple local UIs control the same write-only device sta
   "on_press": {
     "type": "script",
     "command": "/path/to/script.sh {state}",
-    "async": true
+    "async": true,
+    "timeout_sec": 30
   }
 }
 ```
+
+`timeout_sec` caps how long a script may run (default 30 s). Anything slower — a firmware flash, a backup — must raise it, or the daemon kills the script mid-run.
 
 ```json
 "action": {
@@ -212,6 +264,8 @@ NEW=$(( CURRENT + 10 ))
 [ "$NEW" -gt 100 ] && NEW=100
 "$ALS_CLIENT" --brightness=$NEW
 ```
+
+**983HH IOC Flash** — a `task` key on page 2 that reflashes the 983HH board's RH850 IOC with `983HH_983_manager.bin`, the same job micropanel offers under *IOC-Update → 983HHV3 → Update*. It shells out to micropanel's `rh850-flash-auto.sh`, which picks the transport itself: an EEHB Bluebox dongle (USB `0403:a9a0`) when one is plugged into the Pi, otherwise the Pi's own GPIO/UART wiring. The operator attaches the dongle and presses the key; the border blinks green while flashing and settles on solid green or solid red.
 
 **ALS Adaptive** — toggles between auto and manual mode:
 
@@ -341,7 +395,7 @@ streamdeck_ctrl/
 ├── main.py            # CLI entry point, signal handling
 ├── daemon.py          # Deck lifecycle, reconnect loop, FakeDeck (simulate)
 ├── config.py          # JSON loader, schema validator, defaults
-├── key_manager.py     # Per-key state machines (static/toggle/multistate/live_value)
+├── key_manager.py     # Per-key state machines (static/toggle/multistate/live_value/radio/task)
 ├── action.py          # Script + HTTP execution, token substitution
 ├── notifier.py        # Unix socket server (selectors-based)
 ├── icon_renderer.py   # PIL rendering, text overlay, LRU cache
@@ -359,8 +413,8 @@ main thread ──→ key_callback ──→ event dispatch
         (ThreadPool)                  │              (Unix socket)
         script/http            PIL → set_key_image        │
                                       ▲                   │
-                               poll_thread(s)             │
-                               (live_value keys)          │
+                          poll/blink thread(s)           │
+                        (live_value / task keys)           │
 ```
 
 All `deck.set_key_image()` calls are serialized through `render_thread` — the Stream Deck HID interface does not tolerate concurrent writes.

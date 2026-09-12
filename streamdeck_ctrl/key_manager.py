@@ -3,6 +3,8 @@
 import logging
 import queue
 
+from streamdeck_ctrl.config import TASK_STATES
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,6 +37,10 @@ class KeyState:
             self._state = "default"
             self._value = ""
             self._live_config = key_config.get("live", {})
+        elif self.icon_type == "task":
+            self._state = key_config.get("initial_state", "idle")
+            self._task_config = key_config.get("task", {})
+            self._blink_on = True
 
     @property
     def state(self):
@@ -84,6 +90,18 @@ class KeyState:
             # change, no render enqueued on press.
             return self._state, action
 
+        elif self.icon_type == "task":
+            # Swallow presses while the task runs. The action typically
+            # drives hardware over a single port (a flasher, for one), and
+            # starting a second run on top of the first would corrupt it.
+            if self._state == "running":
+                logger.info("Key '%s' is already running, press ignored", self.label)
+                return self._state, None
+            self._state = "running"
+            self._blink_on = True
+            self._enqueue_render()
+            return self._state, action
+
         return self._state, None
 
     def notify_state(self, new_state):
@@ -115,6 +133,17 @@ class KeyState:
             self._enqueue_render()
             return True, None
 
+        elif self.icon_type == "task":
+            if new_state not in TASK_STATES:
+                return False, (
+                    f"invalid state '{new_state}' for task key "
+                    f"'{self.label}', valid: {','.join(TASK_STATES)}"
+                )
+            self._state = new_state
+            self._blink_on = True
+            self._enqueue_render()
+            return True, None
+
         return False, (
             f"key '{self.label}' (type={self.icon_type}) "
             f"does not accept state notifications"
@@ -143,6 +172,33 @@ class KeyState:
         if self.icon_type == "live_value":
             self._value = str(value)
             self._enqueue_render()
+
+    def advance_blink(self):
+        """Flip the blink phase of a running task key.
+
+        The caller owns the redraw: on a paginated deck only it knows which
+        physical slot the key currently occupies.
+
+        Returns:
+            True if the phase changed and the key needs a redraw.
+        """
+        if self.icon_type != "task" or self._state != "running":
+            return False
+        self._blink_on = not self._blink_on
+        return True
+
+    @property
+    def blink_interval(self):
+        """Blink period in seconds for a task key (0 for every other type)."""
+        if self.icon_type != "task":
+            return 0
+        return self._task_config.get("blink_interval_sec", 0.5)
+
+    def _task_border_color(self):
+        """Border colour for the current task state, or None for no border."""
+        if self._state == "running" and not self._blink_on:
+            return None  # dark half of the blink cycle
+        return self._task_config.get("colors", {}).get(self._state)
 
     def restore_state(self, persisted):
         """Restore state from persisted data (loaded at startup).
@@ -180,6 +236,10 @@ class KeyState:
             info["icon_path"] = icons.get(self._state)
         elif self.icon_type == "multistate":
             info["icon_path"] = icons.get(self._state)
+        elif self.icon_type == "task":
+            info["icon_path"] = icons.get("default")
+            info["border_color"] = self._task_border_color()
+            info["border_width"] = self._task_config.get("border_width", 0)
         elif self.icon_type == "live_value":
             info["icon_path"] = icons.get("base")
             live = self._live_config
@@ -278,6 +338,11 @@ class KeyManager:
     def all_keys(self):
         """Return all KeyState instances."""
         return list(self._keys_by_position.values())
+
+    def task_keys(self):
+        """Return the KeyState instances of every task key."""
+        return [ks for ks in self._keys_by_position.values()
+                if ks.icon_type == "task"]
 
     def get_positions(self):
         """Every position a key occupies, for blanking the rest."""

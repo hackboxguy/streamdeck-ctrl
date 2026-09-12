@@ -372,6 +372,32 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [4, 3],
+      "label": "983HH IOC Flash",
+      "icon_type": "task",
+      "icons": {
+        "default": "983hh-ioc-flash.png"
+      },
+      "notification_id": "ioc.flash_983hh",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "colors": {
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-983hh-ioc.sh",
+          "async": true,
+          "timeout_sec": 600
+        }
+      }
     }
   ]
 }

@@ -13,6 +13,11 @@ logger = logging.getLogger(__name__)
 # JSON Schema — derived from PRD sections 4.1–4.5
 # ---------------------------------------------------------------------------
 
+_HEX_COLOR = "^#[0-9A-Fa-f]{6}$"
+
+# States a `task` key moves through. "running" is the only blinking one.
+TASK_STATES = ("idle", "running", "success", "failure")
+
 ACTION_SCHEMA = {
     "type": "object",
     "properties": {
@@ -56,7 +61,8 @@ KEY_COMMON = {
         "label": {"type": "string"},
         "icon_type": {
             "type": "string",
-            "enum": ["static", "toggle", "multistate", "live_value", "radio"],
+            "enum": ["static", "toggle", "multistate", "live_value", "radio",
+                     "task"],
         },
         "notification_id": {"type": "string"},
         "state_watch": {
@@ -211,6 +217,44 @@ LIVE_VALUE_KEY_SCHEMA = {
     ]
 }
 
+TASK_KEY_SCHEMA = {
+    "allOf": [
+        KEY_COMMON,
+        {
+            "properties": {
+                "icon_type": {"const": "task"},
+                "icons": {
+                    "type": "object",
+                    "properties": {"default": {"type": "string"}},
+                    "required": ["default"],
+                },
+                "initial_state": {
+                    "type": "string",
+                    "enum": list(TASK_STATES),
+                },
+                "task": {
+                    "type": "object",
+                    "properties": {
+                        "blink_interval_sec": {
+                            "type": "number",
+                            "exclusiveMinimum": 0,
+                        },
+                        "border_width": {"type": "integer", "minimum": 1},
+                        "colors": {
+                            "type": "object",
+                            "properties": {
+                                state: {"type": "string", "pattern": _HEX_COLOR}
+                                for state in TASK_STATES
+                            },
+                        },
+                    },
+                },
+            },
+            "required": ["icons"],
+        },
+    ]
+}
+
 CONFIG_SCHEMA = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
@@ -260,6 +304,7 @@ CONFIG_SCHEMA = {
                     MULTISTATE_KEY_SCHEMA,
                     LIVE_VALUE_KEY_SCHEMA,
                     RADIO_KEY_SCHEMA,
+                    TASK_KEY_SCHEMA,
                 ],
             },
         },
@@ -282,6 +327,18 @@ NOTIFICATION_DEFAULTS = {
     "type": "unix_socket",
     "socket_path": "/run/streamdeck-ctrl/notify.sock",
     "state_persist_path": "/run/streamdeck-ctrl/state.json",
+}
+
+TASK_DEFAULTS = {
+    "blink_interval_sec": 0.5,
+    "border_width": 6,
+}
+
+# "idle" is deliberately absent: an idle task key shows the bare icon.
+TASK_COLOR_DEFAULTS = {
+    "running": "#00FF00",
+    "success": "#00FF00",
+    "failure": "#FF0000",
 }
 
 LIVE_DEFAULTS = {
@@ -345,6 +402,7 @@ def load_config(path, *, validate_icons=True):
     _validate_notification_ids(cfg["keys"])
     _validate_multistate_keys(cfg["keys"])
     _validate_state_watch_keys(cfg["keys"])
+    _validate_task_keys(cfg["keys"])
     _warn_stateful_keys_without_notification_id(cfg["keys"])
 
     # --- resolve icon paths ---
@@ -370,6 +428,14 @@ def _inject_key_defaults(key):
         key.setdefault("live", {})
         for k, v in LIVE_DEFAULTS.items():
             key["live"].setdefault(k, v)
+    elif icon_type == "task":
+        key.setdefault("initial_state", "idle")
+        key.setdefault("task", {})
+        for k, v in TASK_DEFAULTS.items():
+            key["task"].setdefault(k, v)
+        key["task"].setdefault("colors", {})
+        for k, v in TASK_COLOR_DEFAULTS.items():
+            key["task"]["colors"].setdefault(k, v)
 
 
 def _validate_positions(keys, max_rows=3, max_cols=5, check_bounds=True):
@@ -440,6 +506,23 @@ def _validate_state_watch_keys(keys):
         if not key.get("notification_id"):
             raise ValueError(
                 f"Key '{key['label']}': state_watch requires notification_id"
+            )
+
+
+def _validate_task_keys(keys):
+    """A task key needs a notification_id to ever leave the running state.
+
+    Only the script the key launches knows whether the task succeeded, and it
+    reports that over the notification socket. Without an ID there is nothing
+    to address, so the key would blink green forever after the first press.
+    """
+    for key in keys:
+        if key["icon_type"] != "task":
+            continue
+        if not key.get("notification_id"):
+            raise ValueError(
+                f"Key '{key['label']}': task keys require notification_id "
+                f"so the launched script can report success or failure"
             )
 
 

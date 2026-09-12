@@ -10,7 +10,11 @@ import time
 
 from streamdeck_ctrl.action import execute_action, shutdown_executor
 from streamdeck_ctrl.config import load_config
-from streamdeck_ctrl.icon_renderer import render_key_image, render_live_value_image
+from streamdeck_ctrl.icon_renderer import (
+    render_bordered_image,
+    render_key_image,
+    render_live_value_image,
+)
 from streamdeck_ctrl.key_manager import KeyManager
 from streamdeck_ctrl.notifier import Notifier
 from streamdeck_ctrl.page_manager import PageManager
@@ -134,6 +138,7 @@ class StreamDeckDaemon:
         # Start poll threads
         self._start_poll_threads()
         self._start_state_watch_threads()
+        self._start_blink_threads()
 
         # Install signal handlers (only works from main thread)
         import threading as _threading
@@ -274,6 +279,12 @@ class StreamDeckDaemon:
 
         ks, new_state, action = result
 
+        # KeyState.press() enqueues a redraw at the key's *logical* position,
+        # which the render loop discards while pagination is active. Redraw it
+        # here at the slot it actually occupies, so the key reacts at once.
+        if self._page_manager and self._page_manager.needs_pagination:
+            self._enqueue_key_render(ks)
+
         # Persist state
         self._persist_state()
 
@@ -341,6 +352,31 @@ class StreamDeckDaemon:
                         # Override position to physical deck position
                         info["position"] = pos
                         self._render_queue.put_nowait(info)
+
+    def _enqueue_key_render(self, key_state):
+        """Enqueue a redraw of one key, remapped to its physical slot.
+
+        Returns:
+            False when nothing was drawn — no deck is open, the key sits on
+            another page, or the render queue is saturated.
+        """
+        if self._deck is None:
+            return False
+
+        info = key_state.get_render_info()
+        if self._page_manager and self._page_manager.needs_pagination:
+            physical_pos = self._page_manager.get_physical_pos(key_state.position)
+            if physical_pos is None:
+                return False
+            info["position"] = physical_pos
+
+        try:
+            self._render_queue.put_nowait(info)
+        except queue.Full:
+            logger.warning("Render queue full, dropping render for key '%s'",
+                           key_state.label)
+            return False
+        return True
 
     def _handle_notification(self, notification_id, state=None, value=None):
         """Handle notification from Unix socket (runs in notifier thread)."""
@@ -410,7 +446,14 @@ class StreamDeckDaemon:
         # Map (row, col) to linear key index
         key_index = position[0] * self._deck_cols + position[1]
 
-        if info["icon_type"] == "live_value":
+        if info["icon_type"] == "task":
+            img = render_bordered_image(
+                icon_path,
+                key_size,
+                info.get("border_color"),
+                info.get("border_width", 0),
+            )
+        elif info["icon_type"] == "live_value":
             live = info.get("live_config", {})
             overlay = info.get("overlay_text", "")
             img = render_live_value_image(
@@ -489,6 +532,32 @@ class StreamDeckDaemon:
                 logger.exception("Poll error for '%s'", key_state.label)
 
             self._shutdown_event.wait(timeout=interval)
+
+    def _start_blink_threads(self):
+        """Start one blink thread per task key.
+
+        Each key keeps its own period, so a slow task and a fast one can
+        blink at different rates. The thread idles cheaply: the phase only
+        advances while that key is in the running state.
+        """
+        for ks in self._key_manager.task_keys():
+            t = threading.Thread(
+                target=self._blink_loop,
+                args=(ks, ks.blink_interval),
+                name=f"blink-{ks.label}",
+                daemon=True,
+            )
+            t.start()
+            self._poll_threads.append(t)
+            logger.info("Started blink thread for '%s' (every %.2fs)",
+                        ks.label, ks.blink_interval)
+
+    def _blink_loop(self, key_state, interval):
+        """Toggle a running task key's border on and off."""
+        while not self._shutdown_event.is_set():
+            self._shutdown_event.wait(timeout=interval)
+            if key_state.advance_blink():
+                self._enqueue_key_render(key_state)
 
     def _start_state_watch_threads(self):
         """Synchronize toggle keys from small JSON state files.
@@ -616,6 +685,10 @@ def dry_run(config_path):
             parts.append(f"on={icons.get('on', '?')}  off={icons.get('off', '?')}")
         elif icon_type == "multistate":
             parts.append(f"states={','.join(key.get('states', []))}")
+        elif icon_type == "task":
+            parts.append(f"default={icons.get('default', '?')}")
+            task = key.get("task", {})
+            parts.append(f"blink={task.get('blink_interval_sec', '?')}s")
         elif icon_type == "live_value":
             parts.append(f"base={icons.get('base', '?')}")
             live = key.get("live", {})

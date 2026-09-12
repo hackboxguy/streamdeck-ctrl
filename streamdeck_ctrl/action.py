@@ -98,9 +98,16 @@ def _run_action(action_type, on_press, context):
         logger.exception("Action execution failed (type=%s)", action_type)
 
 
+# Scripts that do not declare a timeout are assumed to be quick one-shots.
+DEFAULT_SCRIPT_TIMEOUT_SEC = 30
+
+
 def _run_script(on_press, context):
     """Execute a script action via subprocess."""
     command = substitute_tokens(on_press["command"], context)
+    # A long-running action (flashing an MCU takes minutes) sets timeout_sec
+    # so it is not killed mid-write by the default.
+    timeout = on_press.get("timeout_sec", DEFAULT_SCRIPT_TIMEOUT_SEC)
     logger.info("Executing script: %s", command)
     try:
         result = subprocess.run(
@@ -108,7 +115,7 @@ def _run_script(on_press, context):
             shell=True,
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=timeout,
         )
         if result.returncode != 0:
             logger.warning(

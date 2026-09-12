@@ -76,6 +76,36 @@ def render_key_image(png_path, key_size=None, overlay_text=None,
 
 
 @lru_cache(maxsize=64)
+def render_bordered_image(png_path, key_size, border_color, border_width):
+    """Render a base icon with a coloured border drawn inside its edges.
+
+    Used by `task` keys to signal progress without needing a separate icon
+    file per outcome. A falsy border_color (or zero width) renders the bare
+    icon, which is what the "off" half of a blink cycle draws.
+
+    Args:
+        png_path: Path to the base icon.
+        key_size: (width, height) tuple.
+        border_color: Hex colour string, or None for no border.
+        border_width: Border thickness in pixels.
+
+    Returns:
+        PIL.Image.Image in RGB mode, sized to key_size.
+    """
+    img = _load_and_scale(png_path, key_size).convert("RGB")
+    if not border_color or border_width <= 0:
+        return img
+
+    draw = ImageDraw.Draw(img)
+    draw.rectangle(
+        [0, 0, key_size[0] - 1, key_size[1] - 1],
+        outline=border_color,
+        width=border_width,
+    )
+    return img
+
+
+@lru_cache(maxsize=64)
 def render_live_value_image(png_path, key_size, overlay_text,
                             text_color, font_size, font_path, text_anchor):
     """Cached version for live_value keys. All args must be hashable."""
@@ -120,4 +150,5 @@ def _render_with_text(base, text, text_color, font_size, font_path,
 def clear_cache():
     """Clear all image caches. Call on config reload."""
     _load_and_scale.cache_clear()
+    render_bordered_image.cache_clear()
     render_live_value_image.cache_clear()

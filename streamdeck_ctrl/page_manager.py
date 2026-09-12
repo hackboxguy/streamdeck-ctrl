@@ -162,6 +162,23 @@ class PageManager:
 
         return layout
 
+    def get_physical_pos(self, logical_pos):
+        """Find where a configured key sits on the current page.
+
+        Args:
+            logical_pos: The key's `position` from the config.
+
+        Returns:
+            (row, col) physical slot, or None if the key is on another page.
+        """
+        logical_pos = tuple(logical_pos)
+        for pos, entry in self.get_physical_layout().items():
+            if entry.get("icon_type") == "__nav__":
+                continue
+            if tuple(entry["position"]) == logical_pos:
+                return pos
+        return None
+
     def switch_page(self, direction):
         """Switch to next/previous page.
 
