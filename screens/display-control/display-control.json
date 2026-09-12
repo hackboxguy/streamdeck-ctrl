@@ -411,7 +411,85 @@
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-983hh-ioc.sh",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-ioc.sh --id=ioc.flash_983hh --label=983HH --board=983hh --npj=983HH.npj --firmware=983HH_983_manager.bin",
+          "async": true,
+          "timeout_sec": 600
+        }
+      }
+    },
+    {
+      "position": [5, 1],
+      "label": "S7-9090 IOC Flash",
+      "icon_type": "task",
+      "icons": {
+        "default": "spartn7-ioc-flash.png"
+      },
+      "notification_id": "ioc.flash_spartan7",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "colors": {
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-ioc.sh --id=ioc.flash_spartan7 --label=S7-9090 --board=spartan7-9090 --firmware=REMOTE_DISP_SPARTAN7_display_manager_s4.bin",
+          "async": true,
+          "timeout_sec": 600
+        }
+      }
+    },
+    {
+      "position": [5, 2],
+      "label": "LAT45 IOC Flash",
+      "icon_type": "task",
+      "icons": {
+        "default": "LAT45-ioc-flash.png"
+      },
+      "notification_id": "ioc.flash_lat45",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "colors": {
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-ioc.sh --id=ioc.flash_lat45 --label=LAT-ECP5 --board=lattice45-9090 --npj=LAT-ECP5.npj --firmware=REMOTE_DISP_display_manager.bin",
+          "async": true,
+          "timeout_sec": 600
+        }
+      }
+    },
+    {
+      "position": [5, 3],
+      "label": "OLED-OTS IOC Flash",
+      "icon_type": "task",
+      "icons": {
+        "default": "oled-ots-ioc-flash.png"
+      },
+      "notification_id": "ioc.flash_oled_ots",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "colors": {
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-ioc.sh --id=ioc.flash_oled_ots --label=OLED-OTS --board=lattice45-9090 --npj=LAT-ECP5.npj --firmware=REMOTE_DISP_OTS_display_manager.bin",
           "async": true,
           "timeout_sec": 600
         }

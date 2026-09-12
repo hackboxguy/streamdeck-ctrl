@@ -262,18 +262,42 @@ class TestTaskConfig:
                             "display-control.json")
         cfg = load_config(path)
         flash = [k for k in cfg["keys"] if k["icon_type"] == "task"]
-        assert len(flash) == 1
-        assert flash[0]["notification_id"] == "ioc.flash_983hh"
-        # It has to land on page 2 of a 15-key deck, behind the arrow,
-        # in the bottom row immediately right of the back arrow. The filler
-        # "Blank" keys ahead of it are what put it there, so a key inserted
-        # before it would shift it out of that slot.
+        assert [k["notification_id"] for k in flash] == [
+            "ioc.flash_983hh", "ioc.flash_spartan7",
+            "ioc.flash_lat45", "ioc.flash_oled_ots",
+        ]
+
+        # The four of them fill the bottom row of page 2, left to right,
+        # starting immediately right of the back arrow. The filler "Blank"
+        # keys ahead of them are what put them there, so a key inserted
+        # before them would shift the whole row.
         pages = PageManager(cfg["keys"], cfg["device"]["layout"])
         assert pages.page_count == 2
-        assert flash[0] in pages._pages[1]
         pages.switch_page("right")
-        assert pages.get_physical_pos(flash[0]["position"]) == (2, 1)
         assert pages._left_arrow_pos == (2, 0)
+        slots = [pages.get_physical_pos(k["position"]) for k in flash]
+        assert slots == [(2, 1), (2, 2), (2, 3), (2, 4)]
+
+    def test_every_flash_key_drives_the_shared_script(self):
+        """Each board differs only by its arguments, never by its script."""
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        path = os.path.join(repo, "screens", "display-control",
+                            "display-control.json")
+        cfg = load_config(path)
+        flash = [k for k in cfg["keys"] if k["icon_type"] == "task"]
+
+        boards = set()
+        for k in flash:
+            cmd = k["action"]["on_press"]["command"]
+            assert "scripts/flash-ioc.sh " in cmd
+            # The id the script reports on must be the key's own.
+            assert f"--id={k['notification_id']} " in cmd
+            assert "--firmware=" in cmd
+            board = cmd.split("--board=")[1].split()[0]
+            boards.add(board)
+            # spartan7-9090 is driven without an npj; the rest need one.
+            assert ("--npj=" in cmd) == (board != "spartan7-9090")
+        assert boards == {"983hh", "spartan7-9090", "lattice45-9090"}
 
 
 # ---------------------------------------------------------------------------

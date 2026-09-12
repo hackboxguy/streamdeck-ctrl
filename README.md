@@ -71,7 +71,7 @@ Use for: firmware flashing, backups, long-running maintenance jobs.
 
 ```json
 {
-  "position": [4, 3],
+  "position": [5, 0],
   "label": "983HH IOC Flash",
   "icon_type": "task",
   "icons": { "default": "983hh-ioc-flash.png" },
@@ -84,7 +84,7 @@ Use for: firmware flashing, backups, long-running maintenance jobs.
   "action": {
     "on_press": {
       "type": "script",
-      "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-983hh-ioc.sh",
+      "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-ioc.sh --id=ioc.flash_983hh --label=983HH --board=983hh --npj=983HH.npj --firmware=983HH_983_manager.bin",
       "async": true,
       "timeout_sec": 600
     }
@@ -265,7 +265,18 @@ NEW=$(( CURRENT + 10 ))
 "$ALS_CLIENT" --brightness=$NEW
 ```
 
-**983HH IOC Flash** — a `task` key on page 2 that reflashes the 983HH board's RH850 IOC with `983HH_983_manager.bin`, the same job micropanel offers under *IOC-Update → 983HHV3 → Update*. It shells out to micropanel's `rh850-flash-auto.sh`, which picks the transport itself: an EEHB Bluebox dongle (USB `0403:a9a0`) when one is plugged into the Pi, otherwise the Pi's own GPIO/UART wiring. The operator attaches the dongle and presses the key; the border blinks green while flashing and settles on solid green or solid red.
+**IOC Flash keys** — four `task` keys filling the bottom row of page 2, beside the back arrow, each reflashing one board's RH850 IOC:
+
+| Key | Board | Firmware | NPJ |
+|---|---|---|---|
+| 983HH | `983hh` | `983HH_983_manager.bin` | `983HH.npj` |
+| S7-9090 | `spartan7-9090` | `REMOTE_DISP_SPARTAN7_display_manager_s4.bin` | *(none)* |
+| LAT45 | `lattice45-9090` | `REMOTE_DISP_display_manager.bin` | `LAT-ECP5.npj` |
+| OLED-OTS | `lattice45-9090` | `REMOTE_DISP_OTS_display_manager.bin` | `LAT-ECP5.npj` |
+
+All four run the same `scripts/flash-ioc.sh`, differing only in arguments, and it shells out to micropanel's `rh850-flash-auto.sh` — which picks the transport itself: an EEHB Bluebox dongle (USB `0403:a9a0`) when one is plugged into the Pi, otherwise the Pi's own GPIO/UART wiring. The operator attaches the dongle and presses a key; the border blinks green while flashing and settles on solid green or solid red.
+
+The script takes a single lock across every board, since they all program over the same port — a second flash started while one is running exits instead of colliding with it.
 
 **ALS Adaptive** — toggles between auto and manual mode:
 
