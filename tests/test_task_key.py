@@ -264,10 +264,16 @@ class TestTaskConfig:
         flash = [k for k in cfg["keys"] if k["icon_type"] == "task"]
         assert len(flash) == 1
         assert flash[0]["notification_id"] == "ioc.flash_983hh"
-        # It has to land on page 2 of a 15-key deck, behind the arrow.
+        # It has to land on page 2 of a 15-key deck, behind the arrow,
+        # in the bottom row immediately right of the back arrow. The filler
+        # "Blank" keys ahead of it are what put it there, so a key inserted
+        # before it would shift it out of that slot.
         pages = PageManager(cfg["keys"], cfg["device"]["layout"])
         assert pages.page_count == 2
         assert flash[0] in pages._pages[1]
+        pages.switch_page("right")
+        assert pages.get_physical_pos(flash[0]["position"]) == (2, 1)
+        assert pages._left_arrow_pos == (2, 0)
 
 
 # ---------------------------------------------------------------------------

@@ -375,6 +375,24 @@
     },
     {
       "position": [4, 3],
+      "label": "Blank 3",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [4, 4],
+      "label": "Blank 4",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [5, 0],
       "label": "983HH IOC Flash",
       "icon_type": "task",
       "icons": {
