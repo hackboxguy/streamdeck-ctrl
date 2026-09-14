@@ -529,6 +529,32 @@
           "timeout_sec": 600
         }
       }
+    },
+    {
+      "position": [6, 0],
+      "label": "15.6-0OD FPGA Flash",
+      "icon_type": "task",
+      "icons": {
+        "default": "15-6-0od-fpga-flash.png"
+      },
+      "notification_id": "fpga.flash_15_6_0od",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "colors": {
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-fpga.sh --id=fpga.flash_15_6_0od --label=15.6-0OD --file=15-6-0OD --fpga-type=lattice",
+          "async": true,
+          "timeout_sec": 600
+        }
+      }
     }
   ]
 }

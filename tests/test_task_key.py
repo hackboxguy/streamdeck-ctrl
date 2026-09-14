@@ -266,6 +266,7 @@ class TestTaskConfig:
         assert [k["notification_id"] for k in flash] == [
             "ioc.flash_983hh", "ioc.flash_spartan7", "ioc.flash_lat45",
             "ioc.flash_oled_ots", "fpga.flash_12_3_nq5",
+            "fpga.flash_15_6_0od",
         ]
 
         # Three IOC keys sit on page 2's bottom row beside the back arrow;
@@ -283,7 +284,7 @@ class TestTaskConfig:
 
         pages.switch_page("right")
         assert [pages.get_physical_pos(k["position"]) for k in flash[3:]] == [
-            (0, 0), (0, 1)]
+            (0, 0), (0, 1), (0, 2)]
 
     def test_every_flash_key_drives_a_shared_script(self):
         """Each target differs only by its arguments, never by its script."""
