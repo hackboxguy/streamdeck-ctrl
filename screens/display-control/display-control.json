@@ -303,18 +303,18 @@
     },
     {
       "position": [3, 4],
-      "label": "HDMI 12.3-nq3",
+      "label": "HDMI 12.3-nq5",
       "icon_type": "radio",
       "icons": {
-        "on": "12-3-nq3-on.bmp",
-        "off": "12-3-nq3-off.bmp"
+        "on": "12-3-nq5-on.bmp",
+        "off": "12-3-nq5-off.bmp"
       },
       "initial_state": "off",
-      "notification_id": "hdmi.12_3_nq3",
+      "notification_id": "hdmi.12_3_nq5",
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/apply-hdmi-12-3-nq3.sh",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/apply-hdmi-12-3-nq5.sh",
           "async": true
         }
       }
@@ -375,12 +375,21 @@
     },
     {
       "position": [4, 3],
-      "label": "Blank 3",
-      "icon_type": "static",
+      "label": "HDMI 3x-QVue",
+      "icon_type": "radio",
       "icons": {
-        "default": "blank.bmp"
+        "on": "3x-qvue-on.bmp",
+        "off": "3x-qvue-off.bmp"
       },
-      "action": null
+      "initial_state": "off",
+      "notification_id": "hdmi.3x_qvue",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/apply-hdmi-3x-qvue.sh",
+          "async": true
+        }
+      }
     },
     {
       "position": [4, 4],

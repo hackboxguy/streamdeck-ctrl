@@ -3,6 +3,7 @@
 import json
 import os
 import queue
+import re
 import shutil
 import socket
 import tempfile
@@ -474,3 +475,51 @@ class TestTaskEndToEnd:
         ks = d._key_manager.get_key((0, 0))
         assert ks.state == "failure"
         assert ks.get_render_info()["border_color"] == "#FF0000"
+
+
+class TestHdmiRadioKeys:
+    """The timing radios and the sync script must agree on notification ids.
+
+    sync-hdmi-timing.sh pushes one notification per timing profile so exactly
+    one radio lights up. An id in the config with no line in that map is a key
+    that can never turn on; a line with no key is a notification the daemon
+    rejects. Neither shows up until someone watches the deck, so pin it here.
+    """
+
+    def _config(self):
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        return os.path.join(repo, "screens", "display-control",
+                            "display-control.json"), repo
+
+    def test_every_hdmi_radio_is_in_the_sync_map(self):
+        path, repo = self._config()
+        cfg = load_config(path)
+        keys = {k["notification_id"] for k in cfg["keys"]
+                if k["icon_type"] == "radio"}
+
+        sync = open(os.path.join(repo, "screens", "display-control", "scripts",
+                                 "sync-hdmi-timing.sh")).read()
+        mapped = set(re.findall(r'\["[^"]+"\]="(hdmi\.[a-z0-9_]+)"', sync))
+
+        assert keys == mapped, (
+            f"config-only: {sorted(keys - mapped)}, "
+            f"sync-only: {sorted(mapped - keys)}"
+        )
+
+    def test_each_radio_applies_its_own_timing(self):
+        """Two radios sharing an apply script would be a copy-paste slip."""
+        path, _ = self._config()
+        cfg = load_config(path)
+        commands = [k["action"]["on_press"]["command"]
+                    for k in cfg["keys"] if k["icon_type"] == "radio"]
+        assert len(commands) == len(set(commands))
+
+    def test_qvue_sits_beside_the_ots_oled_key(self):
+        path, _ = self._config()
+        cfg = load_config(path)
+        pages = PageManager(cfg["keys"], cfg["device"]["layout"])
+        pages.switch_page("right")
+        pos = {k["label"]: pages.get_physical_pos(k["position"])
+               for k in cfg["keys"]}
+        ots, qvue = pos["HDMI 17.3-OTS-OLED"], pos["HDMI 3x-QVue"]
+        assert ots is not None and qvue == (ots[0], ots[1] + 1)
