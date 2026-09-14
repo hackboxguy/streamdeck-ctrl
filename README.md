@@ -60,6 +60,13 @@ Use for: display mode (SDR/HDR/Night), fan speed, log level.
 Base icon with a runtime text overlay. Value updated by polling a script, Unix socket notification, or both.
 Use for: sensor readouts, brightness %, status strings.
 
+### `live_value` text wrapping
+
+A value wider than the key is split across lines, breaking after `.`, `:`, `-`
+or `/` where it can and hard-breaking a long unbroken word where it cannot.
+Short readouts are untouched. Without this an IPv4 at a legible font size runs
+off both edges of the key.
+
 ### `radio`
 Two states: `on` / `off`, each with its own icon. Unlike `toggle`, press does **not** cycle the state — it fires the action only. State is controlled entirely by external notifications. Useful for mutually-exclusive selections (radio groups) where a sync script pushes the current selection from an external source of truth.
 Use for: HDMI timing profiles, display modes, exclusive configuration choices.

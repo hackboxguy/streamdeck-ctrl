@@ -114,35 +114,88 @@ def render_live_value_image(png_path, key_size, overlay_text,
                              font_path, text_anchor, key_size)
 
 
+# Characters a wrapped line may end on. An IPv4 breaks after a dot, a MAC or a
+# time after a colon -- far more legible than breaking mid-number.
+_BREAK_AFTER = ".:-/ "
+
+
+def _wrap_to_width(text, font, draw, max_width):
+    """Split text into lines that fit max_width, breaking after separators.
+
+    A value that fits is returned unchanged, so this costs nothing for the
+    short readouts (a temperature, a percentage) live_value usually carries.
+    """
+    def width(s):
+        return draw.textbbox((0, 0), s, font=font)[2]
+
+    if width(text) <= max_width:
+        return [text]
+
+    # Chunks that each end on a break character (the last may not).
+    atoms, current = [], ""
+    for ch in text:
+        current += ch
+        if ch in _BREAK_AFTER:
+            atoms.append(current)
+            current = ""
+    if current:
+        atoms.append(current)
+
+    lines, line = [], ""
+    for atom in atoms:
+        if line and width((line + atom).strip()) > max_width:
+            lines.append(line.strip())
+            line = atom
+        else:
+            line += atom
+    if line.strip():
+        lines.append(line.strip())
+
+    # A single atom wider than the key (a long word) still has to fit: hard-break it.
+    out = []
+    for line in lines:
+        while width(line) > max_width and len(line) > 1:
+            cut = len(line) - 1
+            while cut > 1 and width(line[:cut]) > max_width:
+                cut -= 1
+            out.append(line[:cut])
+            line = line[cut:]
+        if line:
+            out.append(line)
+    return out
+
+
 def _render_with_text(base, text, text_color, font_size, font_path,
                       text_anchor, key_size):
-    """Composite text overlay onto a base image."""
+    """Composite text overlay onto a base image, wrapping if it would not fit."""
     img = base.copy()
     draw = ImageDraw.Draw(img)
     font = _load_font(font_path, font_size)
 
-    # Calculate text bounding box
-    bbox = draw.textbbox((0, 0), text, font=font)
-    text_w = bbox[2] - bbox[0]
-    text_h = bbox[3] - bbox[1]
-
-    # Horizontal: always centered
-    x = (key_size[0] - text_w) // 2
-
-    # Vertical: based on anchor
     margin = 4
+    lines = _wrap_to_width(str(text), font, draw, key_size[0] - 2 * margin)
+
+    # Uniform line height, so multi-line values do not jitter as digits change.
+    ascent, descent = font.getmetrics()
+    line_h = ascent + descent
+    block_h = line_h * len(lines)
+
     if text_anchor == "top":
         y = margin
     elif text_anchor == "center":
-        y = (key_size[1] - text_h) // 2
+        y = (key_size[1] - block_h) // 2
     else:  # bottom
-        y = key_size[1] - text_h - margin
+        y = key_size[1] - block_h - margin
 
-    # Draw text shadow for readability
     shadow_color = "#000000"
-    for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
-        draw.text((x + dx, y + dy), text, font=font, fill=shadow_color)
-    draw.text((x, y), text, font=font, fill=text_color)
+    for line in lines:
+        line_w = draw.textbbox((0, 0), line, font=font)[2]
+        x = (key_size[0] - line_w) // 2
+        # Shadow first, so neighbouring lines cannot darken each other's glyphs.
+        for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+            draw.text((x + dx, y + dy), line, font=font, fill=shadow_color)
+        draw.text((x, y), line, font=font, fill=text_color)
+        y += line_h
 
     return img.convert("RGB")
 

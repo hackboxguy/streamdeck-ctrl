@@ -11,6 +11,7 @@ import threading
 import time
 
 import jsonschema
+from PIL import Image
 import pytest
 
 from streamdeck_ctrl.config import load_config
@@ -549,3 +550,86 @@ class TestHdmiRadioKeys:
                for k in cfg["keys"]}
         ots, qvue = pos["HDMI 17.3-OTS-OLED"], pos["HDMI 3x-QVue"]
         assert ots is not None and qvue == (ots[0], ots[1] + 1)
+
+
+class TestTextWrapping:
+    """Overflowing live_value text wraps instead of clipping off both edges."""
+
+    def _font_and_draw(self, size=13):
+        from PIL import ImageDraw, ImageFont
+        from streamdeck_ctrl.icon_renderer import _DEFAULT_FONT_PATH
+        return (ImageFont.truetype(_DEFAULT_FONT_PATH, size),
+                ImageDraw.Draw(Image.new("RGB", (72, 72))))
+
+    def test_short_values_are_left_alone(self):
+        """A temperature or percentage must not gain a line break."""
+        from streamdeck_ctrl.icon_renderer import _wrap_to_width
+        font, draw = self._font_and_draw()
+        for value in ("53.2", "80%", "No IP!", "10.0.0.5"):
+            assert _wrap_to_width(value, font, draw, 64) == [value]
+
+    def test_an_ip_breaks_after_a_dot(self):
+        from streamdeck_ctrl.icon_renderer import _wrap_to_width
+        font, draw = self._font_and_draw()
+        assert _wrap_to_width("192.168.1.167", font, draw, 64) == [
+            "192.168.", "1.167"]
+        assert _wrap_to_width("255.255.255.255", font, draw, 64) == [
+            "255.255.", "255.255"]
+
+    def test_every_line_fits_the_key(self):
+        from streamdeck_ctrl.icon_renderer import _wrap_to_width
+        font, draw = self._font_and_draw()
+        for value in ("192.168.100.100", "255.255.255.255", "10.11.12.13"):
+            for line in _wrap_to_width(value, font, draw, 64):
+                assert draw.textbbox((0, 0), line, font=font)[2] <= 64
+
+    def test_a_single_unbreakable_word_is_hard_broken(self):
+        """No separator to break on, but it still must not run off the key."""
+        from streamdeck_ctrl.icon_renderer import _wrap_to_width
+        font, draw = self._font_and_draw()
+        lines = _wrap_to_width("ABCDEFGHIJKLMNOPQRST", font, draw, 64)
+        assert len(lines) > 1
+        for line in lines:
+            assert draw.textbbox((0, 0), line, font=font)[2] <= 64
+
+    def test_rendered_ip_stays_inside_the_key(self):
+        """The regression this fixes: text clipped at x=0 and x=71."""
+        from streamdeck_ctrl.icon_renderer import render_live_value_image
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        base = os.path.join(repo, "screens", "display-control", "ip-address.png")
+        img = render_live_value_image(base, (72, 72), "192.168.1.167",
+                                      "#FFFFFF", 13, None, "bottom")
+        px = img.load()
+        lit = [x for x in range(72)
+               if any(min(px[x, y]) > 200 for y in range(72))]
+        assert min(lit) > 0 and max(lit) < 71
+
+
+class TestIpKey:
+    def test_ip_key_is_a_passive_live_value(self):
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        cfg = load_config(os.path.join(repo, "screens", "display-control",
+                                       "display-control.json"))
+        ip = [k for k in cfg["keys"]
+              if k.get("notification_id") == "system.ip"]
+        assert len(ip) == 1
+        ip = ip[0]
+        assert ip["icon_type"] == "live_value"
+        # Pressing it must do nothing at all.
+        assert ip.get("action") is None
+        # Polled *and* notifiable: the dispatcher hook is an optimisation, so
+        # the value must still refresh if that hook is never installed.
+        assert ip["live"]["source"] == "poll+notify"
+        assert os.path.isfile(ip["live"]["poll_command"].replace(
+            "{INSTALL_DIR}", repo))
+
+    def test_ip_key_sits_below_display_settings(self):
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        cfg = load_config(os.path.join(repo, "screens", "display-control",
+                                       "display-control.json"))
+        pages = PageManager(cfg["keys"], cfg["device"]["layout"])
+        pos = {k["label"]: pages.get_physical_pos(k["position"])
+               for k in cfg["keys"]}
+        settings, ip = pos["Display Settings"], pos["IP Address"]
+        assert settings is not None
+        assert ip == (settings[0] + 1, settings[1])

@@ -144,10 +144,20 @@
     },
     {
       "position": [1, 4],
-      "label": "Blank 2",
-      "icon_type": "static",
+      "label": "IP Address",
+      "icon_type": "live_value",
       "icons": {
-        "default": "blank.bmp"
+        "base": "ip-address.png"
+      },
+      "notification_id": "system.ip",
+      "live": {
+        "source": "poll+notify",
+        "poll_command": "{INSTALL_DIR}/screens/display-control/scripts/show-ip.sh",
+        "poll_interval_sec": 30,
+        "format": "{value}",
+        "text_anchor": "bottom",
+        "text_color": "#FFFFFF",
+        "font_size": 13
       },
       "action": null
     },
