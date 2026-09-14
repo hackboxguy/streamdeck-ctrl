@@ -264,23 +264,29 @@ class TestTaskConfig:
         cfg = load_config(path)
         flash = [k for k in cfg["keys"] if k["icon_type"] == "task"]
         assert [k["notification_id"] for k in flash] == [
-            "ioc.flash_983hh", "ioc.flash_spartan7",
-            "ioc.flash_lat45", "ioc.flash_oled_ots",
+            "ioc.flash_983hh", "ioc.flash_spartan7", "ioc.flash_lat45",
+            "ioc.flash_oled_ots", "fpga.flash_12_3_nq5",
         ]
 
-        # The four of them fill the bottom row of page 2, left to right,
-        # starting immediately right of the back arrow. The filler "Blank"
-        # keys ahead of them are what put them there, so a key inserted
-        # before them would shift the whole row.
+        # Three IOC keys sit on page 2's bottom row beside the back arrow;
+        # the deck's own "next page" arrow takes the last slot of that row,
+        # pushing the remaining two onto page 3. Their placement rides on the
+        # filler "Blank" keys ahead of them, so a key inserted before them
+        # would shift the lot.
         pages = PageManager(cfg["keys"], cfg["device"]["layout"])
-        assert pages.page_count == 2
+        assert pages.page_count == 3
         pages.switch_page("right")
         assert pages._left_arrow_pos == (2, 0)
-        slots = [pages.get_physical_pos(k["position"]) for k in flash]
-        assert slots == [(2, 1), (2, 2), (2, 3), (2, 4)]
+        assert pages.is_nav_key((2, 4)) == "right"
+        assert [pages.get_physical_pos(k["position"]) for k in flash[:3]] == [
+            (2, 1), (2, 2), (2, 3)]
 
-    def test_every_flash_key_drives_the_shared_script(self):
-        """Each board differs only by its arguments, never by its script."""
+        pages.switch_page("right")
+        assert [pages.get_physical_pos(k["position"]) for k in flash[3:]] == [
+            (0, 0), (0, 1)]
+
+    def test_every_flash_key_drives_a_shared_script(self):
+        """Each target differs only by its arguments, never by its script."""
         repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         path = os.path.join(repo, "screens", "display-control",
                             "display-control.json")
@@ -290,15 +296,34 @@ class TestTaskConfig:
         boards = set()
         for k in flash:
             cmd = k["action"]["on_press"]["command"]
-            assert "scripts/flash-ioc.sh " in cmd
-            # The id the script reports on must be the key's own.
+            # The id the script reports on must be the key's own, whichever
+            # script it is -- a copy-pasted id would light up a sibling key.
             assert f"--id={k['notification_id']} " in cmd
+
+            if k["notification_id"].startswith("fpga."):
+                assert "scripts/flash-fpga.sh " in cmd
+                assert "--file=" in cmd
+                assert cmd.split("--fpga-type=")[1].split()[0] in (
+                    "xilinx", "lattice")
+                continue
+
+            assert "scripts/flash-ioc.sh " in cmd
             assert "--firmware=" in cmd
             board = cmd.split("--board=")[1].split()[0]
             boards.add(board)
             # spartan7-9090 is driven without an npj; the rest need one.
             assert ("--npj=" in cmd) == (board != "spartan7-9090")
         assert boards == {"983hh", "spartan7-9090", "lattice45-9090"}
+
+    def test_flash_scripts_share_one_board_lock(self):
+        """JTAG and Bluebox runs drive the same board; never both at once."""
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        scripts = os.path.join(repo, "screens", "display-control", "scripts")
+        locks = set()
+        for name in ("flash-ioc.sh", "flash-fpga.sh"):
+            body = open(os.path.join(scripts, name)).read()
+            locks.add(re.search(r'LOCK_FILE="([^"]+)"', body).group(1))
+        assert len(locks) == 1, f"flash scripts use different locks: {locks}"
 
 
 # ---------------------------------------------------------------------------

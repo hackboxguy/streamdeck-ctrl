@@ -25,9 +25,10 @@ SP6BINS="$MICROPANEL_HOME/share/sp6bins"
 
 SOCK="/run/streamdeck-ctrl/notify.sock"
 LOG_FILE="/tmp/ioc-flash.log"
-# One lock for every board: they all program over the same Bluebox/UART port,
-# so two flashes at once would collide whichever IOCs they target.
-LOCK_FILE="/tmp/ioc-flash.lock"
+# One lock for every board, shared with flash-fpga.sh: the IOCs all program
+# over the same Bluebox/UART port, and an FPGA JTAG run drives the same target
+# board, so only one programming run may be in flight at a time.
+LOCK_FILE="/tmp/target-flash.lock"
 
 NOTIFY_ID=""
 BOARD=""

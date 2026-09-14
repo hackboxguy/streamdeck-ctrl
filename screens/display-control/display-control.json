@@ -503,6 +503,32 @@
           "timeout_sec": 600
         }
       }
+    },
+    {
+      "position": [5, 4],
+      "label": "12.3-NQ5 FPGA Flash",
+      "icon_type": "task",
+      "icons": {
+        "default": "12-3-nq5-fpga-flash.png"
+      },
+      "notification_id": "fpga.flash_12_3_nq5",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "colors": {
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-fpga.sh --id=fpga.flash_12_3_nq5 --label=12.3-NQ5 --file=12-3-inch-new --fpga-type=xilinx",
+          "async": true,
+          "timeout_sec": 600
+        }
+      }
     }
   ]
 }
