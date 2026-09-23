@@ -565,6 +565,73 @@
           "timeout_sec": 600
         }
       }
+    },
+    {
+      "position": [6, 1],
+      "label": "Blank 5",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      }
+    },
+    {
+      "position": [6, 2],
+      "label": "Blank 6",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      }
+    },
+    {
+      "position": [6, 3],
+      "label": "SDR/HDR Peru",
+      "icon_type": "radio",
+      "icons": {
+        "on": "demo-peru-on.png",
+        "off": "demo-peru-off.png"
+      },
+      "initial_state": "off",
+      "notification_id": "demo.peru",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/sdr-hdr-demo.sh peru",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [6, 4],
+      "label": "SDR/HDR HDR10+ Test",
+      "icon_type": "radio",
+      "icons": {
+        "on": "demo-test-on.png",
+        "off": "demo-test-off.png"
+      },
+      "initial_state": "off",
+      "notification_id": "demo.test",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/sdr-hdr-demo.sh test",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [7, 0],
+      "label": "SDR/HDR Stop",
+      "icon_type": "static",
+      "icons": {
+        "default": "demo-stop.png"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/sdr-hdr-demo.sh stop",
+          "async": true
+        }
+      }
     }
   ]
 }
