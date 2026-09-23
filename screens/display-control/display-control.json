@@ -619,6 +619,24 @@
       }
     },
     {
+      "position": [7, 1],
+      "label": "SDR/HDR Harman",
+      "icon_type": "radio",
+      "icons": {
+        "on": "demo-harman-on.png",
+        "off": "demo-harman-off.png"
+      },
+      "initial_state": "off",
+      "notification_id": "demo.harman",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/sdr-hdr-demo.sh harman",
+          "async": true
+        }
+      }
+    },
+    {
       "position": [7, 0],
       "label": "SDR/HDR Stop",
       "icon_type": "static",
