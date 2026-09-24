@@ -308,6 +308,15 @@ All four run the same `scripts/flash-ioc.sh`, differing only in arguments, and i
 
 The script takes a single lock across every board, since they all program over the same port — a second flash started while one is running exits instead of colliding with it.
 
+**SDR vs HDR10+ demo keys** — the middle row of page 3 drives the side-by-side comparison
+stand from [sdr-hdr-shootout-demo](https://github.com/hackboxguy/sdr-hdr-shootout-demo):
+Peru, HDR10+ Test and Harman start that clip on both players in sync, Stop ends it and
+Pause freezes both on the same frame. They are `radio` keys (`demo.<clip>`, `demo.pause`)
+lit by the demo's control script over the notify socket; each runs
+`scripts/sdr-hdr-demo.sh <clip>|stop|pause`, a wrapper for the demo's `demo-ctl.sh`. On a
+6-key Mini, `display-control-3x2.json` puts the same keys on one page (with IP Address in
+place of Home) — see [Per-deck layouts](#per-deck-layouts).
+
 **ALS Adaptive** — toggles between auto and manual mode:
 
 ```bash
