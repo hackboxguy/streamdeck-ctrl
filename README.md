@@ -265,8 +265,13 @@ plugged in, the daemon loads the variant instead:
 | 15-key (5×3) | `display-control-5x3.json` if it exists, else `display-control.json` |
 
 Give the variant its own `device.layout` (e.g. `[2, 3]`). The deck is checked at start-up;
-if a deck of another size is plugged in later, the daemon logs it and exits non-zero so
-systemd (`Restart=on-failure`) restarts it with the matching file. `setup.sh` resolves
+if a deck needing another file is plugged in later, the daemon logs it and exits non-zero
+so systemd (`Restart=on-failure`) restarts it with the matching file.
+
+A deck **without** its own variant simply gets the loaded config's keys re-paginated for
+its size, with navigation arrows — at start-up and live, when a deck of another size is
+plugged in while the daemon runs (no restart; key states are kept). For example, the
+37 keys of `display-control.json` span 3 pages on a 15-key deck and 9 on a Mini. `setup.sh` resolves
 `{INSTALL_DIR}` in the variants too. Keys that appear in both files should keep the same
 `notification_id`, so state and scripts are shared.
 

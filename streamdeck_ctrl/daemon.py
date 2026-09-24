@@ -88,6 +88,7 @@ class StreamDeckDaemon:
         self._base_config_path = config_path
         self._config_path = config_path
         self._simulate_layout = tuple(simulate_layout)
+        self._layout = None  # (rows, cols) keys are paginated for: the connected deck's
         self._socket_path_override = socket_path
         self._brightness_override = brightness
         self._simulate = simulate
@@ -126,11 +127,16 @@ class StreamDeckDaemon:
         # Initialize key manager
         self._key_manager = KeyManager(self._config["keys"], self._render_queue)
 
-        # Initialize page manager for auto-pagination
-        layout = self._config["device"].get("layout", [3, 5])
+        # Initialize page manager for auto-pagination. Pages follow the connected
+        # deck: a deck without its own config variant gets the same keys re-paginated.
+        config_layout = tuple(self._config["device"].get("layout", [3, 5]))
+        self._layout = tuple(deck_layout) if deck_layout else config_layout
+        if self._layout != config_layout:
+            logger.info("No config for a %dx%d deck: paginating %s's keys for it",
+                        self._layout[1], self._layout[0], os.path.basename(self._config_path))
         config_dir = os.path.dirname(os.path.abspath(self._config_path))
         self._page_manager = PageManager(
-            self._config["keys"], layout, config_dir=config_dir
+            self._config["keys"], list(self._layout), config_dir=config_dir
         )
 
         # Load persisted state
@@ -207,6 +213,9 @@ class StreamDeckDaemon:
                                deck.key_layout()[1], deck.key_layout()[0], wanted,
                                self._config_path)
                 raise SystemExit(3)
+            # Same config, different deck size: re-paginate the same keys in place
+            if tuple(deck.key_layout()) != self._layout:
+                self._relayout(deck.key_layout())
 
             logger.info("Stream Deck found, opening...")
             try:
@@ -228,6 +237,22 @@ class StreamDeckDaemon:
                     pass
                 self._deck = None
                 logger.info("Deck disconnected, entering reconnect loop")
+
+    def _relayout(self, layout):
+        """Re-paginate the loaded keys for a deck of another size, without a restart.
+
+        Key states, poll threads and the notify socket stay as they are; only the
+        page split (and its navigation arrows) is rebuilt, starting on page 1.
+        """
+        old = self._layout
+        self._layout = tuple(layout)
+        config_dir = os.path.dirname(os.path.abspath(self._config_path))
+        self._page_manager = PageManager(
+            self._config["keys"], list(self._layout), config_dir=config_dir
+        )
+        logger.info("Stream Deck changed from %dx%d to %dx%d keys: %d keys re-paginated "
+                    "over %d pages", old[1], old[0], self._layout[1], self._layout[0],
+                    len(self._config["keys"]), self._page_manager.page_count)
 
     def _probe_deck_layout(self):
         """(rows, cols) of the deck to drive, or None if none is plugged in yet."""
@@ -337,7 +362,7 @@ class StreamDeckDaemon:
             # screen only ever paints the keys it defines, so a slot that used
             # to hold a key keeps showing that key's image until the deck is
             # unplugged -- a button that looks live and does nothing.
-            rows, cols = self._config["device"].get("layout", [3, 5])
+            rows, cols = self._layout
             used = set(self._key_manager.get_positions())
             for r in range(rows):
                 for c in range(cols):
@@ -352,7 +377,7 @@ class StreamDeckDaemon:
             return
 
         layout = self._page_manager.get_physical_layout()
-        rows, cols = self._config["device"].get("layout", [3, 5])
+        rows, cols = self._layout
 
         # Clear all keys first by enqueuing blank renders
         for r in range(rows):

@@ -116,3 +116,91 @@ class TestShippedDisplayControlConfigs:
         for k in load_config(os.path.join(SCREEN, "display-control-3x2.json"))["keys"]:
             twin = dict(full[k["label"]], position=k["position"])
             assert k == twin, k["label"]
+
+
+class PluggableDeck(FakeDeck):
+    """A FakeDeck that can be opened and unplugged, for the reconnect loop."""
+
+    def __init__(self, cols, rows):
+        super().__init__(cols=cols, rows=rows)
+        self.plugged = True
+
+    def open(self):
+        pass
+
+    def is_open(self):
+        return self.plugged
+
+
+class TestLiveRepagination:
+    """Without a variant file, a deck of another size gets the same keys re-paginated."""
+
+    def _daemon(self, tmpdir, n_keys=12):
+        base = _write(tmpdir, "panel.json", [3, 5], n_keys)
+        d = StreamDeckDaemon(config_path=base)
+        slot = {"deck": None}
+        d._find_deck = lambda: slot["deck"] if slot["deck"] and slot["deck"].plugged else None
+        return d, slot
+
+    def _start(self, d):
+        t = threading.Thread(target=d.run)
+        t.start()
+        return t
+
+    def _stop(self, d, t):
+        d._shutdown_event.set()
+        t.join(timeout=5)
+        assert not t.is_alive()
+
+    def test_mini_without_variant_is_paginated_at_start(self, tmpdir):
+        d, slot = self._daemon(tmpdir)
+        slot["deck"] = PluggableDeck(cols=3, rows=2)
+        t = self._start(d)
+        time.sleep(0.5)
+        try:
+            # 12 keys on 6 slots: 5 + arrow, <- + 4 + ->, <- + 3
+            assert d._layout == (2, 3)
+            assert d._page_manager.page_count == 3
+        finally:
+            self._stop(d, t)
+
+    def test_swap_15_key_for_mini_and_back_without_restart(self, tmpdir):
+        d, slot = self._daemon(tmpdir)
+        slot["deck"] = PluggableDeck(cols=5, rows=3)
+        t = self._start(d)
+        try:
+            time.sleep(0.5)
+            assert (d._layout, d._page_manager.page_count) == ((3, 5), 1)
+            keys_before = d._key_manager
+
+            slot["deck"].plugged = False              # unplug the 15-key deck
+            time.sleep(0.3)
+            slot["deck"] = PluggableDeck(cols=3, rows=2)   # plug in a Mini
+            time.sleep(d._config["device"]["reconnect_interval_sec"] + 1.0)
+            assert t.is_alive()                        # re-paginated in place, no exit
+            assert (d._layout, d._page_manager.page_count) == ((2, 3), 3)
+            assert d._key_manager is keys_before       # same keys and states
+            assert d._deck is slot["deck"]
+
+            slot["deck"].plugged = False              # and back to 15 keys
+            time.sleep(0.3)
+            slot["deck"] = PluggableDeck(cols=5, rows=3)
+            time.sleep(d._config["device"]["reconnect_interval_sec"] + 1.0)
+            assert (d._layout, d._page_manager.page_count) == ((3, 5), 1)
+        finally:
+            self._stop(d, t)
+
+    def test_nav_arrows_on_mini_pages(self, tmpdir):
+        d, slot = self._daemon(tmpdir)
+        slot["deck"] = PluggableDeck(cols=3, rows=2)
+        t = self._start(d)
+        time.sleep(0.5)
+        try:
+            pm = d._page_manager
+            first = pm.get_physical_layout(0)
+            middle = pm.get_physical_layout(1)
+            assert first[(1, 2)]["icon_type"] == "__nav__"                 # -> bottom-right
+            assert middle[(1, 0)]["icon_type"] == "__nav__"                # <- bottom-left
+            assert middle[(1, 2)]["icon_type"] == "__nav__"
+        finally:
+            self._stop(d, t)
