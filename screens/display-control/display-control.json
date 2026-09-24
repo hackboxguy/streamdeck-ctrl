@@ -650,6 +650,24 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [7, 2],
+      "label": "SDR/HDR Pause",
+      "icon_type": "radio",
+      "icons": {
+        "on": "demo-pause-on.png",
+        "off": "demo-pause-off.png"
+      },
+      "initial_state": "off",
+      "notification_id": "demo.pause",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/sdr-hdr-demo.sh pause",
+          "async": true
+        }
+      }
     }
   ]
 }
