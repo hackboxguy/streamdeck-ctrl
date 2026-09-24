@@ -56,14 +56,18 @@ apt-get install -y -qq \
     python3 python3-pil python3-requests python3-jsonschema \
     python3-elgato-streamdeck
 
-# Step 3: Resolve {INSTALL_DIR} in the config file
+# Step 3: Resolve {INSTALL_DIR} in the config file and its per-deck variants
+# (<name>-<cols>x<rows>.json, picked by the daemon for a deck of that size)
 echo "[3/7] Resolving {INSTALL_DIR} in config..."
-if grep -q '{INSTALL_DIR}' "$CONFIG_FILE"; then
-    sed -i "s|{INSTALL_DIR}|${SCRIPT_DIR}|g" "$CONFIG_FILE"
-    echo "[setup] Replaced {INSTALL_DIR} → $SCRIPT_DIR in $CONFIG_FILE"
-else
-    echo "[setup] No {INSTALL_DIR} placeholders found in config (already resolved or not used)"
-fi
+for cfg in "$CONFIG_FILE" "${CONFIG_FILE%.json}"-[0-9]*x[0-9]*.json; do
+    [ -f "$cfg" ] || continue
+    if grep -q '{INSTALL_DIR}' "$cfg"; then
+        sed -i "s|{INSTALL_DIR}|${SCRIPT_DIR}|g" "$cfg"
+        echo "[setup] Replaced {INSTALL_DIR} → $SCRIPT_DIR in $cfg"
+    else
+        echo "[setup] No {INSTALL_DIR} placeholders found in $cfg (already resolved or not used)"
+    fi
+done
 
 # Step 4: Make scripts executable
 echo "[4/7] Setting script permissions..."

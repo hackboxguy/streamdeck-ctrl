@@ -1,0 +1,118 @@
+{
+  "device": {
+    "brightness": 80,
+    "reconnect_timeout_sec": 0,
+    "reconnect_interval_sec": 2,
+    "layout": [2, 3]
+  },
+  "notification": {
+    "type": "unix_socket",
+    "socket_path": "/run/streamdeck-ctrl/notify.sock",
+    "state_persist_path": "/tmp/streamdeck-ctrl/state.json"
+  },
+  "keys": [
+    {
+      "position": [0, 0],
+      "label": "SDR/HDR Peru",
+      "icon_type": "radio",
+      "icons": {
+        "on": "demo-peru-on.png",
+        "off": "demo-peru-off.png"
+      },
+      "initial_state": "off",
+      "notification_id": "demo.peru",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/sdr-hdr-demo.sh peru",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [0, 1],
+      "label": "SDR/HDR HDR10+ Test",
+      "icon_type": "radio",
+      "icons": {
+        "on": "demo-test-on.png",
+        "off": "demo-test-off.png"
+      },
+      "initial_state": "off",
+      "notification_id": "demo.test",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/sdr-hdr-demo.sh test",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [0, 2],
+      "label": "SDR/HDR Harman",
+      "icon_type": "radio",
+      "icons": {
+        "on": "demo-harman-on.png",
+        "off": "demo-harman-off.png"
+      },
+      "initial_state": "off",
+      "notification_id": "demo.harman",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/sdr-hdr-demo.sh harman",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [1, 0],
+      "label": "SDR/HDR Stop",
+      "icon_type": "static",
+      "icons": {
+        "default": "demo-stop.png"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/sdr-hdr-demo.sh stop",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [1, 1],
+      "label": "IP Address",
+      "icon_type": "live_value",
+      "icons": {
+        "base": "ip-address.png"
+      },
+      "notification_id": "system.ip",
+      "live": {
+        "source": "poll+notify",
+        "poll_command": "{INSTALL_DIR}/screens/display-control/scripts/show-ip.sh",
+        "poll_interval_sec": 30,
+        "format": "{value}",
+        "text_anchor": "bottom",
+        "text_color": "#FFFFFF",
+        "font_size": 13
+      },
+      "action": null
+    },
+    {
+      "position": [1, 2],
+      "label": "Home",
+      "icon_type": "static",
+      "icons": {
+        "default": "home.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-home.sh",
+          "async": true
+        }
+      }
+    }
+  ]
+}

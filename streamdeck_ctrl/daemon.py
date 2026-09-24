@@ -9,7 +9,7 @@ import threading
 import time
 
 from streamdeck_ctrl.action import execute_action, shutdown_executor
-from streamdeck_ctrl.config import load_config
+from streamdeck_ctrl.config import config_for_layout, load_config
 from streamdeck_ctrl.icon_renderer import (
     render_bordered_image,
     render_key_image,
@@ -82,8 +82,12 @@ class StreamDeckDaemon:
     """
 
     def __init__(self, config_path, socket_path=None, brightness=None,
-                 simulate=False):
+                 simulate=False, simulate_layout=(3, 5)):
+        # config_path may have per-deck variants (<stem>-<cols>x<rows>.json); the one
+        # matching the connected deck is chosen in run()
+        self._base_config_path = config_path
         self._config_path = config_path
+        self._simulate_layout = tuple(simulate_layout)
         self._socket_path_override = socket_path
         self._brightness_override = brightness
         self._simulate = simulate
@@ -102,7 +106,12 @@ class StreamDeckDaemon:
 
     def run(self):
         """Main entry point. Load config, start services, enter reconnect loop."""
-        # Load and validate config
+        # Load the config variant for the deck that is plugged in (if any yet)
+        deck_layout = self._probe_deck_layout()
+        if deck_layout:
+            self._config_path = config_for_layout(self._base_config_path, *deck_layout)
+            logger.info("Stream Deck with %dx%d keys detected, using %s",
+                        deck_layout[1], deck_layout[0], self._config_path)
         self._config = load_config(self._config_path)
 
         # Apply overrides
@@ -157,7 +166,8 @@ class StreamDeckDaemon:
     def _run_simulate(self):
         """Run in simulate mode with a FakeDeck."""
         logger.info("Running in SIMULATE mode (no hardware)")
-        self._deck = FakeDeck()
+        rows, cols = self._simulate_layout
+        self._deck = FakeDeck(cols=cols, rows=rows)
         self._setup_deck(self._deck)
 
         # Block until shutdown
@@ -187,6 +197,17 @@ class StreamDeckDaemon:
                 if deck is None:
                     continue
 
+            # A different deck model needs its own config; everything (pages, key
+            # states, poll threads) is built from it, so restart rather than rebuild.
+            # systemd (Restart=on-failure) brings the daemon back with the right file.
+            wanted = config_for_layout(self._base_config_path, *deck.key_layout())
+            if wanted != self._config_path:
+                logger.warning("Stream Deck changed: %dx%d keys need %s, but %s is loaded; "
+                               "exiting so the service restarts with it",
+                               deck.key_layout()[1], deck.key_layout()[0], wanted,
+                               self._config_path)
+                raise SystemExit(3)
+
             logger.info("Stream Deck found, opening...")
             try:
                 deck.open()
@@ -207,6 +228,17 @@ class StreamDeckDaemon:
                     pass
                 self._deck = None
                 logger.info("Deck disconnected, entering reconnect loop")
+
+    def _probe_deck_layout(self):
+        """(rows, cols) of the deck to drive, or None if none is plugged in yet."""
+        if self._simulate:
+            return self._simulate_layout
+        deck = self._find_deck()
+        try:
+            return tuple(deck.key_layout()) if deck else None
+        except Exception as e:
+            logger.debug("Could not read deck layout: %s", e)
+            return None
 
     def _find_deck(self):
         """Find a connected Stream Deck device."""

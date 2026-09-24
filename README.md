@@ -16,7 +16,8 @@ Headless, config-driven daemon for controlling an Elgato Stream Deck on Linux sy
 ## Hardware
 
 - Raspberry Pi 4 (or any Linux system with USB)
-- Elgato Stream Deck — 15-key (5×3), Mini (3×2), or XL (8×4). Set `device.layout` in config.
+- Elgato Stream Deck — 15-key (5×3), Mini (3×2), or XL (8×4). Set `device.layout` in config;
+  see [Per-deck layouts](#per-deck-layouts) to ship one config per deck size.
 - Pi OS Lite (Bookworm) or Buildroot-based embedded Linux
 
 ## Quick Start
@@ -252,6 +253,23 @@ After `setup.sh` on a Pi:
 
 To restore placeholders after changes: `git checkout -- <config-file>`
 
+### Per-deck layouts
+
+One service can drive different Stream Deck models. Next to the config passed with
+`--config`, add a variant named `<name>-<cols>x<rows>.json`; when a deck of that size is
+plugged in, the daemon loads the variant instead:
+
+| Deck | File loaded for `--config=display-control.json` |
+|---|---|
+| Mini (3×2) | `display-control-3x2.json` if it exists |
+| 15-key (5×3) | `display-control-5x3.json` if it exists, else `display-control.json` |
+
+Give the variant its own `device.layout` (e.g. `[2, 3]`). The deck is checked at start-up;
+if a deck of another size is plugged in later, the daemon logs it and exits non-zero so
+systemd (`Restart=on-failure`) restarts it with the matching file. `setup.sh` resolves
+`{INSTALL_DIR}` in the variants too. Keys that appear in both files should keep the same
+`notification_id`, so state and scripts are shared.
+
 ## Real-World Example: Display Control
 
 The included `screens/display-control/` layout integrates bidirectionally with [als-dimmer](https://github.com/hackboxguy/als-dimmer) for display brightness and feature control. Key presses send commands to als-dimmer, and als-dimmer's callback script pushes state changes back to update the deck icons in real time:
@@ -371,6 +389,7 @@ Options:
   --brightness INT     Override brightness (0-100) from config
   --dry-run            Validate config and print key layout, do not open deck
   --simulate           Run full daemon with simulated deck (no hardware)
+  --simulate-layout CxR Deck size for --simulate, e.g. 3x2 (default 5x3)
   --daemon             Fork to background (for non-systemd environments)
   --log-level LEVEL    debug | info | warning | error [default: info]
   --version            Print version and exit
@@ -384,6 +403,8 @@ python3 -m streamdeck_ctrl.main --config ./screens/display-control/display-contr
 **Test without hardware:**
 ```bash
 python3 -m streamdeck_ctrl.main --config ./screens/display-control/display-control.json --simulate
+# as a Stream Deck Mini (loads display-control-3x2.json):
+python3 -m streamdeck_ctrl.main --config ./screens/display-control/display-control.json --simulate --simulate-layout 3x2
 ```
 
 ## Creating a Screen

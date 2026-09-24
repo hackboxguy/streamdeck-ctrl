@@ -353,6 +353,17 @@ LIVE_DEFAULTS = {
 # ---------------------------------------------------------------------------
 
 
+def config_for_layout(path, rows, cols):
+    """Pick the config for a deck of rows x cols keys.
+
+    A sibling file named ``<stem>-<cols>x<rows>.json`` (e.g. display-control-3x2.json
+    for a 6-key Mini) wins when it exists; otherwise the given file is used.
+    """
+    stem, ext = os.path.splitext(path)
+    variant = f"{stem}-{cols}x{rows}{ext or '.json'}"
+    return variant if os.path.isfile(variant) else path
+
+
 def load_config(path, *, validate_icons=True):
     """Load, validate, inject defaults, and resolve icon paths.
 

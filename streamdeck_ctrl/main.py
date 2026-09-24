@@ -55,7 +55,9 @@ def main(args=None):
     )
     parser.add_argument(
         "--config", required=True, metavar="PATH",
-        help="Path to JSON layout config file",
+        help="Path to JSON layout config file. A sibling <name>-<cols>x<rows>.json "
+             "(e.g. display-control-3x2.json) is used instead when a deck of that size "
+             "is connected",
     )
     parser.add_argument(
         "--socket-path", metavar="PATH",
@@ -72,6 +74,10 @@ def main(args=None):
     parser.add_argument(
         "--simulate", action="store_true",
         help="Run full daemon with simulated deck (no hardware required)",
+    )
+    parser.add_argument(
+        "--simulate-layout", default="5x3", metavar="COLSxROWS",
+        help="Deck size for --simulate (default 5x3; 3x2 = Stream Deck Mini)",
     )
     parser.add_argument(
         "--log-level", default="info",
@@ -97,11 +103,17 @@ def main(args=None):
     if opts.daemon:
         daemonize()
 
+    try:
+        sim_cols, sim_rows = (int(v) for v in opts.simulate_layout.lower().split("x"))
+    except ValueError:
+        parser.error(f"--simulate-layout must look like 3x2, not {opts.simulate_layout!r}")
+
     daemon = StreamDeckDaemon(
         config_path=opts.config,
         socket_path=opts.socket_path,
         brightness=opts.brightness,
         simulate=opts.simulate,
+        simulate_layout=(sim_rows, sim_cols),
     )
 
     try:

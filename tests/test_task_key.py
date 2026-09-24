@@ -521,8 +521,9 @@ class TestHdmiRadioKeys:
     def test_every_hdmi_radio_is_in_the_sync_map(self):
         path, repo = self._config()
         cfg = load_config(path)
+        # radio keys are also used outside HDMI selection (e.g. demo.* clip keys)
         keys = {k["notification_id"] for k in cfg["keys"]
-                if k["icon_type"] == "radio"}
+                if k["icon_type"] == "radio" and k["notification_id"].startswith("hdmi.")}
 
         sync = open(os.path.join(repo, "screens", "display-control", "scripts",
                                  "sync-hdmi-timing.sh")).read()
