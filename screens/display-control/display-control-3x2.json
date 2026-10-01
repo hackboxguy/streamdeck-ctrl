@@ -100,6 +100,21 @@
       "action": null
     },
     {
+      "position": [2, 0],
+      "label": "SDR/HDR -10s",
+      "icon_type": "static",
+      "icons": {
+        "default": "demo-rew.png"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/sdr-hdr-demo.sh rew",
+          "async": true
+        }
+      }
+    },
+    {
       "position": [1, 2],
       "label": "SDR/HDR Pause",
       "icon_type": "radio",
@@ -113,6 +128,21 @@
         "on_press": {
           "type": "script",
           "command": "{INSTALL_DIR}/screens/display-control/scripts/sdr-hdr-demo.sh pause",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [2, 1],
+      "label": "SDR/HDR +10s",
+      "icon_type": "static",
+      "icons": {
+        "default": "demo-fwd.png"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/sdr-hdr-demo.sh fwd",
           "async": true
         }
       }

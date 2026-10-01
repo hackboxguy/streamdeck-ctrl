@@ -11,6 +11,7 @@ import pytest
 
 from streamdeck_ctrl.config import config_for_layout, load_config
 from streamdeck_ctrl.daemon import FakeDeck, StreamDeckDaemon
+from streamdeck_ctrl.page_manager import PageManager
 
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "icons")
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -105,10 +106,22 @@ class TestDaemonPicksVariant:
 
 
 class TestShippedDisplayControlConfigs:
-    def test_3x2_variant_is_valid_and_fits_one_page(self):
+    def test_3x2_variant_is_valid_and_has_two_pages(self):
+        """Page 1: the clips, Stop and IP, -> ; page 2: -10s, Pause, +10s over <-."""
         cfg = load_config(os.path.join(SCREEN, "display-control-3x2.json"))
         assert cfg["device"]["layout"] == [2, 3]
-        assert len(cfg["keys"]) == 6          # exactly one page, no navigation arrows
+        pm = PageManager(cfg["keys"], (2, 3), SCREEN)
+        assert pm.page_count == 2
+
+        def labels(page):
+            return {pos: (e["label"] if e.get("icon_type") != "__nav__" else e["direction"])
+                    for pos, e in pm.get_physical_layout(page).items()}
+
+        assert labels(0) == {(0, 0): "SDR/HDR Peru", (0, 1): "SDR/HDR HDR10+ Test",
+                             (0, 2): "SDR/HDR Harman", (1, 0): "SDR/HDR Stop",
+                             (1, 1): "IP Address", (1, 2): "right"}
+        assert labels(1) == {(0, 0): "SDR/HDR -10s", (0, 1): "SDR/HDR Pause",
+                             (0, 2): "SDR/HDR +10s", (1, 0): "left"}
 
     def test_3x2_keys_match_their_15_key_counterparts(self):
         """Same scripts and notification ids, so both decks drive and show the same state."""
