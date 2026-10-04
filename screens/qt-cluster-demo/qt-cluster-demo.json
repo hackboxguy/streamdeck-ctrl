@@ -131,7 +131,28 @@
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/qt-cluster-demo/scripts/set-video.sh {state}",
+          "command": "{INSTALL_DIR}/screens/qt-cluster-demo/scripts/set-video.sh video1 {state}",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [
+        1,
+        3
+      ],
+      "label": "Video-2",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "video2-on.bmp",
+        "off": "video2-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "cluster.video2",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/qt-cluster-demo/scripts/set-video.sh video2 {state}",
           "async": true
         }
       }
