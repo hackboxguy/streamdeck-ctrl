@@ -300,6 +300,27 @@ class TestSchemaViolations:
         with pytest.raises(ValueError, match="state_watch is only supported"):
             load_config(cfg_path, validate_icons=False)
 
+    def test_state_watch_on_radio_with_command(self, tmpdir):
+        key = _minimal_radio()
+        key["notification_id"] = "cluster.theme_ev"
+        key["state_watch"] = {"command": "echo x", "text_map": {"x": "on", "*": "off"}}
+        cfg = load_config(_write_config(tmpdir, _base_cfg([key])), validate_icons=False)
+        assert cfg["keys"][0]["state_watch"]["command"] == "echo x"
+
+    def test_state_watch_command_needs_text_map(self, tmpdir):
+        key = _minimal_toggle()
+        key["notification_id"] = "x.y"
+        key["state_watch"] = {"command": "echo x", "json_key": "k"}
+        with pytest.raises(ValueError, match="command needs text_map"):
+            load_config(_write_config(tmpdir, _base_cfg([key])), validate_icons=False)
+
+    def test_state_watch_needs_one_reader(self, tmpdir):
+        key = _minimal_toggle()
+        key["notification_id"] = "x.y"
+        key["state_watch"] = {"path": "/tmp/x"}
+        with pytest.raises(ValueError, match="exactly one of json_key and text_map"):
+            load_config(_write_config(tmpdir, _base_cfg([key])), validate_icons=False)
+
     def test_invalid_text_color(self, tmpdir):
         key = _minimal_live()
         key["live"] = {"source": "notify_only", "text_color": "red"}

@@ -265,27 +265,28 @@ class TestTaskConfig:
         cfg = load_config(path)
         flash = [k for k in cfg["keys"] if k["icon_type"] == "task"]
         assert [k["notification_id"] for k in flash] == [
-            "ioc.flash_983hh", "ioc.flash_spartan7", "ioc.flash_lat45",
-            "ioc.flash_oled_ots", "fpga.flash_12_3_nq5",
-            "fpga.flash_15_6_0od",
+            "ioc.flash_oled_ots", "ioc.flash_983hh", "ioc.flash_spartan7",
+            "ioc.flash_lat45", "fpga.flash_12_3_nq5", "fpga.flash_15_6_0od",
         ]
 
-        # Three IOC keys sit on page 2's bottom row beside the back arrow;
-        # the deck's own "next page" arrow takes the last slot of that row,
-        # pushing the remaining two onto page 3. Their placement rides on the
-        # filler "Blank" keys ahead of them, so a key inserted before them
-        # would shift the lot.
-        pages = PageManager(cfg["keys"], cfg["device"]["layout"])
-        assert pages.page_count == 3
+        # Four pages (owner, 2026-10-07): page 2 is the HDMI timings and the
+        # four IOC keys - OLED-OTS at the end of the middle row, the other
+        # three on the bottom row beside the back arrow; page 3 is Cluster
+        # Demo V2; page 4 the two FPGA keys on top of the SDR/HDR demo keys.
+        # The deck's arrows take one slot each, so a key inserted ahead of
+        # these shifts them.
+        pages = PageManager(cfg["keys"], cfg["device"].get("layout", [3, 5]))
+        assert pages.page_count == 4
         pages.switch_page("right")
         assert pages._left_arrow_pos == (2, 0)
         assert pages.is_nav_key((2, 4)) == "right"
-        assert [pages.get_physical_pos(k["position"]) for k in flash[:3]] == [
-            (2, 1), (2, 2), (2, 3)]
+        assert [pages.get_physical_pos(k["position"]) for k in flash[:4]] == [
+            (1, 4), (2, 1), (2, 2), (2, 3)]
 
         pages.switch_page("right")
-        assert [pages.get_physical_pos(k["position"]) for k in flash[3:]] == [
-            (0, 0), (0, 1), (0, 2)]
+        pages.switch_page("right")
+        assert [pages.get_physical_pos(k["position"]) for k in flash[4:]] == [
+            (0, 0), (0, 1)]
 
     def test_every_flash_key_drives_a_shared_script(self):
         """Each target differs only by its arguments, never by its script."""

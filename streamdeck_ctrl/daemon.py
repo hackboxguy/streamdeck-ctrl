@@ -5,6 +5,7 @@ import logging
 import os
 import queue
 import signal
+import subprocess
 import threading
 import time
 
@@ -74,6 +75,30 @@ class FakeDeck:
             self._callback(self, key_index, pressed)
 
 
+class _PageRenderQueue:
+    """What a key's own redraws go into (KeyState.render_queue).
+
+    A key enqueues its redraw at its *logical* position (`position` in the
+    config). With pagination that is not where it sits: it is mapped here to
+    its slot on the current page, or dropped when the key is on another page
+    (the page draws it when it is shown). The job carries the key's logical
+    position, so the render loop can check the slot still holds that key.
+    """
+
+    def __init__(self, daemon):
+        self._daemon = daemon
+
+    def put_nowait(self, info):
+        daemon = self._daemon
+        pm = daemon._page_manager
+        if pm and pm.needs_pagination:
+            physical = pm.get_physical_pos(info["position"])
+            if physical is None:
+                return
+            info = dict(info, logical=tuple(info["position"]), position=physical)
+        daemon._render_queue.put_nowait(info)
+
+
 class StreamDeckDaemon:
     """Main daemon coordinator.
 
@@ -125,7 +150,7 @@ class StreamDeckDaemon:
         self._config["notification"]["socket_path"] = socket_path
 
         # Initialize key manager
-        self._key_manager = KeyManager(self._config["keys"], self._render_queue)
+        self._key_manager = KeyManager(self._config["keys"], _PageRenderQueue(self))
 
         # Initialize page manager for auto-pagination. Pages follow the connected
         # deck: a deck without its own config variant gets the same keys re-paginated.
@@ -407,6 +432,7 @@ class StreamDeckDaemon:
                     if ks:
                         info = ks.get_render_info()
                         # Override position to physical deck position
+                        info["logical"] = key_pos
                         info["position"] = pos
                         self._render_queue.put_nowait(info)
 
@@ -425,6 +451,7 @@ class StreamDeckDaemon:
             physical_pos = self._page_manager.get_physical_pos(key_state.position)
             if physical_pos is None:
                 return False
+            info["logical"] = tuple(key_state.position)
             info["position"] = physical_pos
 
         try:
@@ -461,23 +488,30 @@ class StreamDeckDaemon:
             except queue.Empty:
                 continue
 
-            # When pagination is active, skip renders from key_manager's
-            # auto-enqueue if the position doesn't match a physical slot
-            # on the current page. Page-driven renders use __nav__/__blank__
-            # or have their position remapped by _render_current_page().
-            if (self._page_manager and self._page_manager.needs_pagination
-                    and info.get("icon_type") not in ("__nav__", "__blank__")):
-                layout = self._page_manager.get_physical_layout()
-                pos = info["position"]
-                # Check if this position is a physical slot with a matching key
-                entry = layout.get(pos)
-                if entry is None or entry.get("icon_type") == "__nav__":
-                    continue  # skip — not on current page or is a nav slot
+            if not self._render_job_current(info):
+                continue
 
             try:
                 self._render_key(deck, info, key_size)
             except Exception:
                 logger.exception("Render error for key at %s", info.get("position"))
+
+    def _render_job_current(self, info):
+        """Whether a render job still belongs where it would be drawn.
+
+        Without pagination every job does. With it, a key's job must name the
+        key the slot holds on the current page: a job queued before a page
+        switch, or one at a key's logical position, would otherwise draw a
+        key into another key's slot. Page-driven blanks and arrows always do.
+        """
+        if not (self._page_manager and self._page_manager.needs_pagination):
+            return True
+        if info.get("icon_type") in ("__nav__", "__blank__"):
+            return True
+        entry = self._page_manager.get_physical_layout().get(info["position"])
+        if entry is None or entry.get("icon_type") == "__nav__":
+            return False
+        return tuple(entry.get("position", ())) == tuple(info.get("logical", ()))
 
     def _render_key(self, deck, info, key_size):
         """Render a single key image and push it to the deck."""
@@ -617,69 +651,121 @@ class StreamDeckDaemon:
                 self._enqueue_key_render(key_state)
 
     def _start_state_watch_threads(self):
-        """Synchronize toggle keys from small JSON state files.
+        """Synchronize toggle and radio keys from small state files or commands.
 
-        This is intended for local hardware controls whose state is shared by
-        more than one UI.  The writer is responsible for atomically replacing
-        the JSON file; readers therefore see either the old complete value or
-        the new complete value.
+        This is intended for local controls whose state is shared by more than
+        one UI (the display's LD/PC, the cluster's state files, the launcher's
+        running app). A writer replaces a file atomically, so a reader sees the
+        old complete value or the new one. Keys that watch the same source
+        share one poller: eight theme keys cost one command per interval.
         """
+        groups = {}
         for ks in self._key_manager.all_keys():
-            if ks.icon_type != "toggle" or not ks.notification_id:
+            if ks.icon_type not in ("toggle", "radio") or not ks.notification_id:
                 continue
-
             watch = ks.config.get("state_watch")
             if not watch:
                 continue
-
-            path = watch["path"]
-            json_key = watch["json_key"]
+            path = watch.get("path")
+            source = ("command", watch["command"]) if "command" in watch else \
+                     ("path", tuple(path) if isinstance(path, list) else (path,))
             interval = watch.get("poll_interval_sec", 1)
-            default_state = watch.get("default_state", "off")
+            groups.setdefault((source, interval), []).append(ks)
+
+        for (source, interval), key_states in groups.items():
             t = threading.Thread(
                 target=self._state_watch_loop,
-                args=(ks, path, json_key, interval, default_state),
-                name=f"state-watch-{ks.label}",
+                args=(key_states, source, interval),
+                name=f"state-watch-{key_states[0].label}",
                 daemon=True,
             )
             t.start()
             self._poll_threads.append(t)
-            logger.info("Started state watch for '%s' (%s every %ds)",
-                        ks.label, path, interval)
+            logger.info("Started state watch for %s (%s every %ds)",
+                        ", ".join(f"'{k.label}'" for k in key_states),
+                        source[1], interval)
 
-    def _state_watch_loop(self, key_state, path, json_key, interval, default_state):
-        """Poll a JSON boolean and use it as a toggle state notification."""
-        last_state = None
+    def _state_watch_loop(self, key_states, source, interval):
+        """Poll one source and turn it into each watching key's state."""
+        last_states = {}
+        warned = set()
         while not self._shutdown_event.is_set():
-            state = self._read_state_watch(path, json_key, default_state)
-            if state is not None and state != last_state:
+            raw = self._read_watch_source(source, key_states[0].config["state_watch"])
+            for ks in key_states:
+                state = self._watch_state(ks.config["state_watch"], raw, warned)
+                if state is None or state == last_states.get(ks.notification_id):
+                    continue
                 ok, error = self._key_manager.handle_notification(
-                    key_state.notification_id, state=state)
+                    ks.notification_id, state=state)
                 if ok:
                     self._persist_state()
-                    last_state = state
-                    logger.info("State watch: '%s' → %s", key_state.label, state)
+                    last_states[ks.notification_id] = state
+                    logger.info("State watch: '%s' → %s", ks.label, state)
                 else:
-                    logger.warning("State watch failed for '%s': %s",
-                                   key_state.label, error)
+                    logger.warning("State watch failed for '%s': %s", ks.label, error)
             self._shutdown_event.wait(timeout=interval)
 
     @staticmethod
-    def _read_state_watch(path, json_key, default_state):
-        """Read a boolean state from JSON; default only when the file is absent."""
+    def _watch_path(paths):
+        """The first candidate whose directory exists (else the last one)."""
+        for path in paths:
+            if os.path.isdir(os.path.dirname(path) or "."):
+                return path
+        return paths[-1]
+
+    @classmethod
+    def _read_watch_source(cls, source, watch):
+        """The raw source: ("missing",), ("text", str), or None when unreadable."""
+        kind, what = source
+        if kind == "command":
+            try:
+                out = subprocess.run(what, shell=True, capture_output=True, text=True,
+                                     timeout=watch.get("timeout_sec", 3))
+            except (subprocess.TimeoutExpired, OSError) as error:
+                logger.debug("State watch command failed: %s", error)
+                return None
+            if out.returncode != 0:
+                return None
+            return ("text", out.stdout)
+        path = cls._watch_path(list(what))
         try:
             with open(path, "r") as state_file:
-                data = json.load(state_file)
+                return ("text", state_file.read())
         except FileNotFoundError:
-            return default_state
-        except (json.JSONDecodeError, OSError) as error:
+            return ("missing",)
+        except OSError as error:
             logger.warning("Unable to read state watch file %s: %s", path, error)
             return None
 
-        value = data.get(json_key)
-        if isinstance(value, bool):
-            return "on" if value else "off"
-        logger.warning("State watch file %s has no boolean '%s'", path, json_key)
+    @staticmethod
+    def _watch_state(watch, raw, warned):
+        """One key's state from the raw source, or None to leave it as it is."""
+        if raw is None:
+            return None
+        if raw[0] == "missing":
+            return watch.get("default_state", "off")
+        text = raw[1]
+        if "json_key" in watch:
+            try:
+                data = json.loads(text)
+            except json.JSONDecodeError as error:
+                logger.warning("State watch file is not JSON: %s", error)
+                return None
+            value = data.get(watch["json_key"]) if isinstance(data, dict) else None
+            if isinstance(value, bool):
+                return "on" if value else "off"
+            logger.warning("State watch file has no boolean '%s'", watch["json_key"])
+            return None
+        words = text.split()
+        word = words[0].lower() if words else ""
+        text_map = watch["text_map"]
+        if word in text_map:
+            return text_map[word]
+        if "*" in text_map:
+            return text_map["*"]
+        if word not in warned:          # an unknown word: once per word
+            warned.add(word)
+            logger.warning("State watch: '%s' is not in the map", word)
         return None
 
     def _signal_handler(self, signum, frame):

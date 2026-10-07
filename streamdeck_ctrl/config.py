@@ -68,12 +68,25 @@ KEY_COMMON = {
         "state_watch": {
             "type": "object",
             "properties": {
-                "path": {"type": "string"},
+                # a file, or candidates: the first whose directory exists
+                "path": {"oneOf": [
+                    {"type": "string"},
+                    {"type": "array", "items": {"type": "string"}, "minItems": 1},
+                ]},
+                # or a command: its output's first word
+                "command": {"type": "string"},
+                "timeout_sec": {"type": "integer", "minimum": 1},
+                # a JSON file's boolean, or the word through a map ("*": anything else)
                 "json_key": {"type": "string"},
+                "text_map": {
+                    "type": "object",
+                    "additionalProperties": {"type": "string", "enum": ["on", "off"]},
+                    "minProperties": 1,
+                },
                 "poll_interval_sec": {"type": "integer", "minimum": 1},
                 "default_state": {"type": "string", "enum": ["on", "off"]},
             },
-            "required": ["path", "json_key"],
+            "oneOf": [{"required": ["path"]}, {"required": ["command"]}],
         },
         "action": {
             "oneOf": [
@@ -506,13 +519,22 @@ def _validate_multistate_keys(keys):
 
 
 def _validate_state_watch_keys(keys):
-    """Ensure JSON state watches can drive a named toggle key."""
+    """Ensure a state watch can drive a named toggle or radio key."""
     for key in keys:
         if "state_watch" not in key:
             continue
-        if key["icon_type"] != "toggle":
+        watch = key["state_watch"]
+        if key["icon_type"] not in ("toggle", "radio"):
             raise ValueError(
-                f"Key '{key['label']}': state_watch is only supported on toggle keys"
+                f"Key '{key['label']}': state_watch is only supported on toggle and radio keys"
+            )
+        if ("json_key" in watch) == ("text_map" in watch):
+            raise ValueError(
+                f"Key '{key['label']}': state_watch needs exactly one of json_key and text_map"
+            )
+        if "command" in watch and "text_map" not in watch:
+            raise ValueError(
+                f"Key '{key['label']}': a state_watch command needs text_map"
             )
         if not key.get("notification_id"):
             raise ValueError(

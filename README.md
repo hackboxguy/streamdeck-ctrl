@@ -184,7 +184,7 @@ A config file declares the device settings, notification socket, and key layout.
 | `label` | yes | Human-readable name (used in logs and dry-run) |
 | `icon_type` | yes | `static`, `toggle`, `multistate`, `live_value`, `radio`, or `task` |
 | `notification_id` | no | Dot-separated ID for external state/value updates. Required for state persistence across restarts and socket notifications. |
-| `state_watch` | no | For a toggle with `notification_id`: polls an atomic JSON file and maps its boolean `json_key` to `on`/`off`. Supports `path`, `json_key`, `poll_interval_sec`, and `default_state`. |
+| `state_watch` | no | For a toggle or radio with `notification_id`: polls a source and turns it into `on`/`off` — a JSON file's boolean (`json_key`), or a file's or a command's first word through `text_map`. See [Shared Toggle State](#shared-toggle-state). |
 | `task` | no | For a `task` key: blink period, border width, and per-state border colours |
 | `action` | no | Action to execute on key press (see below) |
 
@@ -194,12 +194,25 @@ Use `state_watch` when multiple local UIs control the same write-only device sta
 
 ```json
 "state_watch": {
-  "path": "/tmp/fpga-ldpc-state.json",
+  "path": ["/data/cluster/fpga-ldpc-state.json", "/tmp/fpga-ldpc-state.json"],
   "json_key": "local_dimming",
   "poll_interval_sec": 1,
   "default_state": "on"
 }
 ```
+
+| Field | Meaning |
+|---|---|
+| `path` | the file, or a list of candidates: the first whose directory exists is read (a board with `/data`, else `/tmp`) |
+| `command` | instead of `path`: a shell command run every interval (`timeout_sec`, default 3); its output's first word is the value. A failing command leaves the key as it is |
+| `json_key` | the file is JSON: this boolean key is the state |
+| `text_map` | the file's (or command's) first word through a map to `on`/`off`; `"*"` maps every other word. A word the map does not know is ignored and logged once |
+| `default_state` | the state while the file does not exist (default `off`) |
+
+Keys that watch the same source at the same interval share one poller, so eight radio keys
+that follow one command cost one run per interval. A radio key watched this way lights from
+the source alone: the launcher's running app, for example
+(`"command": "launcher-client … --command=get-running-app"`, `"text_map": {"cluster-v2-ev": "on", "*": "off"}`).
 
 ### Actions
 
@@ -271,13 +284,54 @@ so systemd (`Restart=on-failure`) restarts it with the matching file.
 A deck **without** its own variant simply gets the loaded config's keys re-paginated for
 its size, with navigation arrows — at start-up and live, when a deck of another size is
 plugged in while the daemon runs (no restart; key states are kept). For example, the
-37 keys of `display-control.json` span 3 pages on a 15-key deck and 9 on a Mini. `setup.sh` resolves
+52 keys of `display-control.json` span 4 pages on a 15-key deck. `setup.sh` resolves
 `{INSTALL_DIR}` in the variants too. Keys that appear in both files should keep the same
 `notification_id`, so state and scripts are shared.
 
 ## Real-World Example: Display Control
 
-The included `screens/display-control/` layout integrates bidirectionally with [als-dimmer](https://github.com/hackboxguy/als-dimmer) for display brightness and feature control. Key presses send commands to als-dimmer, and als-dimmer's callback script pushes state changes back to update the deck icons in real time:
+The included `screens/display-control/` is micropanel's screen, four pages on a 15-key deck:
+
+| Page | Keys |
+|---|---|
+| 1 | Home, Media Player, Slideshow, Default Ref Video, Display Settings, Brightness Up/Down, ALS Adaptive, Cluster Demo (the original), IP Address, Local Dimming, Sync Video, Pixel Compensation |
+| 2 | the nine HDMI timing radios and the four IOC flash tasks |
+| 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Stop |
+| 4 | the two FPGA flash tasks; the SDR/HDR10+ demo keys |
+
+The arrows take one slot on each page (→ bottom right on all but the last, ← bottom left on
+all but the first), so page 1 holds 14 keys, the middle pages 13 and the last up to 14; the
+keys fill the free slots in list order.
+
+**Cluster Demo V2 (page 3)** works through the launcher and the cluster's own state files,
+not through a systemd unit (that is the stand-alone board's `screens/qt-cluster-demo/`):
+
+- a theme key starts the launcher's `cluster-v2-<theme>` tile (`scripts/cluster-theme.sh`),
+  stopping whatever else runs first and waiting for the launcher's home. The key that is lit
+  is the tile the launcher reports running (`state_watch` on `get-running-app`), so a tile
+  started by touch, or the cluster's own exit, shows on the deck within a second;
+- **Map**, **Camera** and **DMS** write the cluster's state files in `/data/cluster`
+  (`scripts/cluster-state.sh`): `map-backdrop.state`, and `dms-video-view.state` — Camera
+  switches `on` ↔ `off` (the camera box; nothing while the DMS panel is off), DMS switches
+  the whole panel off (`none`) and back to the camera key's last choice. A running cluster
+  follows its files at once; a stopped one starts that way. The keys light from the same
+  files, so the cluster's own MAP and DMS buttons show on the deck too. On an image without
+  `/data/cluster` (the single-slot image) the keys do nothing and say so in the log;
+- **Stop** ends the running app (the launcher's home), as Home on page 1.
+
+The stand-alone screen's Video-1 / Video-2 keys are not on this page: micropanel has no
+`cluster-video` unit (its videos are launcher tiles of their own).
+
+**Local Dimming / Pixel Compensation** keep the choice where every app with LD/PC buttons
+keeps it (`scripts/fpga-ldpc-lib.sh`): `/data/cluster/fpga-ldpc-state.json`, else
+`/tmp/fpga-ldpc-state.json`, and drive the FPGA through micropanel's `disptool` with the
+apps' rule — the new register slave (`0x1E`) whenever it answers, the legacy registers
+(`0x29`, `0x47`) only on an FPGA without it.
+
+The Mini variant (`display-control-3x2.json`) is a page of its own, the SDR/HDR demo keys
+with IP Address; it is unchanged.
+
+The screen integrates bidirectionally with [als-dimmer](https://github.com/hackboxguy/als-dimmer) for display brightness and feature control. Key presses send commands to als-dimmer, and als-dimmer's callback script pushes state changes back to update the deck icons in real time:
 
 ```
 Row 0:  [0,0] Brightness Up   [0,1] Brightness Down   [0,2] Video Loop   [0,3] ALS Adaptive   [0,4] Local Dimming
@@ -295,7 +349,7 @@ NEW=$(( CURRENT + 10 ))
 "$ALS_CLIENT" --brightness=$NEW
 ```
 
-**IOC Flash keys** — four `task` keys filling the bottom row of page 2, beside the back arrow, each reflashing one board's RH850 IOC:
+**IOC Flash keys** — four `task` keys on page 2 (OLED-OTS at the end of the middle row, the other three beside the back arrow), each reflashing one board's RH850 IOC:
 
 | Key | Board | Firmware | NPJ |
 |---|---|---|---|
@@ -308,7 +362,7 @@ All four run the same `scripts/flash-ioc.sh`, differing only in arguments, and i
 
 The script takes a single lock across every board, since they all program over the same port — a second flash started while one is running exits instead of colliding with it.
 
-**SDR vs HDR10+ demo keys** — the middle row of page 3 drives the side-by-side comparison
+**SDR vs HDR10+ demo keys** — the middle and bottom rows of page 4 drive the side-by-side comparison
 stand from [sdr-hdr-shootout-demo](https://github.com/hackboxguy/sdr-hdr-shootout-demo):
 Peru, HDR10+ Test and Harman start that clip on both players in sync, Stop ends it,
 Pause freezes both on the same frame and -10s / +10s jump both back or forward (a frozen

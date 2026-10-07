@@ -187,7 +187,10 @@
       "initial_state": "on",
       "notification_id": "display.local_dimming",
       "state_watch": {
-        "path": "/tmp/fpga-ldpc-state.json",
+        "path": [
+          "/data/cluster/fpga-ldpc-state.json",
+          "/tmp/fpga-ldpc-state.json"
+        ],
         "json_key": "local_dimming",
         "poll_interval_sec": 1,
         "default_state": "on"
@@ -226,7 +229,10 @@
       "initial_state": "on",
       "notification_id": "display.pixel_compensation",
       "state_watch": {
-        "path": "/tmp/fpga-ldpc-state.json",
+        "path": [
+          "/data/cluster/fpga-ldpc-state.json",
+          "/tmp/fpga-ldpc-state.json"
+        ],
         "json_key": "pixel_compensation",
         "poll_interval_sec": 1,
         "default_state": "on"
@@ -402,13 +408,30 @@
       }
     },
     {
-      "position": [4, 4],
-      "label": "Blank 4",
-      "icon_type": "static",
+      "position": [5, 3],
+      "label": "OLED-OTS IOC Flash",
+      "icon_type": "task",
       "icons": {
-        "default": "blank.bmp"
+        "default": "oled-ots-ioc-flash.png"
       },
-      "action": null
+      "notification_id": "ioc.flash_oled_ots",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "colors": {
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-ioc.sh --id=ioc.flash_oled_ots --label=OLED-OTS --board=lattice45-9090 --npj=LAT-ECP5.npj --firmware=REMOTE_DISP_OTS_display_manager.bin",
+          "async": true,
+          "timeout_sec": 600
+        }
+      }
     },
     {
       "position": [5, 0],
@@ -489,30 +512,332 @@
       }
     },
     {
-      "position": [5, 3],
-      "label": "OLED-OTS IOC Flash",
-      "icon_type": "task",
+      "position": [9, 0],
+      "label": "Cluster V2 Legacy",
+      "icon_type": "radio",
       "icons": {
-        "default": "oled-ots-ioc-flash.png"
+        "on": "cluster-legacy-on.bmp",
+        "off": "cluster-legacy-off.bmp"
       },
-      "notification_id": "ioc.flash_oled_ots",
-      "task": {
-        "blink_interval_sec": 0.5,
-        "border_width": 6,
-        "colors": {
-          "running": "#00FF00",
-          "success": "#00FF00",
-          "failure": "#FF0000"
-        }
+      "initial_state": "off",
+      "notification_id": "cluster.theme_legacy",
+      "state_watch": {
+        "command": "/home/pi/micropanel/usr/bin/launcher-client --srv=127.0.0.1:8081 --command=get-running-app",
+        "text_map": {
+          "cluster-v2-analog": "on",
+          "*": "off"
+        },
+        "poll_interval_sec": 1
       },
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-ioc.sh --id=ioc.flash_oled_ots --label=OLED-OTS --board=lattice45-9090 --npj=LAT-ECP5.npj --firmware=REMOTE_DISP_OTS_display_manager.bin",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/cluster-theme.sh analog",
           "async": true,
-          "timeout_sec": 600
+          "timeout_sec": 20
         }
       }
+    },
+    {
+      "position": [9, 1],
+      "label": "Cluster V2 EV",
+      "icon_type": "radio",
+      "icons": {
+        "on": "cluster-ev-on.bmp",
+        "off": "cluster-ev-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "cluster.theme_ev",
+      "state_watch": {
+        "command": "/home/pi/micropanel/usr/bin/launcher-client --srv=127.0.0.1:8081 --command=get-running-app",
+        "text_map": {
+          "cluster-v2-ev": "on",
+          "*": "off"
+        },
+        "poll_interval_sec": 1
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/cluster-theme.sh ev",
+          "async": true,
+          "timeout_sec": 20
+        }
+      }
+    },
+    {
+      "position": [9, 2],
+      "label": "Cluster V2 Harman",
+      "icon_type": "radio",
+      "icons": {
+        "on": "cluster-harman-on.bmp",
+        "off": "cluster-harman-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "cluster.theme_harman",
+      "state_watch": {
+        "command": "/home/pi/micropanel/usr/bin/launcher-client --srv=127.0.0.1:8081 --command=get-running-app",
+        "text_map": {
+          "cluster-v2-harman": "on",
+          "*": "off"
+        },
+        "poll_interval_sec": 1
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/cluster-theme.sh harman",
+          "async": true,
+          "timeout_sec": 20
+        }
+      }
+    },
+    {
+      "position": [9, 3],
+      "label": "Cluster V2 Fable",
+      "icon_type": "radio",
+      "icons": {
+        "on": "cluster-fable1-on.bmp",
+        "off": "cluster-fable1-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "cluster.theme_fable1",
+      "state_watch": {
+        "command": "/home/pi/micropanel/usr/bin/launcher-client --srv=127.0.0.1:8081 --command=get-running-app",
+        "text_map": {
+          "cluster-v2-fable1": "on",
+          "*": "off"
+        },
+        "poll_interval_sec": 1
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/cluster-theme.sh fable1",
+          "async": true,
+          "timeout_sec": 20
+        }
+      }
+    },
+    {
+      "position": [9, 4],
+      "label": "Cluster V2 Tiles",
+      "icon_type": "radio",
+      "icons": {
+        "on": "cluster-tiles-on.bmp",
+        "off": "cluster-tiles-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "cluster.theme_tiles",
+      "state_watch": {
+        "command": "/home/pi/micropanel/usr/bin/launcher-client --srv=127.0.0.1:8081 --command=get-running-app",
+        "text_map": {
+          "cluster-v2-tiles": "on",
+          "*": "off"
+        },
+        "poll_interval_sec": 1
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/cluster-theme.sh tiles",
+          "async": true,
+          "timeout_sec": 20
+        }
+      }
+    },
+    {
+      "position": [10, 0],
+      "label": "Cluster V2 Atelier",
+      "icon_type": "radio",
+      "icons": {
+        "on": "cluster-atelier-on.bmp",
+        "off": "cluster-atelier-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "cluster.theme_atelier",
+      "state_watch": {
+        "command": "/home/pi/micropanel/usr/bin/launcher-client --srv=127.0.0.1:8081 --command=get-running-app",
+        "text_map": {
+          "cluster-v2-atelier": "on",
+          "*": "off"
+        },
+        "poll_interval_sec": 1
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/cluster-theme.sh atelier",
+          "async": true,
+          "timeout_sec": 20
+        }
+      }
+    },
+    {
+      "position": [10, 1],
+      "label": "Cluster V2 Neo",
+      "icon_type": "radio",
+      "icons": {
+        "on": "cluster-neo-on.bmp",
+        "off": "cluster-neo-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "cluster.theme_neo",
+      "state_watch": {
+        "command": "/home/pi/micropanel/usr/bin/launcher-client --srv=127.0.0.1:8081 --command=get-running-app",
+        "text_map": {
+          "cluster-v2-neo": "on",
+          "*": "off"
+        },
+        "poll_interval_sec": 1
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/cluster-theme.sh neo",
+          "async": true,
+          "timeout_sec": 20
+        }
+      }
+    },
+    {
+      "position": [10, 2],
+      "label": "Cluster V2 Auto",
+      "icon_type": "radio",
+      "icons": {
+        "on": "cluster-auto-on.bmp",
+        "off": "cluster-auto-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "cluster.theme_auto",
+      "state_watch": {
+        "command": "/home/pi/micropanel/usr/bin/launcher-client --srv=127.0.0.1:8081 --command=get-running-app",
+        "text_map": {
+          "cluster-v2-auto": "on",
+          "*": "off"
+        },
+        "poll_interval_sec": 1
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/cluster-theme.sh auto",
+          "async": true,
+          "timeout_sec": 20
+        }
+      }
+    },
+    {
+      "position": [10, 3],
+      "label": "Cluster Map",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "cluster-map-on.bmp",
+        "off": "cluster-map-off.bmp"
+      },
+      "initial_state": "on",
+      "notification_id": "cluster.map",
+      "state_watch": {
+        "path": [
+          "/data/cluster/map-backdrop.state"
+        ],
+        "text_map": {
+          "on": "on",
+          "off": "off"
+        },
+        "poll_interval_sec": 1,
+        "default_state": "on"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/cluster-state.sh map {state}",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [10, 4],
+      "label": "Cluster Camera",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "cluster-camera-on.bmp",
+        "off": "cluster-camera-off.bmp"
+      },
+      "initial_state": "on",
+      "notification_id": "cluster.camera",
+      "state_watch": {
+        "path": [
+          "/data/cluster/dms-video-view.state"
+        ],
+        "text_map": {
+          "on": "on",
+          "off": "off",
+          "none": "off"
+        },
+        "poll_interval_sec": 1,
+        "default_state": "on"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/cluster-state.sh camera {state}",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [11, 0],
+      "label": "Cluster DMS",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "cluster-dms-on.bmp",
+        "off": "cluster-dms-off.bmp"
+      },
+      "initial_state": "on",
+      "notification_id": "cluster.dms",
+      "state_watch": {
+        "path": [
+          "/data/cluster/dms-video-view.state"
+        ],
+        "text_map": {
+          "none": "off",
+          "*": "on"
+        },
+        "poll_interval_sec": 1,
+        "default_state": "on"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/cluster-state.sh dms {state}",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [11, 1],
+      "label": "Cluster Stop",
+      "icon_type": "static",
+      "icons": {
+        "default": "cluster-stop.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-home.sh",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [11, 2],
+      "label": "Blank 7",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
     },
     {
       "position": [5, 4],
@@ -565,6 +890,15 @@
           "timeout_sec": 600
         }
       }
+    },
+    {
+      "position": [4, 4],
+      "label": "Blank 4",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
     },
     {
       "position": [6, 1],
