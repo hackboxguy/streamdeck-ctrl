@@ -286,12 +286,14 @@ class TestTaskConfig:
         assert [k["notification_id"] for k in flash] == [
             "ioc.flash_oled_ots", "ioc.flash_983hh", "ioc.flash_spartan7",
             "ioc.flash_lat45", "fpga.flash_12_3_nq5", "fpga.flash_15_6_0od",
+            "fpga.flash_14_6_ej",
         ]
 
         # Four pages (owner, 2026-10-07): page 2 is the HDMI timings and the
         # four IOC keys - OLED-OTS at the end of the middle row, the other
         # three on the bottom row beside the back arrow; page 3 is Cluster
-        # Demo V2; page 4 the two FPGA keys on top of the SDR/HDR demo keys.
+        # Demo V2; page 4 the three FPGA keys (12.3-NQ5, 15.6-0OD, 14.6-EJ) on top
+        # of the SDR/HDR demo keys.
         # The deck's arrows take one slot each, so a key inserted ahead of
         # these shifts them.
         pages = PageManager(cfg["keys"], cfg["device"].get("layout", [3, 5]))
@@ -310,7 +312,7 @@ class TestTaskConfig:
         assert pages.is_nav_key((2, 4)) == "right"
         pages.switch_page("right")
         assert [pages.get_physical_pos(k["position"]) for k in flash[4:]] == [
-            (0, 0), (0, 1)]
+            (0, 0), (0, 1), (0, 2)]
 
     def test_every_flash_key_drives_a_shared_script(self):
         """Each target differs only by its arguments, never by its script."""

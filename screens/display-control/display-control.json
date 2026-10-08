@@ -921,12 +921,29 @@
     },
     {
       "position": [4, 4],
-      "label": "Blank 4",
-      "icon_type": "static",
+      "label": "14.6-EJ FPGA Flash",
+      "icon_type": "task",
       "icons": {
-        "default": "blank.bmp"
+        "default": "14-6-ej-fpga-flash.png"
       },
-      "action": null
+      "notification_id": "fpga.flash_14_6_ej",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "colors": {
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-fpga.sh --id=fpga.flash_14_6_ej --label=14.6-EJ --file=14-6-fhd-ej-new --fpga-type=xilinx",
+          "async": true,
+          "timeout_sec": 600
+        }
+      }
     },
     {
       "position": [6, 1],
