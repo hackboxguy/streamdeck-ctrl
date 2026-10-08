@@ -1,13 +1,20 @@
 #!/bin/bash
-# Launch Kodi and play the default reference video.
-# Prefers ref-video.mp4 if present, otherwise falls back to flower.mkv.
-# Skips if the chosen video is already playing.
+# Launch Kodi and play the default reference video - the same rule as the
+# launcher's Demo Video tile (kodi-video.sh):
+#   1. a video on a USB stick: the first in its Videos/ folder, else the
+#      first at its top level (e.g. sample-video.mp4 copied straight on it)
+#   2. ref-video.mp4 (the image's reference video)
+#   3. flower.mkv
+# The USB rule is the launcher's own helper (kodi-usb-common.sh); without it
+# (an older image) the key skips step 1. Skips if the chosen video is
+# already playing.
 LAUNCHER="/home/pi/micropanel/usr/bin/launcher-client"
 SRV="127.0.0.1:8081"
 KODI="http://127.0.0.1:8080/jsonrpc"
 VIDEO_DIR="/home/pi/micropanel/usr/share/micropanel/media/videos"
 REF_VIDEO="/home/pi/micropanel/share/sp6bins/config/ref-video.mp4"
 FLOWER="$VIDEO_DIR/flower.mkv"
+USB_COMMON="${KODI_USB_COMMON:-/home/pi/micropanel/share/qt-apps/kodi-usb-common.sh}"
 
 # Choose which video to play
 if [ -f "$REF_VIDEO" ]; then
@@ -15,6 +22,14 @@ if [ -f "$REF_VIDEO" ]; then
 else
     VIDEO="$FLOWER"
 fi
+if [ -r "$USB_COMMON" ]; then
+    # shellcheck source=/dev/null
+    . "$USB_COMMON"
+    if command -v find_usb_video >/dev/null 2>&1 && usb_video=$(find_usb_video); then
+        VIDEO="$usb_video"
+    fi
+fi
+echo "default-ref-video: $VIDEO"
 VIDEO_NAME=$(basename "$VIDEO")
 
 # Check if Kodi is running
