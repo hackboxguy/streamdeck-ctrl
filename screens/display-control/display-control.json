@@ -973,10 +973,28 @@
     },
     {
       "position": [6, 2],
-      "label": "Blank 6",
-      "icon_type": "static",
+      "label": "12.3-NQ11 FPGA Flash",
+      "icon_type": "task",
       "icons": {
-        "default": "blank.bmp"
+        "default": "12-3-nq11-fpga-flash.png"
+      },
+      "notification_id": "fpga.flash_12_3_nq11",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "colors": {
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-fpga.sh --id=fpga.flash_12_3_nq11 --label=12.3-NQ11 --file=12-3-nq1v11 --fpga-type=lattice",
+          "async": true,
+          "timeout_sec": 600
+        }
       }
     },
     {

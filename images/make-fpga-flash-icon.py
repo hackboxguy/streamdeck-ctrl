@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """FPGA flash keys' pictures made from the 12.3" NQ5 key's picture: its two
 "12-3NQ5" texts (the chip's label and the big line) replaced by another
-display's name - 14-6-EJ, 14-6-DD. The original's typeface is not
+display's name - 14-6-EJ, 14-6-DD, 12-3-NQ11. The original's typeface is not
 available, so the text is a bold sans stretched to the original's width and
 weight.
 
@@ -16,7 +16,8 @@ from PIL import Image, ImageDraw, ImageFont
 FONT = "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf"
 SRC = "12-3-nq5-fpga-flash.png"
 # the name on the key -> the picture's file
-KEYS = {"14-6-EJ": "14-6-ej-fpga-flash.png", "14-6-DD": "14-6-dd-fpga-flash.png"}
+KEYS = {"14-6-EJ": "14-6-ej-fpga-flash.png", "14-6-DD": "14-6-dd-fpga-flash.png",
+        "12-3-NQ11": "12-3-nq11-fpga-flash.png"}
 
 
 def fill_columns(a, x0, y0, x1, y1):
