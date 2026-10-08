@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""The 14.6" EJ FPGA flash key's picture: the 12.3" NQ5 key's picture with
-its two "12-3NQ5" texts (the chip's label and the big line) replaced by
-"14-6-EJ". The original's typeface is not available, so the text is a bold
-sans stretched to the original's width and weight.
+"""FPGA flash keys' pictures made from the 12.3" NQ5 key's picture: its two
+"12-3NQ5" texts (the chip's label and the big line) replaced by another
+display's name - 14-6-EJ, 14-6-DD. The original's typeface is not
+available, so the text is a bold sans stretched to the original's width and
+weight.
 
-    python3 images/make-ej-fpga-icon.py screens/display-control
+    python3 images/make-fpga-flash-icon.py screens/display-control
 """
 import os
 import sys
@@ -14,8 +15,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 FONT = "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf"
 SRC = "12-3-nq5-fpga-flash.png"
-DST = "14-6-ej-fpga-flash.png"
-TEXT = "14-6-EJ"
+# the name on the key -> the picture's file
+KEYS = {"14-6-EJ": "14-6-ej-fpga-flash.png", "14-6-DD": "14-6-dd-fpga-flash.png"}
 
 
 def fill_columns(a, x0, y0, x1, y1):
@@ -40,7 +41,7 @@ def text_image(text, height, width, colour, stroke):
     return solid, mask
 
 
-def main(directory):
+def make(directory, text_on_key, dst):
     img = Image.open(os.path.join(directory, SRC)).convert("RGB")
     a = np.asarray(img).copy()
 
@@ -53,12 +54,17 @@ def main(directory):
     a[386:450, 380:648] = np.concatenate([body, body[::-1], body[:8]])
     out = Image.fromarray(a)
 
-    text, mask = text_image(TEXT, 142, 864, (255, 255, 255), 14)
+    text, mask = text_image(text_on_key, 142, 864, (255, 255, 255), 14)
     out.paste(text, (190, 721), mask)
-    label, mask = text_image(TEXT, 44, 214, (226, 226, 226), 6)
+    label, mask = text_image(text_on_key, 44, 214, (226, 226, 226), 6)
     out.paste(label, (404, 396), mask)
 
-    out.save(os.path.join(directory, DST))
+    out.save(os.path.join(directory, dst))
+
+
+def main(directory):
+    for text_on_key, dst in KEYS.items():
+        make(directory, text_on_key, dst)
 
 
 if __name__ == "__main__":

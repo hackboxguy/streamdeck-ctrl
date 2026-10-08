@@ -297,7 +297,7 @@ The included `screens/display-control/` is micropanel's screen, four pages on a 
 | 1 | Home, Media Player, Slideshow, Default Ref Video, Display Settings, Brightness Up/Down, ALS Adaptive, Cluster Demo (the original), IP Address, Local Dimming, Sync Video, Pixel Compensation |
 | 2 | the nine HDMI timing radios and the four IOC flash tasks |
 | 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Stop; DMS Link |
-| 4 | the three FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`); the SDR/HDR10+ demo keys |
+| 4 | the four FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`); the SDR/HDR10+ demo keys |
 
 The arrows take one slot on each page (→ bottom right on all but the last, ← bottom left on
 all but the first), so page 1 holds 14 keys, the middle pages 13 and the last up to 14; the
