@@ -294,7 +294,7 @@ The included `screens/display-control/` is micropanel's screen, four pages on a 
 
 | Page | Keys |
 |---|---|
-| 1 | Home, Media Player, Slideshow, Default Ref Video, Display Settings, Brightness Up/Down, ALS Adaptive, Cluster Demo (the original), IP Address, Local Dimming, Sync Video, Pixel Compensation |
+| 1 | Home, Media Player, Slideshow, Default Ref Video, Display Settings, Brightness Up/Down, ALS Adaptive, Cluster Demo (the modern cluster: Legacy theme, DMS panel off, map on), IP Address, Local Dimming, Sync Video, Pixel Compensation |
 | 2 | the nine HDMI timing radios and the four IOC flash tasks |
 | 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Stop; DMS Link |
 | 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice); the SDR/HDR10+ demo keys |
@@ -318,6 +318,12 @@ not through a systemd unit (that is the stand-alone board's `screens/qt-cluster-
   files, so the cluster's own MAP and DMS buttons show on the deck too. On an image without
   `/data/cluster` (the single-slot image) the keys do nothing and say so in the log;
 - **Stop** ends the running app (the launcher's home), as Home on page 1.
+
+**Cluster Demo (page 1)** is the same modern cluster, set up as the old cluster looked
+(`scripts/launch-cluster-demo.sh`): DMS off and Map on through `cluster-state.sh`, then the
+analog (Legacy) theme through `cluster-theme.sh`. These are the shared switches, so they stay
+that way for later themes until DMS (page 3) or the cluster's own button turns the panel back
+on, with the camera choice it had. The old `cluster-demo` app is no longer started.
 - **DMS Link** (a `task` key) makes `eth0` the DHCP server of the link to the FocusDrive Xavier,
   192.168.10.1/24 (the Xavier keeps its fixed 192.168.10.2) - what the Network app's Wired
   card does, for a rig with no touch panel (`scripts/dms-link.sh`, through br-wrapper's

@@ -3,7 +3,7 @@
 # $1 = analog | ev | harman | fable1 | tiles | atelier | neo | auto
 #
 # Another app running (another theme, the old cluster, a video) is stopped
-# first and the launcher's home awaited, as launch-cluster-demo.sh does: a
+# first and the launcher's home awaited: a
 # direct app-to-app switch can leave the display undefined. The theme keys
 # light from the launcher's running app (state_watch), so nothing is
 # notified here.

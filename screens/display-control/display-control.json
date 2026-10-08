@@ -129,7 +129,8 @@
         "on_press": {
           "type": "script",
           "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-cluster-demo.sh",
-          "async": true
+          "async": true,
+          "timeout_sec": 20
         }
       }
     },

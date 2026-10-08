@@ -1,15 +1,16 @@
 #!/bin/bash
-# Stop any running app (via Home), then launch cluster-demo
-# Skip if cluster-demo is already running
-LAUNCHER="/home/pi/micropanel/usr/bin/launcher-client"
-SRV="127.0.0.1:8081"
+# Cluster Demo: the modern cluster (Cluster Demo V2) in its analog theme, the
+# "Legacy" look - full dials over the map, the DMS panel (camera, driver
+# vitals) off. The old cluster-demo app is no longer started (its launcher
+# tile is disabled).
+#
+# The DMS panel and the map are the cluster's remembered switches in
+# /data/cluster, shared with page 3's DMS and Map keys and the cluster's own
+# buttons: this key sets them (DMS off, map on) and they stay so for the next
+# themes until switched back. Without a writable /data/cluster (not the A/B
+# image) the cluster starts with its defaults.
+DIR="$(cd "$(dirname "$0")" && pwd)"
 
-RUNNING=$("$LAUNCHER" --srv="$SRV" --command=get-running-app 2>/dev/null)
-[ "$RUNNING" = "cluster-demo" ] && exit 0
-
-# Transition through Home first to let qt-demo-launcher reclaim
-# the display — direct app-to-app transitions can leave the
-# framebuffer in an undefined state (e.g. black screen from Kodi)
-[ "$RUNNING" != "none" ] && "$LAUNCHER" --srv="$SRV" --command=stop-app && sleep 0.5
-
-"$LAUNCHER" --srv="$SRV" --command=start-app --command-arg=cluster-demo
+"$DIR/cluster-state.sh" dms off
+"$DIR/cluster-state.sh" map on
+exec "$DIR/cluster-theme.sh" analog
