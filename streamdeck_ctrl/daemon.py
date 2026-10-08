@@ -661,7 +661,7 @@ class StreamDeckDaemon:
         """
         groups = {}
         for ks in self._key_manager.all_keys():
-            if ks.icon_type not in ("toggle", "radio") or not ks.notification_id:
+            if ks.icon_type not in ("toggle", "radio", "task") or not ks.notification_id:
                 continue
             watch = ks.config.get("state_watch")
             if not watch:

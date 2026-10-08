@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Draw the display-control screen's Cluster Demo V2 keys that the stand-alone
-qt-cluster-demo screen does not have (Atelier, Neo, Auto, DMS, Stop), in that
+qt-cluster-demo screen does not have (Atelier, Neo, Auto, DMS, Stop, DMS Link), in that
 screen's style: 72x72, navy, a rounded border (green on / blue off), a white
 glyph (grey when off) and a bold label.
 
@@ -56,6 +56,13 @@ def dms(d, c):          # an eye: driver monitoring
     d.ellipse((29, 15, 43, 29), fill=c)
 
 
+def dms_link(d, c):     # a cable between two boxes: the Pi and the Xavier
+    d.rectangle((10, 16, 24, 32), outline=c, width=3)
+    d.rectangle((48, 16, 62, 32), outline=c, width=3)
+    d.line((24, 24, 48, 24), fill=c, width=3)
+    d.ellipse((32, 20, 40, 28), fill=c)
+
+
 def stop(d, c):         # back to the launcher's home
     d.rounded_rectangle((24, 12, 48, 36), radius=4, fill=c)
 
@@ -66,6 +73,8 @@ def main(out_dir):
         for state in ("on", "off"):
             key(label, state, glyph).save(os.path.join(out_dir, f"cluster-{name}-{state}.bmp"))
     key("STOP", "off", stop).save(os.path.join(out_dir, "cluster-stop.bmp"))
+    # a task key: one picture, the daemon draws the green/red state border
+    key("DMS LINK", "off", dms_link).save(os.path.join(out_dir, "cluster-dms-link.bmp"))
 
 
 if __name__ == "__main__":

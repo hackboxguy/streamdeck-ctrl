@@ -324,6 +324,29 @@ class TestSimulateMode:
             daemon._shutdown_event.set()
             thread.join(timeout=5)
 
+    def test_state_watch_drives_a_task_key(self, tmpdir):
+        word_path = os.path.join(tmpdir, "word")
+        with open(word_path, "w") as f:
+            f.write("other\n")
+        keys = [{"position": [0, 0], "label": "Link", "icon_type": "task",
+                 "icons": {"default": "icons/gray.png"}, "notification_id": "test.link",
+                 "state_watch": {"command": f"cat {word_path}",
+                                 "text_map": {"serving": "success", "stopped": "failure", "*": "idle"}}}]
+        daemon = StreamDeckDaemon(config_path=_write_test_config(tmpdir, extra_keys=keys), simulate=True)
+        thread = threading.Thread(target=daemon.run)
+        thread.start()
+        try:
+            assert self._wait_state(daemon, (0, 0), "idle")
+            with open(word_path, "w") as f:
+                f.write("serving\n")
+            assert self._wait_state(daemon, (0, 0), "success")
+            with open(word_path, "w") as f:
+                f.write("stopped\n")
+            assert self._wait_state(daemon, (0, 0), "failure")
+        finally:
+            daemon._shutdown_event.set()
+            thread.join(timeout=5)
+
     def test_state_watch_unknown_word_is_ignored(self):
         warned = set()
         watch = {"text_map": {"on": "on", "off": "off"}}

@@ -832,12 +832,40 @@
     },
     {
       "position": [11, 2],
-      "label": "Blank 7",
-      "icon_type": "static",
+      "label": "DMS Link",
+      "icon_type": "task",
       "icons": {
-        "default": "blank.bmp"
+        "default": "cluster-dms-link.bmp"
       },
-      "action": null
+      "notification_id": "cluster.dms_link",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "colors": {
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "state_watch": {
+        "command": "{INSTALL_DIR}/screens/display-control/scripts/dms-link.sh --state",
+        "text_map": {
+          "serving": "success",
+          "waiting": "success",
+          "stopped": "failure",
+          "checking": "running",
+          "*": "idle"
+        },
+        "poll_interval_sec": 10
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/dms-link.sh",
+          "async": true,
+          "timeout_sec": 90
+        }
+      }
     },
     {
       "position": [5, 4],

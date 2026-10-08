@@ -245,6 +245,24 @@ class TestTaskConfig:
         with pytest.raises(ValueError, match="task keys require notification_id"):
             load_config(path)
 
+    def test_state_watch_on_a_task_key(self, tmpdir):
+        path = write_config(tmpdir, [{
+            "position": [0, 0], "label": "Link", "icon_type": "task",
+            "icons": {"default": "icons/gray.png"}, "notification_id": "test.link",
+            "state_watch": {"command": "echo serving",
+                            "text_map": {"serving": "success", "*": "idle"}},
+        }])
+        assert load_config(path)["keys"][0]["state_watch"]["text_map"]["serving"] == "success"
+
+    def test_state_watch_task_key_needs_task_states(self, tmpdir):
+        path = write_config(tmpdir, [{
+            "position": [0, 0], "label": "Link", "icon_type": "task",
+            "icons": {"default": "icons/gray.png"}, "notification_id": "test.link",
+            "state_watch": {"command": "echo serving", "text_map": {"serving": "on"}},
+        }])
+        with pytest.raises(ValueError, match="not one of idle, running, success, failure"):
+            load_config(path)
+
     def test_bad_color_is_rejected(self, tmpdir):
         path = write_config(tmpdir, [{
             "position": [0, 0],
@@ -263,7 +281,8 @@ class TestTaskConfig:
         path = os.path.join(repo, "screens", "display-control",
                             "display-control.json")
         cfg = load_config(path)
-        flash = [k for k in cfg["keys"] if k["icon_type"] == "task"]
+        flash = [k for k in cfg["keys"] if k["icon_type"] == "task"
+                 and k["notification_id"].split(".")[0] in ("ioc", "fpga")]
         assert [k["notification_id"] for k in flash] == [
             "ioc.flash_oled_ots", "ioc.flash_983hh", "ioc.flash_spartan7",
             "ioc.flash_lat45", "fpga.flash_12_3_nq5", "fpga.flash_15_6_0od",
@@ -284,6 +303,11 @@ class TestTaskConfig:
             (1, 4), (2, 1), (2, 2), (2, 3)]
 
         pages.switch_page("right")
+        # Page 3: DMS Link between Stop and the next-page arrow
+        by_label = {k["label"]: k for k in cfg["keys"]}
+        assert pages.get_physical_pos(by_label["Cluster Stop"]["position"]) == (2, 2)
+        assert pages.get_physical_pos(by_label["DMS Link"]["position"]) == (2, 3)
+        assert pages.is_nav_key((2, 4)) == "right"
         pages.switch_page("right")
         assert [pages.get_physical_pos(k["position"]) for k in flash[4:]] == [
             (0, 0), (0, 1)]
@@ -294,7 +318,8 @@ class TestTaskConfig:
         path = os.path.join(repo, "screens", "display-control",
                             "display-control.json")
         cfg = load_config(path)
-        flash = [k for k in cfg["keys"] if k["icon_type"] == "task"]
+        flash = [k for k in cfg["keys"] if k["icon_type"] == "task"
+                 and k["notification_id"].split(".")[0] in ("ioc", "fpga")]
 
         boards = set()
         for k in flash:

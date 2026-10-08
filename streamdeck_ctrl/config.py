@@ -78,13 +78,21 @@ KEY_COMMON = {
                 "timeout_sec": {"type": "integer", "minimum": 1},
                 # a JSON file's boolean, or the word through a map ("*": anything else)
                 "json_key": {"type": "string"},
+                # on/off for toggle and radio keys; a task key's states
+                # (idle/running/success/failure) for a task key
                 "text_map": {
                     "type": "object",
-                    "additionalProperties": {"type": "string", "enum": ["on", "off"]},
+                    "additionalProperties": {
+                        "type": "string",
+                        "enum": ["on", "off", "idle", "running", "success", "failure"],
+                    },
                     "minProperties": 1,
                 },
                 "poll_interval_sec": {"type": "integer", "minimum": 1},
-                "default_state": {"type": "string", "enum": ["on", "off"]},
+                "default_state": {
+                    "type": "string",
+                    "enum": ["on", "off", "idle", "running", "success", "failure"],
+                },
             },
             "oneOf": [{"required": ["path"]}, {"required": ["command"]}],
         },
@@ -524,9 +532,9 @@ def _validate_state_watch_keys(keys):
         if "state_watch" not in key:
             continue
         watch = key["state_watch"]
-        if key["icon_type"] not in ("toggle", "radio"):
+        if key["icon_type"] not in ("toggle", "radio", "task"):
             raise ValueError(
-                f"Key '{key['label']}': state_watch is only supported on toggle and radio keys"
+                f"Key '{key['label']}': state_watch is only supported on toggle, radio and task keys"
             )
         if ("json_key" in watch) == ("text_map" in watch):
             raise ValueError(
@@ -536,6 +544,21 @@ def _validate_state_watch_keys(keys):
             raise ValueError(
                 f"Key '{key['label']}': a state_watch command needs text_map"
             )
+        # The states the map and the default may name are the key type's own
+        valid = TASK_STATES if key["icon_type"] == "task" else ("on", "off")
+        named = list(watch.get("text_map", {}).values())
+        if "default_state" in watch:
+            named.append(watch["default_state"])
+        if key["icon_type"] == "task" and "json_key" in watch:
+            raise ValueError(
+                f"Key '{key['label']}': a task key's state_watch needs text_map"
+            )
+        for state in named:
+            if state not in valid:
+                raise ValueError(
+                    f"Key '{key['label']}': state_watch state '{state}' is not one of "
+                    f"{', '.join(valid)}"
+                )
         if not key.get("notification_id"):
             raise ValueError(
                 f"Key '{key['label']}': state_watch requires notification_id"

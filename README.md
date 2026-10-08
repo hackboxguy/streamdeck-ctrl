@@ -206,7 +206,7 @@ Use `state_watch` when multiple local UIs control the same write-only device sta
 | `path` | the file, or a list of candidates: the first whose directory exists is read (a board with `/data`, else `/tmp`) |
 | `command` | instead of `path`: a shell command run every interval (`timeout_sec`, default 3); its output's first word is the value. A failing command leaves the key as it is |
 | `json_key` | the file is JSON: this boolean key is the state |
-| `text_map` | the file's (or command's) first word through a map to `on`/`off`; `"*"` maps every other word. A word the map does not know is ignored and logged once |
+| `text_map` | the file's (or command's) first word through a map to `on`/`off` (a `task` key: to `idle`/`running`/`success`/`failure`); `"*"` maps every other word. A word the map does not know is ignored and logged once |
 | `default_state` | the state while the file does not exist (default `off`) |
 
 Keys that watch the same source at the same interval share one poller, so eight radio keys
@@ -296,7 +296,7 @@ The included `screens/display-control/` is micropanel's screen, four pages on a 
 |---|---|
 | 1 | Home, Media Player, Slideshow, Default Ref Video, Display Settings, Brightness Up/Down, ALS Adaptive, Cluster Demo (the original), IP Address, Local Dimming, Sync Video, Pixel Compensation |
 | 2 | the nine HDMI timing radios and the four IOC flash tasks |
-| 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Stop |
+| 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Stop; DMS Link |
 | 4 | the two FPGA flash tasks; the SDR/HDR10+ demo keys |
 
 The arrows take one slot on each page (→ bottom right on all but the last, ← bottom left on
@@ -318,6 +318,22 @@ not through a systemd unit (that is the stand-alone board's `screens/qt-cluster-
   files, so the cluster's own MAP and DMS buttons show on the deck too. On an image without
   `/data/cluster` (the single-slot image) the keys do nothing and say so in the log;
 - **Stop** ends the running app (the launcher's home), as Home on page 1.
+- **DMS Link** (a `task` key) makes `eth0` the DHCP server of the link to the FocusDrive Xavier,
+  192.168.10.1/24 (the Xavier keeps its fixed 192.168.10.2) - what the Network app's Wired
+  card does, for a rig with no touch panel (`scripts/dms-link.sh`, through br-wrapper's
+  `net-ctl.sh wired-set --iface=eth0 --mode=server --ip=192.168.10.1 --prefix=24`, as root via
+  `sudo -n`; the daemon runs as pi). The border blinks while it works and settles green when
+  `eth0` serves, or red with the reason in the journal (`journalctl -t dms-link`). The DHCP
+  guard probes the port first: on the Xavier's direct cable it finds nothing and the port
+  serves; on a LAN with its own DHCP server it takes the port down and the key turns red -
+  it never overrides that. With no cable the mode is saved and the key is green ("serving when
+  a cable is connected"). A port that already serves is left alone, so pressing it again is
+  harmless. The key also lights by itself (`state_watch` every 10 s on `dms-link.sh --state`,
+  which reads `net-ctl.sh status --iface=eth0`): green on a rig set up earlier, red when the
+  guard stopped the port. The setting is a NetworkManager profile on `/data`: it survives
+  power cycles and updates; a factory reset makes `eth0` a DHCP client again (the key goes
+  dark - press it again). The SOME/IP multicast route and the advertise address are not the
+  key's business: `cluster-v2.sh` sets them at every cluster start.
 
 The stand-alone screen's Video-1 / Video-2 keys are not on this page: micropanel has no
 `cluster-video` unit (its videos are launcher tiles of their own).
