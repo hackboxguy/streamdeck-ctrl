@@ -284,35 +284,41 @@ class TestTaskConfig:
         flash = [k for k in cfg["keys"] if k["icon_type"] == "task"
                  and k["notification_id"].split(".")[0] in ("ioc", "fpga")]
         assert [k["notification_id"] for k in flash] == [
-            "ioc.flash_oled_ots", "ioc.flash_983hh", "ioc.flash_spartan7",
-            "ioc.flash_lat45", "fpga.flash_12_3_nq5", "fpga.flash_15_6_0od",
-            "fpga.flash_14_6_ej", "fpga.flash_14_6_dd", "fpga.flash_12_3_nq11",
+            "fpga.flash_12_3_nq5", "fpga.flash_15_6_0od", "fpga.flash_14_6_ej",
+            "fpga.flash_14_6_dd", "fpga.flash_12_3_nq11", "ioc.flash_983hh",
+            "ioc.flash_spartan7", "ioc.flash_lat45", "ioc.flash_oled_ots",
         ]
 
-        # Four pages (owner, 2026-10-07): page 2 is the HDMI timings and the
-        # four IOC keys - OLED-OTS at the end of the middle row, the other
-        # three on the bottom row beside the back arrow; page 3 is Cluster
-        # Demo V2; page 4 the five FPGA keys (12.3-NQ5, 15.6-0OD, 14.6-EJ, 14.6-DD, 12.3-NQ11) on top
-        # of the SDR/HDR demo keys.
+        # Five pages (owner, 2026-10-11): page 2 is the HDMI timings
+        # (soft-DIP display types) with two blanks kept free; page 3 is
+        # Cluster Demo V2; page 4 the five FPGA keys (12.3-NQ5, 15.6-0OD,
+        # 14.6-EJ, 14.6-DD, 12.3-NQ11) on top of the four IOC keys; page 5
+        # the SDR/HDR demo keys.
         # The deck's arrows take one slot each, so a key inserted ahead of
         # these shifts them.
         pages = PageManager(cfg["keys"], cfg["device"].get("layout", [3, 5]))
-        assert pages.page_count == 4
+        assert pages.page_count == 5
+        by_label = {k["label"]: k for k in cfg["keys"]}
         pages.switch_page("right")
         assert pages._left_arrow_pos == (2, 0)
         assert pages.is_nav_key((2, 4)) == "right"
-        assert [pages.get_physical_pos(k["position"]) for k in flash[:4]] == [
-            (1, 4), (2, 1), (2, 2), (2, 3)]
+        assert pages.get_physical_pos(by_label["HDMI 12.3-nq1v1.1"]["position"]) == (1, 4)
+        assert pages.get_physical_pos(by_label["HDMI 27"]["position"]) == (2, 1)
 
         pages.switch_page("right")
         # Page 3: DMS Link between Stop and the next-page arrow
-        by_label = {k["label"]: k for k in cfg["keys"]}
         assert pages.get_physical_pos(by_label["Cluster Stop"]["position"]) == (2, 2)
         assert pages.get_physical_pos(by_label["DMS Link"]["position"]) == (2, 3)
         assert pages.is_nav_key((2, 4)) == "right"
         pages.switch_page("right")
-        assert [pages.get_physical_pos(k["position"]) for k in flash[4:]] == [
-            (0, 0), (0, 1), (0, 2), (0, 3), (0, 4)]
+        assert [pages.get_physical_pos(k["position"]) for k in flash] == [
+            (0, 0), (0, 1), (0, 2), (0, 3), (0, 4),
+            (1, 0), (1, 1), (1, 2), (1, 3)]
+        pages.switch_page("right")
+        demo = [k for k in cfg["keys"] if k.get("notification_id", "").startswith("demo.")
+                or k["label"].startswith("SDR/HDR")]
+        assert len(demo) == 7
+        assert all(pages.get_physical_pos(k["position"]) is not None for k in demo)
 
     def test_every_flash_key_drives_a_shared_script(self):
         """Each target differs only by its arguments, never by its script."""

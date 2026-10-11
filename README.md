@@ -284,24 +284,34 @@ so systemd (`Restart=on-failure`) restarts it with the matching file.
 A deck **without** its own variant simply gets the loaded config's keys re-paginated for
 its size, with navigation arrows — at start-up and live, when a deck of another size is
 plugged in while the daemon runs (no restart; key states are kept). For example, the
-52 keys of `display-control.json` span 4 pages on a 15-key deck. `setup.sh` resolves
+60 keys of `display-control.json` span 5 pages on a 15-key deck. `setup.sh` resolves
 `{INSTALL_DIR}` in the variants too. Keys that appear in both files should keep the same
 `notification_id`, so state and scripts are shared.
 
 ## Real-World Example: Display Control
 
-The included `screens/display-control/` is micropanel's screen, four pages on a 15-key deck:
+The included `screens/display-control/` is micropanel's screen, five pages on a 15-key deck:
 
 | Page | Keys |
 |---|---|
 | 1 | Home, Media Player, Slideshow, Default Ref Video, Display Settings, Brightness Up/Down, ALS Adaptive, Cluster Demo (the modern cluster: Legacy theme, DMS panel off, map on), IP Address, Local Dimming, Sync Video, Pixel Compensation |
-| 2 | the nine HDMI timing radios and the four IOC flash tasks |
+| 2 | the eleven HDMI timing radios (12.3 NQ1, 15.6 2K5, 14.6 FHD, EDID, 12.3 NQ5, 14.6 2K5, 17.3 3K, 17.3 OTS-OLED, 3×QVue, 12.3 NQ1v1.1, 27") and two blanks kept free |
 | 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Stop; DMS Link |
-| 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice); the SDR/HDR10+ demo keys |
+| 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice) on the top row, the four IOC flash tasks below them |
+| 5 | the SDR/HDR10+ demo keys |
 
 The arrows take one slot on each page (→ bottom right on all but the last, ← bottom left on
 all but the first), so page 1 holds 14 keys, the middle pages 13 and the last up to 14; the
 keys fill the free slots in list order.
+
+**HDMI timing keys (page 2)** each run `scripts/apply-hdmi-<type>.sh`, which sets the Pi's
+display type with micropanel's `pi-config-txt.sh --type=<type>` and reboots. On a 983HH with
+every DIP switch off (983_manager v01.13 or later), that type is also what the RH850 runs:
+micropanel's `dip-switch-resolution.sh` hands it over as the soft DIP at boot, so the keys are
+the display selector of a rig without DIP settings. The lit key is the type the Pi runs
+(`scripts/sync-hdmi-timing.sh`, whose type -> `notification_id` map must name every timing
+key; a test checks this). The key images are 72×72; `images/make-hdmi-timing-icon.py` makes
+the 12.3 NQ1v1.1 and 27" pair from the 12.3 NQ5 art.
 
 **Cluster Demo V2 (page 3)** works through the launcher and the cluster's own state files,
 not through a systemd unit (that is the stand-alone board's `screens/qt-cluster-demo/`):
@@ -371,7 +381,7 @@ NEW=$(( CURRENT + 10 ))
 "$ALS_CLIENT" --brightness=$NEW
 ```
 
-**IOC Flash keys** — four `task` keys on page 2 (OLED-OTS at the end of the middle row, the other three beside the back arrow), each reflashing one board's RH850 IOC:
+**IOC Flash keys** — four `task` keys on page 4 (the middle row, below the FPGA keys: 983HH, S7-9090, LAT45, OLED-OTS), each reflashing one board's RH850 IOC:
 
 | Key | Board | Firmware | NPJ |
 |---|---|---|---|
@@ -384,7 +394,7 @@ All four run the same `scripts/flash-ioc.sh`, differing only in arguments, and i
 
 The script takes a single lock across every board, since they all program over the same port — a second flash started while one is running exits instead of colliding with it.
 
-**SDR vs HDR10+ demo keys** — the middle and bottom rows of page 4 drive the side-by-side comparison
+**SDR vs HDR10+ demo keys** — page 5 drives the side-by-side comparison
 stand from [sdr-hdr-shootout-demo](https://github.com/hackboxguy/sdr-hdr-shootout-demo):
 Peru, HDR10+ Test and Harman start that clip on both players in sync, Stop ends it,
 Pause freezes both on the same frame and -10s / +10s jump both back or forward (a frozen

@@ -409,108 +409,58 @@
       }
     },
     {
-      "position": [5, 3],
-      "label": "OLED-OTS IOC Flash",
-      "icon_type": "task",
+      "position": [11, 3],
+      "label": "HDMI 12.3-nq1v1.1",
+      "icon_type": "radio",
       "icons": {
-        "default": "oled-ots-ioc-flash.png"
+        "on": "12-3-nq1v11-on.bmp",
+        "off": "12-3-nq1v11-off.bmp"
       },
-      "notification_id": "ioc.flash_oled_ots",
-      "task": {
-        "blink_interval_sec": 0.5,
-        "border_width": 6,
-        "colors": {
-          "running": "#00FF00",
-          "success": "#00FF00",
-          "failure": "#FF0000"
-        }
-      },
+      "initial_state": "off",
+      "notification_id": "hdmi.12_3_nq1v11",
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-ioc.sh --id=ioc.flash_oled_ots --label=OLED-OTS --board=lattice45-9090 --npj=LAT-ECP5.npj --firmware=REMOTE_DISP_OTS_display_manager.bin",
-          "async": true,
-          "timeout_sec": 600
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/apply-hdmi-12-3-nq1v11.sh",
+          "async": true
         }
       }
     },
     {
-      "position": [5, 0],
-      "label": "983HH IOC Flash",
-      "icon_type": "task",
+      "position": [11, 4],
+      "label": "HDMI 27",
+      "icon_type": "radio",
       "icons": {
-        "default": "983hh-ioc-flash.png"
+        "on": "27-on.bmp",
+        "off": "27-off.bmp"
       },
-      "notification_id": "ioc.flash_983hh",
-      "task": {
-        "blink_interval_sec": 0.5,
-        "border_width": 6,
-        "colors": {
-          "running": "#00FF00",
-          "success": "#00FF00",
-          "failure": "#FF0000"
-        }
-      },
+      "initial_state": "off",
+      "notification_id": "hdmi.27",
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-ioc.sh --id=ioc.flash_983hh --label=983HH --board=983hh --npj=983HH.npj --firmware=983HH_983_manager.bin",
-          "async": true,
-          "timeout_sec": 600
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/apply-hdmi-27.sh",
+          "async": true
         }
       }
     },
     {
-      "position": [5, 1],
-      "label": "S7-9090 IOC Flash",
-      "icon_type": "task",
+      "position": [12, 0],
+      "label": "Blank 2",
+      "icon_type": "static",
       "icons": {
-        "default": "spartn7-ioc-flash.png"
+        "default": "blank.bmp"
       },
-      "notification_id": "ioc.flash_spartan7",
-      "task": {
-        "blink_interval_sec": 0.5,
-        "border_width": 6,
-        "colors": {
-          "running": "#00FF00",
-          "success": "#00FF00",
-          "failure": "#FF0000"
-        }
-      },
-      "action": {
-        "on_press": {
-          "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-ioc.sh --id=ioc.flash_spartan7 --label=S7-9090 --board=spartan7-9090 --firmware=REMOTE_DISP_SPARTAN7_display_manager_s4.bin",
-          "async": true,
-          "timeout_sec": 600
-        }
-      }
+      "action": null
     },
     {
-      "position": [5, 2],
-      "label": "LAT45 IOC Flash",
-      "icon_type": "task",
+      "position": [12, 1],
+      "label": "Blank 3",
+      "icon_type": "static",
       "icons": {
-        "default": "LAT45-ioc-flash.png"
+        "default": "blank.bmp"
       },
-      "notification_id": "ioc.flash_lat45",
-      "task": {
-        "blink_interval_sec": 0.5,
-        "border_width": 6,
-        "colors": {
-          "running": "#00FF00",
-          "success": "#00FF00",
-          "failure": "#FF0000"
-        }
-      },
-      "action": {
-        "on_press": {
-          "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-ioc.sh --id=ioc.flash_lat45 --label=LAT-ECP5 --board=lattice45-9090 --npj=LAT-ECP5.npj --firmware=REMOTE_DISP_display_manager.bin",
-          "async": true,
-          "timeout_sec": 600
-        }
-      }
+      "action": null
     },
     {
       "position": [9, 0],
@@ -997,6 +947,146 @@
           "timeout_sec": 600
         }
       }
+    },
+    {
+      "position": [5, 0],
+      "label": "983HH IOC Flash",
+      "icon_type": "task",
+      "icons": {
+        "default": "983hh-ioc-flash.png"
+      },
+      "notification_id": "ioc.flash_983hh",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "colors": {
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-ioc.sh --id=ioc.flash_983hh --label=983HH --board=983hh --npj=983HH.npj --firmware=983HH_983_manager.bin",
+          "async": true,
+          "timeout_sec": 600
+        }
+      }
+    },
+    {
+      "position": [5, 1],
+      "label": "S7-9090 IOC Flash",
+      "icon_type": "task",
+      "icons": {
+        "default": "spartn7-ioc-flash.png"
+      },
+      "notification_id": "ioc.flash_spartan7",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "colors": {
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-ioc.sh --id=ioc.flash_spartan7 --label=S7-9090 --board=spartan7-9090 --firmware=REMOTE_DISP_SPARTAN7_display_manager_s4.bin",
+          "async": true,
+          "timeout_sec": 600
+        }
+      }
+    },
+    {
+      "position": [5, 2],
+      "label": "LAT45 IOC Flash",
+      "icon_type": "task",
+      "icons": {
+        "default": "LAT45-ioc-flash.png"
+      },
+      "notification_id": "ioc.flash_lat45",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "colors": {
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-ioc.sh --id=ioc.flash_lat45 --label=LAT-ECP5 --board=lattice45-9090 --npj=LAT-ECP5.npj --firmware=REMOTE_DISP_display_manager.bin",
+          "async": true,
+          "timeout_sec": 600
+        }
+      }
+    },
+    {
+      "position": [5, 3],
+      "label": "OLED-OTS IOC Flash",
+      "icon_type": "task",
+      "icons": {
+        "default": "oled-ots-ioc-flash.png"
+      },
+      "notification_id": "ioc.flash_oled_ots",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "colors": {
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-ioc.sh --id=ioc.flash_oled_ots --label=OLED-OTS --board=lattice45-9090 --npj=LAT-ECP5.npj --firmware=REMOTE_DISP_OTS_display_manager.bin",
+          "async": true,
+          "timeout_sec": 600
+        }
+      }
+    },
+    {
+      "position": [12, 2],
+      "label": "Blank 4",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [12, 3],
+      "label": "Blank 5",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [12, 4],
+      "label": "Blank 6",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [13, 0],
+      "label": "Blank 7",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
     },
     {
       "position": [6, 3],
