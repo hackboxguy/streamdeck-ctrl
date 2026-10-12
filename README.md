@@ -295,7 +295,7 @@ The included `screens/display-control/` is micropanel's screen, five pages on a 
 | Page | Keys |
 |---|---|
 | 1 | Home, Media Player, Slideshow, Default Ref Video, Display Settings, Brightness Up/Down, ALS Adaptive, Cluster Demo (the modern cluster: Legacy theme, DMS panel off, map on), IP Address, Local Dimming, Sync Video, Pixel Compensation |
-| 2 | the eleven HDMI timing radios (12.3 NQ1, 15.6 2K5, 14.6 FHD, EDID, 12.3 NQ5, 14.6 2K5, 17.3 3K, 17.3 OTS-OLED, 3×QVue, 12.3 NQ1v1.1, 27") and two blanks kept free |
+| 2 | the twelve HDMI timing radios (12.3 NQ1, 15.6 2K5, 14.6 FHD DD, EDID, 12.3 NQ5, 14.6 2K5, 17.3 3K, 17.3 OTS-OLED, 3×QVue, 12.3 NQ1v1.1, 27", 14.6 FHD EJ) and one blank kept free |
 | 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Stop; DMS Link |
 | 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice) on the top row, the four IOC flash tasks below them |
 | 5 | the SDR/HDR10+ demo keys |
@@ -311,7 +311,15 @@ micropanel's `dip-switch-resolution.sh` hands it over as the soft DIP at boot, s
 the display selector of a rig without DIP settings. The lit key is the type the Pi runs
 (`scripts/sync-hdmi-timing.sh`, whose type -> `notification_id` map must name every timing
 key; a test checks this). The key images are 72×72; `images/make-hdmi-timing-icon.py` makes
-the 12.3 NQ1v1.1 and 27" pair from the 12.3 NQ5 art.
+the 12.3 NQ1v1.1, 27", 14.6 DD and 14.6 EJ pairs from the 12.3 NQ5 art.
+
+The two 14.6" FHD keys are the same board and timing: **DD** (`14.6-fhd`, direct-drive
+backlight) and **EJ** (`14.6-fhd-ej`, scan-mode backlight) differ only in their brightness
+curve, so they differ only in the als-dimmer config the Pi picks. The DIP switch cannot tell
+them apart, but the FPGA bitstream can (reg `0x10` byte 0: `0x00` DD, `0x01` EJ), and
+`dip-switch-resolution.sh` switches a 14.6-fhd* type to the variant the FPGA reports at every
+boot. The keys matter when the FPGA cannot be read; otherwise a press that disagrees with the
+flashed bitstream is undone at the next boot.
 
 **Cluster Demo V2 (page 3)** works through the launcher and the cluster's own state files,
 not through a systemd unit (that is the stand-alone board's `screens/qt-cluster-demo/`):

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Apply HDMI timing config for 14.6-fhd display and reboot
+# Apply HDMI timing config for the 14.6-fhd direct-drive display and reboot
 # pi-config-txt.sh edits /boot/firmware/config.txt and auto-reboots
 MICROPANEL_HOME="/home/pi/micropanel"
 sudo -n "$MICROPANEL_HOME/usr/bin/pi-config-txt.sh" \

@@ -284,11 +284,11 @@
     },
     {
       "position": [3, 2],
-      "label": "HDMI 14.6-fhd",
+      "label": "HDMI 14.6-fhd-DD",
       "icon_type": "radio",
       "icons": {
-        "on": "14-6-fhd-on.bmp",
-        "off": "14-6-fhd-off.bmp"
+        "on": "14-6-fhd-dd-on.bmp",
+        "off": "14-6-fhd-dd-off.bmp"
       },
       "initial_state": "off",
       "notification_id": "hdmi.14_6_fhd",
@@ -446,12 +446,21 @@
     },
     {
       "position": [12, 0],
-      "label": "Blank 2",
-      "icon_type": "static",
+      "label": "HDMI 14.6-fhd-EJ",
+      "icon_type": "radio",
       "icons": {
-        "default": "blank.bmp"
+        "on": "14-6-fhd-ej-on.bmp",
+        "off": "14-6-fhd-ej-off.bmp"
       },
-      "action": null
+      "initial_state": "off",
+      "notification_id": "hdmi.14_6_fhd_ej",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/apply-hdmi-14-6-fhd-ej.sh",
+          "async": true
+        }
+      }
     },
     {
       "position": [12, 1],

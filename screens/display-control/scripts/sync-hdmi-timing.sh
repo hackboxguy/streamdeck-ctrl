@@ -46,6 +46,7 @@ declare -A TIMING_TO_ID=(
     ["12.3-nq1v1.1"]="hdmi.12_3_nq1v11"
     ["15.6-2k5"]="hdmi.15_6_2k5"
     ["14.6-fhd"]="hdmi.14_6_fhd"
+    ["14.6-fhd-ej"]="hdmi.14_6_fhd_ej"
     ["14.6-2k5"]="hdmi.14_6_2k5"
     ["17.3-3k"]="hdmi.17_3_3k"
     ["ots-oled-17"]="hdmi.ots_oled_17"
