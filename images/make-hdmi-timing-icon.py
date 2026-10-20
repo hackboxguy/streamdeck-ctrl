@@ -19,7 +19,8 @@ SRC = "12-3-nq5-raw.png"
 SIZE = 72
 # file stem -> (line above the bar, line below the bar)
 KEYS = {"12-3-nq1v11": ("12.3", "NQ1.1"), "27": ("27", "WIDE"),
-        "14-6-fhd-dd": ("14.6", "DD"), "14-6-fhd-ej": ("14.6", "EJ")}
+        "14-6-fhd-dd": ("14.6", "DD"), "14-6-fhd-ej": ("14.6", "EJ"),
+        "17-ib-oled": ("17", "IB-OLED")}
 # the original's text boxes in SRC (1254 x 1254): rows and the widest columns
 TOP = (350, 591)
 BOTTOM = (740, 977)

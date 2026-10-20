@@ -464,12 +464,21 @@
     },
     {
       "position": [12, 1],
-      "label": "Blank 3",
-      "icon_type": "static",
+      "label": "HDMI 17-IB-OLED",
+      "icon_type": "radio",
       "icons": {
-        "default": "blank.bmp"
+        "on": "17-ib-oled-on.bmp",
+        "off": "17-ib-oled-off.bmp"
       },
-      "action": null
+      "initial_state": "off",
+      "notification_id": "hdmi.oled_ib_17",
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/apply-hdmi-17-ib-oled.sh",
+          "async": true
+        }
+      }
     },
     {
       "position": [9, 0],

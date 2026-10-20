@@ -290,7 +290,7 @@ class TestTaskConfig:
         ]
 
         # Five pages (owner, 2026-10-11): page 2 is the HDMI timings
-        # (soft-DIP display types) with two blanks kept free; page 3 is
+        # (soft-DIP display types, no blanks left); page 3 is
         # Cluster Demo V2; page 4 the five FPGA keys (12.3-NQ5, 15.6-0OD,
         # 14.6-EJ, 14.6-DD, 12.3-NQ11) on top of the four IOC keys; page 5
         # the SDR/HDR demo keys.
