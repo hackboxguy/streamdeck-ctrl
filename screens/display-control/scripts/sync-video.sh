@@ -10,7 +10,7 @@ CURRENT=$("$PI_CONFIG" --configspath="$CONFIGS_PATH" --input=/boot/firmware/conf
 CURRENT=$(echo "$CURRENT" | tr -d '[:space:]')
 
 case "$CURRENT" in
-    "12.3"|"14.6-fhd")
+    "12.3"|"14.6-fhd"|"14.6-fhd-ej"|"12.3-nq1v1.1"|"oled-ib-17"|"3x-qvue")
         TARGET=988
         ;;
     "12.3-nq1"|"14.6-2k5"|"15.6-2k5"|"17.3-3k"|"ots-oled-17"|"27")
