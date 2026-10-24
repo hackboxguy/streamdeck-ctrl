@@ -297,7 +297,7 @@ The included `screens/display-control/` is micropanel's screen, five pages on a 
 | 1 | Home, Media Player, Slideshow, Default Ref Video, Display Settings, Brightness Up/Down, ALS Adaptive, Cluster Demo (the modern cluster: Legacy theme, DMS panel off, map on), IP Address, Local Dimming, Sync Video, Pixel Compensation |
 | 2 | the thirteen HDMI timing radios (12.3 NQ1, 15.6 2K5, 14.6 FHD DD, EDID, 12.3 NQ5, 14.6 2K5, 17.3 3K, 17.3 OTS-OLED, 3×QVue, 12.3 NQ1v1.1, 27", 14.6 FHD EJ, 17" IB-OLED) |
 | 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Stop; DMS Link |
-| 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice) on the top row, the four IOC flash tasks below them |
+| 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice) on the top row, the four IOC flash tasks and the OLED-IB touch flash task below them |
 | 5 | the SDR/HDR10+ demo keys |
 
 The arrows take one slot on each page (→ bottom right on all but the last, ← bottom left on
@@ -401,6 +401,8 @@ NEW=$(( CURRENT + 10 ))
 All four run the same `scripts/flash-ioc.sh`, differing only in arguments, and it shells out to micropanel's `rh850-flash-auto.sh` — which picks the transport itself: an EEHB Bluebox dongle (USB `0403:a9a0`) when one is plugged into the Pi, otherwise the Pi's own GPIO/UART wiring. The operator attaches the dongle and presses a key; the border blinks green while flashing and settles on solid green or solid red.
 
 The script takes a single lock across every board, since they all program over the same port — a second flash started while one is running exits instead of colliding with it.
+
+**OLED-IB Touch-Flash key** — a fifth `task` key on page 4, after OLED-OTS, reflashes the 17" OLED-IB's touch controller (Himax HX8530) from the Pi itself; no dongle and no RH850 involved. It runs `scripts/flash-touch.sh --firmware=<file>`, which takes the image from micropanel's sp6bins tree (`share/sp6bins/firmware/touch/`), copies it to `/lib/firmware` (RAM on the overlayroot) and hands its name to the `himax_oledib` driver (`echo t <file> > /proc/android_touch/debug`). The driver programs and CRC-checks the flash in about 25 s. On success the border goes solid green and the Pi reboots 5 s later; the driver switches touch sensing back on when it probes. On failure the border goes solid red, the Pi stays up, and `/tmp/touch-flash.log` has the driver's messages. The key refuses to run unless `himax_oledib` is loaded, so on any other display type it fails without touching anything. It shares the flash scripts' lock. A new image is a new file in sp6bins and a new `--firmware=` here.
 
 **SDR vs HDR10+ demo keys** — page 5 drives the side-by-side comparison
 stand from [sdr-hdr-shootout-demo](https://github.com/hackboxguy/sdr-hdr-shootout-demo):

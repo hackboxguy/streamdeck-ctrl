@@ -1072,12 +1072,29 @@
     },
     {
       "position": [12, 2],
-      "label": "Blank 4",
-      "icon_type": "static",
+      "label": "OLED-IB Touch-Flash",
+      "icon_type": "task",
       "icons": {
-        "default": "blank.bmp"
+        "default": "oled-ib-touch-flash.png"
       },
-      "action": null
+      "notification_id": "touch.flash_oled_ib",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "colors": {
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-touch.sh --id=touch.flash_oled_ib --label=OLED-IB --firmware=himax-hx8530-A80_C80_XXXX_20261022.bin",
+          "async": true,
+          "timeout_sec": 300
+        }
+      }
     },
     {
       "position": [12, 3],

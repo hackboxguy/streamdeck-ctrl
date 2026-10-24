@@ -282,17 +282,19 @@ class TestTaskConfig:
                             "display-control.json")
         cfg = load_config(path)
         flash = [k for k in cfg["keys"] if k["icon_type"] == "task"
-                 and k["notification_id"].split(".")[0] in ("ioc", "fpga")]
+                 and k["notification_id"].split(".")[0] in ("ioc", "fpga", "touch")]
         assert [k["notification_id"] for k in flash] == [
             "fpga.flash_12_3_nq5", "fpga.flash_15_6_0od", "fpga.flash_14_6_ej",
             "fpga.flash_14_6_dd", "fpga.flash_12_3_nq11", "ioc.flash_983hh",
             "ioc.flash_spartan7", "ioc.flash_lat45", "ioc.flash_oled_ots",
+            "touch.flash_oled_ib",
         ]
 
         # Five pages (owner, 2026-10-11): page 2 is the HDMI timings
         # (soft-DIP display types, no blanks left); page 3 is
         # Cluster Demo V2; page 4 the five FPGA keys (12.3-NQ5, 15.6-0OD,
-        # 14.6-EJ, 14.6-DD, 12.3-NQ11) on top of the four IOC keys; page 5
+        # 14.6-EJ, 14.6-DD, 12.3-NQ11) on top of the four IOC keys and the
+        # OLED-IB touch key (in Blank 4's place, 2026-10-24); page 5
         # the SDR/HDR demo keys.
         # The deck's arrows take one slot each, so a key inserted ahead of
         # these shifts them.
@@ -313,7 +315,7 @@ class TestTaskConfig:
         pages.switch_page("right")
         assert [pages.get_physical_pos(k["position"]) for k in flash] == [
             (0, 0), (0, 1), (0, 2), (0, 3), (0, 4),
-            (1, 0), (1, 1), (1, 2), (1, 3)]
+            (1, 0), (1, 1), (1, 2), (1, 3), (1, 4)]
         pages.switch_page("right")
         demo = [k for k in cfg["keys"] if k.get("notification_id", "").startswith("demo.")
                 or k["label"].startswith("SDR/HDR")]
@@ -327,7 +329,7 @@ class TestTaskConfig:
                             "display-control.json")
         cfg = load_config(path)
         flash = [k for k in cfg["keys"] if k["icon_type"] == "task"
-                 and k["notification_id"].split(".")[0] in ("ioc", "fpga")]
+                 and k["notification_id"].split(".")[0] in ("ioc", "fpga", "touch")]
 
         boards = set()
         for k in flash:
@@ -341,6 +343,10 @@ class TestTaskConfig:
                 assert "--file=" in cmd
                 assert cmd.split("--fpga-type=")[1].split()[0] in (
                     "xilinx", "lattice")
+                continue
+            if k["notification_id"].startswith("touch."):
+                assert "scripts/flash-touch.sh " in cmd
+                assert "--firmware=" in cmd
                 continue
 
             assert "scripts/flash-ioc.sh " in cmd
@@ -356,7 +362,7 @@ class TestTaskConfig:
         repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         scripts = os.path.join(repo, "screens", "display-control", "scripts")
         locks = set()
-        for name in ("flash-ioc.sh", "flash-fpga.sh"):
+        for name in ("flash-ioc.sh", "flash-fpga.sh", "flash-touch.sh"):
             body = open(os.path.join(scripts, name)).read()
             locks.add(re.search(r'LOCK_FILE="([^"]+)"', body).group(1))
         assert len(locks) == 1, f"flash scripts use different locks: {locks}"
