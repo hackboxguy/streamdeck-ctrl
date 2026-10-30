@@ -9,3 +9,5 @@ fi
 NEW=$(( CURRENT - 10 ))
 [ "$NEW" -lt 0 ] && NEW=0
 "$ALS_CLIENT" --brightness=$NEW
+# Show the new level on the brightness key now rather than at its next poll
+"$(dirname "$(readlink -f "$0")")/brightness-value.sh" --notify

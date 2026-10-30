@@ -14,11 +14,13 @@ case "$1" in
         echo "{\"id\":\"display.als_adaptive\",\"state\":\"$STATE\"}" \
             | socat - UNIX-CONNECT:"$SOCK" 2>/dev/null
         ;;
-    # Uncomment below when matching live_value/multistate keys are added to display-control.json:
-    # brightness_changed)
-    #     echo "{\"id\":\"display.brightness\",\"value\":\"$2\"}" \
-    #         | socat - UNIX-CONNECT:"$SOCK" 2>/dev/null
-    #     ;;
+    brightness_changed)
+        # The brightness key (live_value, display.brightness); covers changes
+        # the keys did not make, e.g. disp-settings or ALS in AUTO mode.
+        echo "{\"id\":\"display.brightness\",\"value\":\"$2%\"}" \
+            | socat - UNIX-CONNECT:"$SOCK" 2>/dev/null
+        ;;
+    # Uncomment below when a matching live_value/multistate key is added to display-control.json:
     # zone_changed)
     #     echo "{\"id\":\"sensor.zone\",\"state\":\"$2\"}" \
     #         | socat - UNIX-CONNECT:"$SOCK" 2>/dev/null
