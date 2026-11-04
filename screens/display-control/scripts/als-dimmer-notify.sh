@@ -16,8 +16,12 @@ case "$1" in
         ;;
     brightness_changed)
         # The brightness key (live_value, display.brightness); covers changes
-        # the keys did not make, e.g. disp-settings or ALS in AUTO mode.
-        echo "{\"id\":\"display.brightness\",\"value\":\"$2%\"}" \
+        # the keys did not make, e.g. disp-settings or ALS in AUTO mode. The
+        # key also carries the backlight temperature: append the one
+        # brightness-value.sh cached (no I2C read from als-dimmer's callback;
+        # the next poll refreshes it).
+        TEMP=$(head -n1 /tmp/streamdeck-bltemp.cache 2>/dev/null)
+        echo "{\"id\":\"display.brightness\",\"value\":\"$2%${TEMP:+ $TEMP}\"}" \
             | socat - UNIX-CONNECT:"$SOCK" 2>/dev/null
         ;;
     # Uncomment below when a matching live_value/multistate key is added to display-control.json:

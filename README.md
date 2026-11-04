@@ -381,6 +381,8 @@ Row 0:  [0,0] Brightness Up   [0,1] Brightness Down   [0,2] Video Loop   [0,3] A
              (static)              (static)              (toggle)           (toggle)             (toggle)
 ```
 
+**Brightness key** (page 1, row 2, column 2): a `live_value` key showing the brightness als-dimmer holds and, under it, the display's backlight temperature, e.g. `30%` over `32°C`. `scripts/brightness-value.sh` is polled every 2 s; the up/down keys and als-dimmer's `brightness_changed` callback push the same value at once. The temperature is the reading the disp-settings app shows: the display IOC's (`0x66`) rows `0x1000..0x1003` via `disptool --device=ioc --command=bltemp` (one atomic I2C write+read), which is the backlight unit's thermistor on QVUE_9090 `display_manager` v01.04+ and the main-PCB NTC before that. It is read at most every 10 s and cached in `/tmp/streamdeck-bltemp.cache`, only when the IOC's `App Name` is `display_manager` (OTS-OLED, LAT45, S7, 3x QVue), never while a flash script holds `/tmp/target-flash.lock`, and only `0x66` is ever read (a read of `0x32` hangs the stock QVue firmware). No answer, qvue_legacy, an uncalibrated sensor or a value outside -40..125 °C shows the brightness alone.
+
 **Brightness Up/Down** — reads current brightness via `als-dimmer-client --brightness`, adjusts by ±10%, and sets the new value. Avoids stale jumps when brightness was changed externally.
 
 ```bash
