@@ -1,7 +1,7 @@
 #!/bin/bash
 # Write the 3x QVue's FPGA configuration flash through the QVue's own MCU
 # over I2C, and report the outcome back to the deck. Two keys use it:
-#   Qvue-New/FPGA-Flash     the pixelpipe GOLDEN 0xD7 + UPDATE 0xD8 pair
+#   Qvue-New/FPGA-Flash     the pixelpipe GOLDEN + UPDATE pair (0xD7 + 0xD8 today)
 #   Qvue-Legacy/FPGA-Flash  the vendor image back at offset 0, as delivered
 #                           (no --update; the UPDATE slot is left as it is,
 #                           the vendor image never jumps there)
@@ -16,10 +16,13 @@
 #   fpgaflash write:<update>,0x400000         (UPDATE slot, about 4 min; only with --update)
 #   fpgaflash end                             (PROGRAM_B released, FPGA boots)
 #
-# then requires `fpgaident` to show the expected FPGA link: 0x01 plus the
-# expected IDENTIFY image byte for the pixelpipe pair, 0xFF for the vendor
-# image (display_manager cannot talk to it; the panel runs at the vendor
-# bitstream's own level). als-dimmer is stopped for the session (it talks to
+# then requires `end` to report DONE (the FPGA configured) and `fpgaident` to
+# show the expected FPGA link: 0x01 plus the expected IDENTIFY image byte for
+# the pixelpipe pair, 0xFF for the vendor image (display_manager cannot talk
+# to it; the panel runs at the vendor bitstream's own level). The expected
+# image byte is the `version:` of the --update file (else --golden) in the
+# installed sp6bins firmware/fpga/manifest.txt, so a new UPDATE release
+# (0xD9, ...) needs a new 3xqvue-update.bin + manifest.txt, not a key change. als-dimmer is stopped for the session (it talks to
 # the same MCU) and started again afterwards if it was running.
 # The MCU must run display_manager (the Qvue-New/IOC-Flash key installs it);
 # with the vendor or a superseded FPGA image running, the direct path still
@@ -35,7 +38,8 @@
 #                      [--expect-link=0x01|0xFF] [--expect-image=<hex byte, e.g. D8>] \
 #                      [--label=<name>]
 #
-#   --expect-link   default 0x01; with 0x01, --expect-image is required
+#   --expect-link   default 0x01
+#   --expect-image  override for the manifest's version (link 0x01 only)
 #
 #   --golden / --update  filename under $SP6BINS/firmware/fpga, or an absolute path
 #
@@ -80,14 +84,13 @@ done
 EXPECT_LINK=$(printf '%s' "$EXPECT_LINK" | tr '[:upper:]' '[:lower:]')
 EXPECT_LINK="0x$(printf '%s' "${EXPECT_LINK#0x}" | tr '[:lower:]' '[:upper:]')"
 case "$EXPECT_LINK" in
-    0x01) [ -n "$EXPECT_IMAGE" ] || { echo "[qvue-fpga] --expect-image is required with link 0x01" >&2; exit 2; } ;;
-    0xFF) ;;
+    0x01|0xFF) ;;
     *) echo "[qvue-fpga] --expect-link must be 0x01 or 0xFF" >&2; exit 2 ;;
 esac
-EXPECT_IMAGE=$(printf '%s' "${EXPECT_IMAGE#0x}" | tr '[:lower:]' '[:upper:]')
 
 case "$GOLDEN" in /*) ;; *) GOLDEN="$SP6BINS/firmware/fpga/$GOLDEN" ;; esac
 [ -n "$UPDATE" ] && case "$UPDATE" in /*) ;; *) UPDATE="$SP6BINS/firmware/fpga/$UPDATE" ;; esac
+MANIFEST="$SP6BINS/firmware/fpga/manifest.txt"
 
 notify() {
     echo "{\"id\":\"$NOTIFY_ID\",\"state\":\"$1\"}" \
@@ -127,6 +130,24 @@ notify running
 for f in "$DISPTOOL" "$GOLDEN" ${UPDATE:+"$UPDATE"}; do
     [ -r "$f" ] || fail "missing $f (is micropanel installed under $MICROPANEL_HOME?)"
 done
+
+# The image the FPGA must identify as afterwards: the version sp6bins ships
+# for the image that boots (the UPDATE slot when one is written). Never a
+# guess: no version in the manifest is a failure before anything is touched.
+if [ "$EXPECT_LINK" = 0x01 ] && [ -z "$EXPECT_IMAGE" ]; then
+    boot_file=$(basename "${UPDATE:-$GOLDEN}")
+    [ -r "$MANIFEST" ] || fail "missing $MANIFEST, cannot tell which image $boot_file is"
+    EXPECT_IMAGE=$(awk -v f="$boot_file" '
+        /^file:/ {cur=$2} cur==f && /^version:/ {print $2; exit}' "$MANIFEST")
+    [ -n "$EXPECT_IMAGE" ] || fail "no version: for $boot_file in $MANIFEST"
+    log "Expecting image $EXPECT_IMAGE ($boot_file, from manifest.txt)"
+fi
+EXPECT_IMAGE=$(printf '%s' "$EXPECT_IMAGE" | tr '[:upper:]' '[:lower:]')
+EXPECT_IMAGE=$(printf '%s' "${EXPECT_IMAGE#0x}" | tr '[:lower:]' '[:upper:]')
+case "$EXPECT_LINK:$EXPECT_IMAGE" in
+    0xFF:*|0x01:[0-9A-F][0-9A-F]) ;;
+    *) fail "expected image '$EXPECT_IMAGE' is not one hex byte" ;;
+esac
 
 # als-dimmer drives the QVue's brightness through the same MCU; keep it off
 # the bus for the session and put it back the way it was on every exit.
@@ -174,7 +195,17 @@ if [ -n "$UPDATE" ]; then
 fi
 
 log "Closing the session (PROGRAM_B released, FPGA reconfigures)"
-dt --command=fpgaflash --value=end || fail "fpgaflash end"
+end_out=$(stdbuf -oL -eL "$DISPTOOL" --device=ioc --command=fpgaflash --value=end 2>&1 | strip_ansi)
+end_rc=${PIPESTATUS[0]}
+printf '%s\n' "$end_out" >>"$LOG_FILE"
+[ "$end_rc" -eq 0 ] || fail "fpgaflash end (exit $end_rc)"
+# Link 0xFF alone cannot tell the vendor image from an FPGA that did not
+# configure at all; DONE can. The MCU reports FU_DONE_MS 0xFFFF on a timeout.
+done_ms=$(printf '%s\n' "$end_out" | sed -n 's/.*DONE after \([0-9][0-9]*\) ms.*/\1/p' | head -1)
+if [ -z "$done_ms" ] || [ "$done_ms" -ge 65535 ]; then
+    fail "the FPGA did not report DONE after fpgaflash end (${done_ms:-no DONE line}): it did not configure"
+fi
+log "FPGA configured (DONE after $done_ms ms)"
 
 # Pixelpipe pair: FPGA link 0x01 and IDENTIFY's release word ending in
 # 00 <image>, e.g.

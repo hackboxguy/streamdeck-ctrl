@@ -361,7 +361,9 @@ class TestTaskConfig:
                 # No JTAG on the QVue: its FPGA flash goes through its MCU.
                 assert "scripts/flash-qvue-fpga.sh " in cmd
                 assert "--golden=" in cmd and "--update=" in cmd
-                assert "--expect-image=" in cmd
+                # The image byte comes from sp6bins' manifest.txt, so a new
+                # UPDATE release (0xD9, ...) needs no key change.
+                assert "--expect-image=" not in cmd
                 assert k["action"]["on_press"]["timeout_sec"] >= 1200
                 continue
             if k["notification_id"].startswith("fpga."):
@@ -379,6 +381,9 @@ class TestTaskConfig:
             assert "--firmware=" in cmd
             board = cmd.split("--board=")[1].split()[0]
             boards.add(board)
+            # Legacy MCU firmware cannot drive the pixelpipe FPGA images.
+            if k["notification_id"] == "ioc.flash_qvue_legacy":
+                assert "--require-vendor-fpga" in cmd
             # spartan7-9090 and qvue-9090 are driven without an npj; the
             # rest need one.
             assert ("--npj=" in cmd) == (board not in ("spartan7-9090", "qvue-9090"))

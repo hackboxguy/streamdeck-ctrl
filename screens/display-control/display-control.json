@@ -1126,7 +1126,7 @@
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-ioc.sh --id=ioc.flash_qvue_legacy --label=QVUE-Legacy --board=qvue-9090 --firmware=QVUE_9090_qvue_legacy.bin --expect-app=qvue_legacy",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-ioc.sh --id=ioc.flash_qvue_legacy --label=QVUE-Legacy --board=qvue-9090 --firmware=QVUE_9090_qvue_legacy.bin --expect-app=qvue_legacy --require-vendor-fpga",
           "async": true,
           "timeout_sec": 600
         }
@@ -1178,7 +1178,7 @@
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-qvue-fpga.sh --id=fpga.flash_qvue_new --label=QVUE-New --golden=3xqvue.bin --update=3xqvue-update.bin --expect-image=D8",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-qvue-fpga.sh --id=fpga.flash_qvue_new --label=QVUE-New --golden=3xqvue.bin --update=3xqvue-update.bin",
           "async": true,
           "timeout_sec": 1800
         }

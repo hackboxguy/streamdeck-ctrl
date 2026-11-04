@@ -9,7 +9,8 @@
 #
 # Usage:
 #   flash-ioc.sh --id=<notification-id> --board=<board> --firmware=<file> \
-#                [--npj=<file>] [--label=<name>] [--expect-app=<name>]
+#                [--npj=<file>] [--label=<name>] [--expect-app=<name>] \
+#                [--require-vendor-fpga]
 #
 #   --firmware  filename under $SP6BINS/firmware/bios-bin, or an absolute path
 #   --npj       filename under $SP6BINS/config, or an absolute path. Omit for
@@ -17,6 +18,19 @@
 #   --expect-app  after a successful flash, wait for the IOC to boot and
 #               require `disptool --device=ioc --command=iocversion` to report
 #               this App Name (read over 0x66); otherwise the key goes red.
+#   --require-vendor-fpga  (Qvue-Legacy/IOC-Flash) refuse while our pixelpipe
+#               FPGA image is running (display_manager reports FPGA link 0x01):
+#               qvue_legacy speaks the vendor SPI protocol, which the pixelpipe
+#               images reject, so brightness would be dead. Flash the vendor
+#               FPGA image first (Qvue-Legacy/FPGA-Flash, which needs
+#               display_manager). If display_manager is not running the link
+#               cannot be read and the flash goes ahead.
+#
+# For --board=qvue-9090, als-dimmer is stopped for the flash and started
+# again afterwards (if it was running): its config is chosen at start-up by
+# the MCU firmware it finds (display_manager -> 0x66 OUT_REQ, stock or
+# qvue_legacy -> the vendor protocol at 0x32), so after a firmware swap it
+# must start again to pick the matching one.
 #
 # The keys that launch this are `task` keys: streamdeck-ctrl paints a blinking
 # green border while this runs, and the states pushed below leave it solid
@@ -42,6 +56,7 @@ FIRMWARE=""
 NPJ=""
 LABEL=""
 EXPECT_APP=""
+REQUIRE_VENDOR_FPGA=0
 
 for arg in "$@"; do
     case "$arg" in
@@ -51,6 +66,7 @@ for arg in "$@"; do
         --npj=*)      NPJ="${arg#*=}" ;;
         --label=*)    LABEL="${arg#*=}" ;;
         --expect-app=*) EXPECT_APP="${arg#*=}" ;;
+        --require-vendor-fpga) REQUIRE_VENDOR_FPGA=1 ;;
         *) echo "[ioc-flash] Unknown argument: $arg" >&2; exit 2 ;;
     esac
 done
@@ -87,7 +103,7 @@ notify running
 
 REQUIRED=( "$FLASH_TOOL" "$FIRMWARE" )
 [ -n "$NPJ" ] && REQUIRED+=( "$NPJ" )
-[ -n "$EXPECT_APP" ] && REQUIRED+=( "$DISPTOOL" )
+{ [ -n "$EXPECT_APP" ] || [ "$REQUIRE_VENDOR_FPGA" -eq 1 ]; } && REQUIRED+=( "$DISPTOOL" )
 for f in "${REQUIRED[@]}"; do
     if [ ! -r "$f" ]; then
         log "ERROR: missing $f (is micropanel installed under $MICROPANEL_HOME?)"
@@ -95,6 +111,37 @@ for f in "${REQUIRED[@]}"; do
         exit 1
     fi
 done
+
+if [ "$REQUIRE_VENDOR_FPGA" -eq 1 ]; then
+    app=$(timeout 15 "$DISPTOOL" --device=ioc --command=iocversion 2>&1 \
+          | sed 's/\x1b\[[0-9;]*m//g' | sed -n 's/^App Name *: *//p' | tr -d '[:space:]')
+    if [ "$app" = display_manager ]; then
+        link=$(timeout 15 "$DISPTOOL" --device=ioc --command=fpgaident 2>&1 \
+               | sed 's/\x1b\[[0-9;]*m//g' | sed -n 's/^FPGA link *: *\(0x[0-9A-Fa-f]*\).*/\1/p')
+        if [ "$link" = 0x01 ]; then
+            log "ERROR: the pixelpipe FPGA image is still running (FPGA link 0x01);" \
+                "qvue_legacy cannot drive it. Press Qvue-Legacy/FPGA-Flash first, then this key."
+            notify failure
+            exit 1
+        fi
+        log "FPGA link ${link:-unknown}: not the pixelpipe image, going ahead"
+    fi
+fi
+
+# als-dimmer picks its QVue config when it starts; see the header.
+ALS_WAS_ACTIVE=0
+if [ "$BOARD" = qvue-9090 ] && systemctl is-active --quiet als-dimmer 2>/dev/null; then
+    ALS_WAS_ACTIVE=1
+    log "Stopping als-dimmer for the flash"
+    sudo -n systemctl stop als-dimmer || log "could not stop als-dimmer (continuing)"
+fi
+restore_als() {
+    if [ "$ALS_WAS_ACTIVE" -eq 1 ]; then
+        log "Starting als-dimmer again (it re-detects the QVue firmware)"
+        sudo -n systemctl start als-dimmer || log "could not start als-dimmer"
+    fi
+}
+trap restore_als EXIT
 
 # --board must be the first argument to rh850-flash-auto.sh.
 ARGS=( --board="$BOARD" )
