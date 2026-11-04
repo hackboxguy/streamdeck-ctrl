@@ -1160,12 +1160,29 @@
     },
     {
       "position": [13, 0],
-      "label": "Blank 7",
-      "icon_type": "static",
+      "label": "Qvue-New/FPGA-Flash",
+      "icon_type": "task",
       "icons": {
-        "default": "blank.bmp"
+        "default": "qvue-new-fpga-flash.png"
       },
-      "action": null
+      "notification_id": "fpga.flash_qvue_new",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "colors": {
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-qvue-fpga.sh --id=fpga.flash_qvue_new --label=QVUE-New --golden=3xqvue.bin --update=3xqvue-update.bin --expect-image=D8",
+          "async": true,
+          "timeout_sec": 1800
+        }
+      }
     },
     {
       "position": [6, 3],

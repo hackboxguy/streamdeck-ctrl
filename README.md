@@ -297,7 +297,7 @@ The included `screens/display-control/` is micropanel's screen, five pages on a 
 | 1 | Home, Media Player, Slideshow, Default Ref Video, Display Settings, Brightness Up/Down, ALS Adaptive, Cluster Demo (the modern cluster: Legacy theme, DMS panel off, map on), IP Address, Local Dimming, Sync Video, Pixel Compensation |
 | 2 | the thirteen HDMI timing radios (12.3 NQ1, 15.6 2K5, 14.6 FHD DD, EDID, 12.3 NQ5, 14.6 2K5, 17.3 3K, 17.3 OTS-OLED, 3×QVue, 12.3 NQ1v1.1, 27", 14.6 FHD EJ, 17" IB-OLED) |
 | 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Stop; DMS Link |
-| 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice) on the top row, the four IOC flash tasks and the OLED-IB touch flash task below them, and the Qvue-Legacy and Qvue-New IOC flash tasks on the bottom row (after ←) |
+| 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice) on the top row, the four IOC flash tasks and the OLED-IB touch flash task below them, and the Qvue-Legacy / Qvue-New IOC flash and Qvue-New FPGA flash tasks on the bottom row (after ←) |
 | 5 | the SDR/HDR10+ demo keys |
 
 The arrows take one slot on each page (→ bottom right on all but the last, ← bottom left on
@@ -405,6 +405,17 @@ All four run the same `scripts/flash-ioc.sh`, differing only in arguments, and i
 **Qvue-Legacy/IOC-Flash key**: a fifth IOC key on page 4, on the bottom row right after ← (in Blank 5's place). It flashes the 3x QVue display driver's RH850 F1KM-S1 (R7F701684, rh850-tool profile `r7f701684`: 16 MHz, 1 MiB code flash) with the stock-compatible `qvue_legacy` firmware. The board has no Pi GPIO wiring or NPJ, so it needs the Bluebox; without one `rh850-flash-auto.sh` refuses and the key goes red. It also passes `--expect-app=qvue_legacy`: after the flasher's own read-back verify, `flash-ioc.sh` waits up to 20 s for `disptool --device=ioc --command=iocversion` to report `App Name : qvue_legacy` over 0x66, and turns the key green only when it does. The flash erases and writes 0x0..0x7FFFF, not just the image: a wire image is bootloader + slot A with boot_seq 0, so a `display_manager` left in slot B by an earlier OTA would otherwise keep booting. The vendor's stock firmware at 0x80000 and up is left alone. A press takes about 40 s.
 
 **Qvue-New/IOC-Flash key**: next to Qvue-Legacy (in Blank 6's place), the same flow for the 0x66 remote-display firmware: it wire-flashes `QVUE_9090_display_manager.bin` (bootloader + slot A, clearing slot B) and expects `App Name : display_manager`. The two QVue keys switch the board between its two firmwares.
+
+**Qvue-New/FPGA-Flash key**: the third QVue key (in Blank 7's place) writes the QVue FPGA's (XA7S25) SPI configuration flash *through the QVue's MCU over I2C*; the QVue has no JTAG path. It needs `display_manager` on the MCU (press Qvue-New/IOC-Flash first; the key checks `App Name` and goes red otherwise) and runs `scripts/flash-qvue-fpga.sh`, the baseline wire session from sp6bins `firmware/fpga/README.md`:
+
+```
+disptool --device=ioc --command=fpgaflash --value=begin --value2=1          # display off, 10 MHz SCK
+disptool --device=ioc --command=fpgaflash --value=write:3xqvue.bin,0,golden # GOLDEN 0xD7
+disptool --device=ioc --command=fpgaflash --value=write:3xqvue-update.bin,0x400000  # UPDATE 0xD8
+disptool --device=ioc --command=fpgaflash --value=end
+```
+
+It then waits for `fpgaident` to show `FPGA link : 0x01` and IDENTIFY `… 00 D8` (`--expect-image=D8`) before the border goes green. Each write is retried once; a write that still fails leaves the session open (display off, `PROGRAM_B` low) so the FPGA never boots a half-written flash, and the key goes red: press it again to rewrite both images. A run takes about 9 min (two writes of about 4.3 min each; 516 s on the rig), so the key's `timeout_sec` is 1800. Log: `/tmp/qvue-fpga-flash.log`. It shares the flash scripts' lock. A new UPDATE image (0xD9, ...) is a new file in sp6bins and new `--update=` / `--expect-image=` here.
 
 The script takes a single lock across every board, since they all program over the same port — a second flash started while one is running exits instead of colliding with it.
 

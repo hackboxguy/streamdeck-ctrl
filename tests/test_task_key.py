@@ -288,7 +288,7 @@ class TestTaskConfig:
             "fpga.flash_14_6_dd", "fpga.flash_12_3_nq11", "ioc.flash_983hh",
             "ioc.flash_spartan7", "ioc.flash_lat45", "ioc.flash_oled_ots",
             "touch.flash_oled_ib", "ioc.flash_qvue_legacy",
-            "ioc.flash_qvue_new",
+            "ioc.flash_qvue_new", "fpga.flash_qvue_new",
         ]
 
         # Five pages (owner, 2026-10-11): page 2 is the HDMI timings
@@ -296,8 +296,9 @@ class TestTaskConfig:
         # Cluster Demo V2; page 4 the five FPGA keys (12.3-NQ5, 15.6-0OD,
         # 14.6-EJ, 14.6-DD, 12.3-NQ11) on top of the four IOC keys and the
         # OLED-IB touch key (in Blank 4's place, 2026-10-24), and the
-        # Qvue-Legacy and Qvue-New IOC keys on the bottom row after the left
-        # arrow (in Blank 5's and Blank 6's places, 2026-11-04); page 5
+        # Qvue-Legacy and Qvue-New IOC keys and the Qvue-New FPGA key on the
+        # bottom row after the left arrow (in Blank 5/6/7's places,
+        # 2026-11-04); page 5
         # the SDR/HDR demo keys.
         # The deck's arrows take one slot each, so a key inserted ahead of
         # these shifts them.
@@ -318,7 +319,7 @@ class TestTaskConfig:
         pages.switch_page("right")
         assert [pages.get_physical_pos(k["position"]) for k in flash] == [
             (0, 0), (0, 1), (0, 2), (0, 3), (0, 4),
-            (1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (2, 1), (2, 2)]
+            (1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (2, 1), (2, 2), (2, 3)]
         pages.switch_page("right")
         demo = [k for k in cfg["keys"] if k.get("notification_id", "").startswith("demo.")
                 or k["label"].startswith("SDR/HDR")]
@@ -341,6 +342,13 @@ class TestTaskConfig:
             # script it is -- a copy-pasted id would light up a sibling key.
             assert f"--id={k['notification_id']} " in cmd
 
+            if k["notification_id"] == "fpga.flash_qvue_new":
+                # No JTAG on the QVue: its FPGA flash goes through its MCU.
+                assert "scripts/flash-qvue-fpga.sh " in cmd
+                assert "--golden=" in cmd and "--update=" in cmd
+                assert "--expect-image=" in cmd
+                assert k["action"]["on_press"]["timeout_sec"] >= 1200
+                continue
             if k["notification_id"].startswith("fpga."):
                 assert "scripts/flash-fpga.sh " in cmd
                 assert "--file=" in cmd
@@ -366,7 +374,8 @@ class TestTaskConfig:
         repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         scripts = os.path.join(repo, "screens", "display-control", "scripts")
         locks = set()
-        for name in ("flash-ioc.sh", "flash-fpga.sh", "flash-touch.sh"):
+        for name in ("flash-ioc.sh", "flash-fpga.sh", "flash-touch.sh",
+                     "flash-qvue-fpga.sh"):
             body = open(os.path.join(scripts, name)).read()
             locks.add(re.search(r'LOCK_FILE="([^"]+)"', body).group(1))
         assert len(locks) == 1, f"flash scripts use different locks: {locks}"

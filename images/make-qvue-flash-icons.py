@@ -2,7 +2,8 @@
 """The QVue IOC-Flash keys' pictures, made from the OLED-OTS IOC-Flash key's
 picture the same way make-touch-flash-icon.py makes the OLED-IB one (same
 boxes, same font fitting): the chip's label becomes "QVUE", and the two big
-lines become "Qvue-Legacy" / "IOC-Flash" and "Qvue-New" / "IOC-Flash".
+lines become "Qvue-Legacy" / "IOC-Flash", "Qvue-New" / "IOC-Flash" and
+"Qvue-New" / "FPGA-Flash".
 
     python3 images/make-qvue-flash-icons.py screens/display-control
 """
@@ -16,17 +17,18 @@ _spec = importlib.util.spec_from_file_location(
 base = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(base)
 
-# (output file, first big line)
-ICONS = [("qvue-legacy-ioc-flash.png", "Qvue-Legacy"),
-         ("qvue-new-ioc-flash.png", "Qvue-New")]
+# (output file, first big line, second big line)
+ICONS = [("qvue-legacy-ioc-flash.png", "Qvue-Legacy", "IOC-Flash"),
+         ("qvue-new-ioc-flash.png", "Qvue-New", "IOC-Flash"),
+         ("qvue-new-fpga-flash.png", "Qvue-New", "FPGA-Flash")]
 
 
 def main(directory):
     base.CHIP_LABEL = "QVUE"
-    for dst, first in ICONS:
+    for dst, first, second in ICONS:
         base.DST = dst
         base.LINES = [(first, (177, 723, 1075, 835)),
-                      ("IOC-Flash", (185, 877, 1071, 1007))]
+                      (second, (185, 877, 1071, 1007))]
         base.main(directory)
 
 
