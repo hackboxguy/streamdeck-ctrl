@@ -189,6 +189,29 @@
     },
     {
       "position": [2, 1],
+      "label": "Display Power",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "display-power-on.bmp",
+        "off": "display-power-off.bmp"
+      },
+      "initial_state": "on",
+      "notification_id": "display.power",
+      "state_watch": {
+        "command": "{INSTALL_DIR}/screens/display-control/scripts/display-power.sh state",
+        "text_map": {"on": "on", "off": "off"},
+        "poll_interval_sec": 3
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/display-power.sh {state}",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [2, 2],
       "label": "Local Dimming",
       "icon_type": "toggle",
       "icons": {
@@ -210,21 +233,6 @@
         "on_press": {
           "type": "script",
           "command": "{INSTALL_DIR}/screens/display-control/scripts/local-dimming-toggle.sh {state}",
-          "async": true
-        }
-      }
-    },
-    {
-      "position": [2, 2],
-      "label": "Sync Video",
-      "icon_type": "static",
-      "icons": {
-        "default": "sync-video.bmp"
-      },
-      "action": {
-        "on_press": {
-          "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/sync-video.sh",
           "async": true
         }
       }
@@ -1389,6 +1397,48 @@
         "default": "blank.bmp"
       },
       "action": null
+    },
+    {
+      "position": [14, 4],
+      "label": "Blank 15",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [15, 0],
+      "label": "Blank 16",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [15, 1],
+      "label": "Blank 17",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [15, 2],
+      "label": "Sync Video",
+      "icon_type": "static",
+      "icons": {
+        "default": "sync-video.bmp"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/sync-video.sh",
+          "async": true
+        }
+      }
     }
   ]
 }

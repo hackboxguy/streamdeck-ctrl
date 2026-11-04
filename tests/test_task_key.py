@@ -334,6 +334,23 @@ class TestTaskConfig:
         assert pages.current_page == 5
         assert pages.get_physical_pos(qvue_legacy_fpga["position"]) == (0, 0)
         assert pages.is_nav_key((2, 0)) == "left"
+        # Sync Video moved here from page 1 (2026-11-04): row 2, column 1.
+        assert pages.get_physical_pos(by_label["Sync Video"]["position"]) == (1, 0)
+
+    def test_page1_bottom_row(self):
+        """Display Power took Local Dimming's slot, Local Dimming Sync Video's."""
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        cfg = load_config(os.path.join(repo, "screens", "display-control",
+                                       "display-control.json"))
+        pages = PageManager(cfg["keys"], cfg["device"].get("layout", [3, 5]))
+        by_label = {k["label"]: k for k in cfg["keys"]}
+        assert [pages.get_physical_pos(by_label[n]["position"]) for n in (
+            "Brightness Down", "Display Power", "Local Dimming", "Pixel Compensation")] == [
+            (2, 0), (2, 1), (2, 2), (2, 3)]
+        power = by_label["Display Power"]
+        assert power["icon_type"] == "toggle"
+        assert "display-power.sh {state}" in power["action"]["on_press"]["command"]
+        assert power["state_watch"]["command"].endswith("display-power.sh state")
 
     def test_every_flash_key_drives_a_shared_script(self):
         """Each target differs only by its arguments, never by its script."""
