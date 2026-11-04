@@ -288,6 +288,7 @@ class TestTaskConfig:
             "fpga.flash_14_6_dd", "fpga.flash_12_3_nq11", "ioc.flash_983hh",
             "ioc.flash_spartan7", "ioc.flash_lat45", "ioc.flash_oled_ots",
             "touch.flash_oled_ib", "ioc.flash_qvue_legacy",
+            "ioc.flash_qvue_new",
         ]
 
         # Five pages (owner, 2026-10-11): page 2 is the HDMI timings
@@ -295,8 +296,8 @@ class TestTaskConfig:
         # Cluster Demo V2; page 4 the five FPGA keys (12.3-NQ5, 15.6-0OD,
         # 14.6-EJ, 14.6-DD, 12.3-NQ11) on top of the four IOC keys and the
         # OLED-IB touch key (in Blank 4's place, 2026-10-24), and the
-        # Qvue-Legacy IOC key on the bottom row after the left arrow (in
-        # Blank 5's place, 2026-11-04); page 5
+        # Qvue-Legacy and Qvue-New IOC keys on the bottom row after the left
+        # arrow (in Blank 5's and Blank 6's places, 2026-11-04); page 5
         # the SDR/HDR demo keys.
         # The deck's arrows take one slot each, so a key inserted ahead of
         # these shifts them.
@@ -317,7 +318,7 @@ class TestTaskConfig:
         pages.switch_page("right")
         assert [pages.get_physical_pos(k["position"]) for k in flash] == [
             (0, 0), (0, 1), (0, 2), (0, 3), (0, 4),
-            (1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (2, 1)]
+            (1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (2, 1), (2, 2)]
         pages.switch_page("right")
         demo = [k for k in cfg["keys"] if k.get("notification_id", "").startswith("demo.")
                 or k["label"].startswith("SDR/HDR")]
