@@ -297,7 +297,7 @@ The included `screens/display-control/` is micropanel's screen, five pages on a 
 | 1 | Home, Media Player, Slideshow, Default Ref Video, Display Settings, Brightness Up/Down, ALS Adaptive, Cluster Demo (the modern cluster: Legacy theme, DMS panel off, map on), IP Address, Local Dimming, Sync Video, Pixel Compensation |
 | 2 | the thirteen HDMI timing radios (12.3 NQ1, 15.6 2K5, 14.6 FHD DD, EDID, 12.3 NQ5, 14.6 2K5, 17.3 3K, 17.3 OTS-OLED, 3×QVue, 12.3 NQ1v1.1, 27", 14.6 FHD EJ, 17" IB-OLED) |
 | 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Stop; DMS Link |
-| 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice) on the top row, the four IOC flash tasks and the OLED-IB touch flash task below them |
+| 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice) on the top row, the four IOC flash tasks and the OLED-IB touch flash task below them, and the Qvue-Legacy IOC flash task on the bottom row (after ←) |
 | 5 | the SDR/HDR10+ demo keys |
 
 The arrows take one slot on each page (→ bottom right on all but the last, ← bottom left on
@@ -389,7 +389,7 @@ NEW=$(( CURRENT + 10 ))
 "$ALS_CLIENT" --brightness=$NEW
 ```
 
-**IOC Flash keys** — four `task` keys on page 4 (the middle row, below the FPGA keys: 983HH, S7-9090, LAT45, OLED-OTS), each reflashing one board's RH850 IOC:
+**IOC Flash keys**: four `task` keys on page 4 (the middle row, below the FPGA keys: 983HH, S7-9090, LAT45, OLED-OTS), plus Qvue-Legacy on the bottom row, each reflashing one board's RH850 IOC:
 
 | Key | Board | Firmware | NPJ |
 |---|---|---|---|
@@ -397,8 +397,11 @@ NEW=$(( CURRENT + 10 ))
 | S7-9090 | `spartan7-9090` | `REMOTE_DISP_SPARTAN7_display_manager_s4.bin` | *(none)* |
 | LAT45 | `lattice45-9090` | `REMOTE_DISP_display_manager.bin` | `LAT-ECP5.npj` |
 | OLED-OTS | `lattice45-9090` | `REMOTE_DISP_OTS_display_manager.bin` | `LAT-ECP5.npj` |
+| Qvue-Legacy | `qvue-9090` | `QVUE_9090_qvue_legacy.bin` | *(none, Bluebox only)* |
 
 All four run the same `scripts/flash-ioc.sh`, differing only in arguments, and it shells out to micropanel's `rh850-flash-auto.sh` — which picks the transport itself: an EEHB Bluebox dongle (USB `0403:a9a0`) when one is plugged into the Pi, otherwise the Pi's own GPIO/UART wiring. The operator attaches the dongle and presses a key; the border blinks green while flashing and settles on solid green or solid red.
+
+**Qvue-Legacy/IOC-Flash key**: a fifth IOC key on page 4, on the bottom row right after ← (in Blank 5's place). It flashes the 3x QVue display driver's RH850 F1KM-S1 (R7F701684, rh850-tool profile `r7f701684`: 16 MHz, 1 MiB code flash) with the stock-compatible `qvue_legacy` firmware. The board has no Pi GPIO wiring or NPJ, so it needs the Bluebox; without one `rh850-flash-auto.sh` refuses and the key goes red. It also passes `--expect-app=qvue_legacy`: after the flasher's own read-back verify, `flash-ioc.sh` waits up to 20 s for `disptool --device=ioc --command=iocversion` to report `App Name : qvue_legacy` over 0x66, and turns the key green only when it does. The flash erases and writes 0x0..0x7FFFF, not just the image: a wire image is bootloader + slot A with boot_seq 0, so a `display_manager` left in slot B by an earlier OTA would otherwise keep booting. The vendor's stock firmware at 0x80000 and up is left alone. A press takes about 40 s.
 
 The script takes a single lock across every board, since they all program over the same port — a second flash started while one is running exits instead of colliding with it.
 

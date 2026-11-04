@@ -1108,12 +1108,29 @@
     },
     {
       "position": [12, 3],
-      "label": "Blank 5",
-      "icon_type": "static",
+      "label": "Qvue-Legacy/IOC-Flash",
+      "icon_type": "task",
       "icons": {
-        "default": "blank.bmp"
+        "default": "qvue-legacy-ioc-flash.png"
       },
-      "action": null
+      "notification_id": "ioc.flash_qvue_legacy",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "colors": {
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-ioc.sh --id=ioc.flash_qvue_legacy --label=QVUE-Legacy --board=qvue-9090 --firmware=QVUE_9090_qvue_legacy.bin --expect-app=qvue_legacy",
+          "async": true,
+          "timeout_sec": 600
+        }
+      }
     },
     {
       "position": [12, 4],

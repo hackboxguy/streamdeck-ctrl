@@ -9,11 +9,14 @@
 #
 # Usage:
 #   flash-ioc.sh --id=<notification-id> --board=<board> --firmware=<file> \
-#                [--npj=<file>] [--label=<name>]
+#                [--npj=<file>] [--label=<name>] [--expect-app=<name>]
 #
 #   --firmware  filename under $SP6BINS/firmware/bios-bin, or an absolute path
 #   --npj       filename under $SP6BINS/config, or an absolute path. Omit for
-#               boards the flasher drives without one (spartan7-9090).
+#               boards the flasher drives without one (spartan7-9090, qvue-9090).
+#   --expect-app  after a successful flash, wait for the IOC to boot and
+#               require `disptool --device=ioc --command=iocversion` to report
+#               this App Name (read over 0x66); otherwise the key goes red.
 #
 # The keys that launch this are `task` keys: streamdeck-ctrl paints a blinking
 # green border while this runs, and the states pushed below leave it solid
@@ -21,6 +24,9 @@
 
 MICROPANEL_HOME="${MICROPANEL_HOME:-/home/pi/micropanel}"
 FLASH_TOOL="$MICROPANEL_HOME/bin/rh850-flash-auto.sh"
+DISPTOOL="$MICROPANEL_HOME/bin/disptool"
+# How long the freshly flashed IOC gets to boot and answer on 0x66.
+APP_CHECK_TIMEOUT_SEC=20
 SP6BINS="$MICROPANEL_HOME/share/sp6bins"
 
 SOCK="/run/streamdeck-ctrl/notify.sock"
@@ -35,6 +41,7 @@ BOARD=""
 FIRMWARE=""
 NPJ=""
 LABEL=""
+EXPECT_APP=""
 
 for arg in "$@"; do
     case "$arg" in
@@ -43,6 +50,7 @@ for arg in "$@"; do
         --firmware=*) FIRMWARE="${arg#*=}" ;;
         --npj=*)      NPJ="${arg#*=}" ;;
         --label=*)    LABEL="${arg#*=}" ;;
+        --expect-app=*) EXPECT_APP="${arg#*=}" ;;
         *) echo "[ioc-flash] Unknown argument: $arg" >&2; exit 2 ;;
     esac
 done
@@ -79,6 +87,7 @@ notify running
 
 REQUIRED=( "$FLASH_TOOL" "$FIRMWARE" )
 [ -n "$NPJ" ] && REQUIRED+=( "$NPJ" )
+[ -n "$EXPECT_APP" ] && REQUIRED+=( "$DISPTOOL" )
 for f in "${REQUIRED[@]}"; do
     if [ ! -r "$f" ]; then
         log "ERROR: missing $f (is micropanel installed under $MICROPANEL_HOME?)"
@@ -95,6 +104,29 @@ ARGS+=( --bios-autorun="$FIRMWARE" )
 log "Flashing $LABEL with $(basename "$FIRMWARE")"
 stdbuf -oL -eL "$FLASH_TOOL" "${ARGS[@]}" >>"$LOG_FILE" 2>&1
 STATUS=$?
+
+# The flasher has already verified the written flash; this checks that the new
+# application actually boots and identifies itself.
+app_running() {
+    local deadline=$(( SECONDS + APP_CHECK_TIMEOUT_SEC )) out name
+    while [ "$SECONDS" -lt "$deadline" ]; do
+        out=$(timeout 10 "$DISPTOOL" --device=ioc --command=iocversion 2>&1 \
+              | sed 's/\x1b\[[0-9;]*m//g')
+        name=$(printf '%s\n' "$out" | sed -n 's/^App Name *: *//p' | tr -d '[:space:]')
+        if [ "$name" = "$EXPECT_APP" ]; then
+            log "IOC reports App Name '$name'"
+            printf '%s\n' "$out" >>"$LOG_FILE"
+            return 0
+        fi
+        sleep 1
+    done
+    log "IOC did not report App Name '$EXPECT_APP' within ${APP_CHECK_TIMEOUT_SEC}s (last: '${name:-no answer}')"
+    return 1
+}
+
+if [ "$STATUS" -eq 0 ] && [ -n "$EXPECT_APP" ] && ! app_running; then
+    STATUS=1
+fi
 
 if [ "$STATUS" -eq 0 ]; then
     log "Flash completed successfully"

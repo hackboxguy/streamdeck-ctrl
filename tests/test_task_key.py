@@ -287,14 +287,16 @@ class TestTaskConfig:
             "fpga.flash_12_3_nq5", "fpga.flash_15_6_0od", "fpga.flash_14_6_ej",
             "fpga.flash_14_6_dd", "fpga.flash_12_3_nq11", "ioc.flash_983hh",
             "ioc.flash_spartan7", "ioc.flash_lat45", "ioc.flash_oled_ots",
-            "touch.flash_oled_ib",
+            "touch.flash_oled_ib", "ioc.flash_qvue_legacy",
         ]
 
         # Five pages (owner, 2026-10-11): page 2 is the HDMI timings
         # (soft-DIP display types, no blanks left); page 3 is
         # Cluster Demo V2; page 4 the five FPGA keys (12.3-NQ5, 15.6-0OD,
         # 14.6-EJ, 14.6-DD, 12.3-NQ11) on top of the four IOC keys and the
-        # OLED-IB touch key (in Blank 4's place, 2026-10-24); page 5
+        # OLED-IB touch key (in Blank 4's place, 2026-10-24), and the
+        # Qvue-Legacy IOC key on the bottom row after the left arrow (in
+        # Blank 5's place, 2026-11-04); page 5
         # the SDR/HDR demo keys.
         # The deck's arrows take one slot each, so a key inserted ahead of
         # these shifts them.
@@ -315,7 +317,7 @@ class TestTaskConfig:
         pages.switch_page("right")
         assert [pages.get_physical_pos(k["position"]) for k in flash] == [
             (0, 0), (0, 1), (0, 2), (0, 3), (0, 4),
-            (1, 0), (1, 1), (1, 2), (1, 3), (1, 4)]
+            (1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (2, 1)]
         pages.switch_page("right")
         demo = [k for k in cfg["keys"] if k.get("notification_id", "").startswith("demo.")
                 or k["label"].startswith("SDR/HDR")]
@@ -353,9 +355,10 @@ class TestTaskConfig:
             assert "--firmware=" in cmd
             board = cmd.split("--board=")[1].split()[0]
             boards.add(board)
-            # spartan7-9090 is driven without an npj; the rest need one.
-            assert ("--npj=" in cmd) == (board != "spartan7-9090")
-        assert boards == {"983hh", "spartan7-9090", "lattice45-9090"}
+            # spartan7-9090 and qvue-9090 are driven without an npj; the
+            # rest need one.
+            assert ("--npj=" in cmd) == (board not in ("spartan7-9090", "qvue-9090"))
+        assert boards == {"983hh", "spartan7-9090", "lattice45-9090", "qvue-9090"}
 
     def test_flash_scripts_share_one_board_lock(self):
         """JTAG and Bluebox runs drive the same board; never both at once."""
