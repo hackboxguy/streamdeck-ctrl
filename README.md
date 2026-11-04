@@ -284,13 +284,13 @@ so systemd (`Restart=on-failure`) restarts it with the matching file.
 A deck **without** its own variant simply gets the loaded config's keys re-paginated for
 its size, with navigation arrows — at start-up and live, when a deck of another size is
 plugged in while the daemon runs (no restart; key states are kept). For example, the
-60 keys of `display-control.json` span 5 pages on a 15-key deck. `setup.sh` resolves
+68 keys of `display-control.json` span 6 pages on a 15-key deck. `setup.sh` resolves
 `{INSTALL_DIR}` in the variants too. Keys that appear in both files should keep the same
 `notification_id`, so state and scripts are shared.
 
 ## Real-World Example: Display Control
 
-The included `screens/display-control/` is micropanel's screen, five pages on a 15-key deck:
+The included `screens/display-control/` is micropanel's screen, six pages on a 15-key deck:
 
 | Page | Keys |
 |---|---|
@@ -298,7 +298,10 @@ The included `screens/display-control/` is micropanel's screen, five pages on a 
 | 2 | the thirteen HDMI timing radios (12.3 NQ1, 15.6 2K5, 14.6 FHD DD, EDID, 12.3 NQ5, 14.6 2K5, 17.3 3K, 17.3 OTS-OLED, 3×QVue, 12.3 NQ1v1.1, 27", 14.6 FHD EJ, 17" IB-OLED) |
 | 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Stop; DMS Link |
 | 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice) on the top row, the four IOC flash tasks and the OLED-IB touch flash task below them, and the Qvue-Legacy / Qvue-New IOC flash and Qvue-New FPGA flash tasks on the bottom row (after ←) |
-| 5 | the SDR/HDR10+ demo keys |
+| 5 | the SDR/HDR10+ demo keys, then Blank 8-13 |
+| 6 | Qvue-Legacy/FPGA-Flash, Blank 14 |
+
+The paginator has no page break: a last page holds up to 14 keys (13 + ←), so page 6 exists only while more than 14 keys follow page 4. Blank 8-13 fill page 5 to a full middle page and Blank 14 after the Qvue-Legacy FPGA key keeps the count above 14. A new page-6 key goes in place of Blank 14 (or after it); a new page-5 key replaces one of Blank 8-13.
 
 The arrows take one slot on each page (→ bottom right on all but the last, ← bottom left on
 all but the first), so page 1 holds 14 keys, the middle pages 13 and the last up to 14; the
@@ -415,7 +418,9 @@ disptool --device=ioc --command=fpgaflash --value=write:3xqvue-update.bin,0x4000
 disptool --device=ioc --command=fpgaflash --value=end
 ```
 
-It then waits for `fpgaident` to show `FPGA link : 0x01` and IDENTIFY `… 00 D8` (`--expect-image=D8`) before the border goes green. Each write is retried once; a write that still fails leaves the session open (display off, `PROGRAM_B` low) so the FPGA never boots a half-written flash, and the key goes red: press it again to rewrite both images. A run takes about 9 min (two writes of about 4.3 min each; 516 s on the rig), so the key's `timeout_sec` is 1800. Log: `/tmp/qvue-fpga-flash.log`. It shares the flash scripts' lock. A new UPDATE image (0xD9, ...) is a new file in sp6bins and new `--update=` / `--expect-image=` here.
+It then waits for `fpgaident` to show `FPGA link : 0x01` and IDENTIFY `… 00 D8` (`--expect-image=D8`) before the border goes green. Each write is retried once; a write that still fails leaves the session open (display off, `PROGRAM_B` low) so the FPGA never boots a half-written flash, and the key goes red: press it again to rewrite both images. A run takes about 9 min (two writes of about 4.3 min each; 516 s on the rig), so the key's `timeout_sec` is 1800. Log: `/tmp/qvue-fpga-flash.log`. It shares the flash scripts' lock. A new UPDATE image (0xD9, ...) is a new file in sp6bins and new `--update=` / `--expect-image=` here. als-dimmer is stopped for the session (it talks to the same MCU) and started again afterwards if it was running.
+
+**Qvue-Legacy/FPGA-Flash key (page 6)**: the same script, back to the vendor FPGA image as the unit was delivered. It needs `display_manager` on the MCU like the key above (the MCU does the SPI writes), then: stop als-dimmer, `fpgaflash begin --value2=1`, `write:3xqvue-legacy.bin,0,golden`, `end`. That replaces GOLDEN 0xD7 at offset 0 with the vendor image; the 0xD8 left in the UPDATE slot is never used, because the vendor image does not jump there. Success means `fpgaident` shows `FPGA link : 0xFF` (`--expect-link=0xFF`): `display_manager` cannot talk to the vendor image, and the panel runs at the vendor bitstream's own level (about 3,100 nits full white). The display is off for about 4.5 min. Pressing Qvue-New/FPGA-Flash goes back to the pixelpipe pair.
 
 The script takes a single lock across every board, since they all program over the same port — a second flash started while one is running exits instead of colliding with it.
 

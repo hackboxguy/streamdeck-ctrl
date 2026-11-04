@@ -1300,6 +1300,95 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [13, 1],
+      "label": "Blank 8",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [13, 2],
+      "label": "Blank 9",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [13, 3],
+      "label": "Blank 10",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [13, 4],
+      "label": "Blank 11",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [14, 0],
+      "label": "Blank 12",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [14, 1],
+      "label": "Blank 13",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [14, 2],
+      "label": "Qvue-Legacy/FPGA-Flash",
+      "icon_type": "task",
+      "icons": {
+        "default": "qvue-legacy-fpga-flash.png"
+      },
+      "notification_id": "fpga.flash_qvue_legacy",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "colors": {
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-qvue-fpga.sh --id=fpga.flash_qvue_legacy --label=QVUE-Legacy --golden=3xqvue-legacy.bin --expect-link=0xFF",
+          "async": true,
+          "timeout_sec": 1200
+        }
+      }
+    },
+    {
+      "position": [14, 3],
+      "label": "Blank 14",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
     }
   ]
 }

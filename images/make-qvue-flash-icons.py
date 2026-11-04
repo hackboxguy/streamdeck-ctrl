@@ -3,7 +3,7 @@
 picture the same way make-touch-flash-icon.py makes the OLED-IB one (same
 boxes, same font fitting): the chip's label becomes "QVUE", and the two big
 lines become "Qvue-Legacy" / "IOC-Flash", "Qvue-New" / "IOC-Flash" and
-"Qvue-New" / "FPGA-Flash".
+"Qvue-New" / "FPGA-Flash", "Qvue-Legacy" / "FPGA-Flash".
 
     python3 images/make-qvue-flash-icons.py screens/display-control
 """
@@ -20,7 +20,8 @@ _spec.loader.exec_module(base)
 # (output file, first big line, second big line)
 ICONS = [("qvue-legacy-ioc-flash.png", "Qvue-Legacy", "IOC-Flash"),
          ("qvue-new-ioc-flash.png", "Qvue-New", "IOC-Flash"),
-         ("qvue-new-fpga-flash.png", "Qvue-New", "FPGA-Flash")]
+         ("qvue-new-fpga-flash.png", "Qvue-New", "FPGA-Flash"),
+         ("qvue-legacy-fpga-flash.png", "Qvue-Legacy", "FPGA-Flash")]
 
 
 def main(directory):

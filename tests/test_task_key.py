@@ -289,21 +289,25 @@ class TestTaskConfig:
             "ioc.flash_spartan7", "ioc.flash_lat45", "ioc.flash_oled_ots",
             "touch.flash_oled_ib", "ioc.flash_qvue_legacy",
             "ioc.flash_qvue_new", "fpga.flash_qvue_new",
+            "fpga.flash_qvue_legacy",
         ]
+        page4_flash, qvue_legacy_fpga = flash[:-1], flash[-1]
 
-        # Five pages (owner, 2026-10-11): page 2 is the HDMI timings
+        # Six pages (owner, 2026-10-11; page 6 2026-11-04): page 2 is the HDMI timings
         # (soft-DIP display types, no blanks left); page 3 is
         # Cluster Demo V2; page 4 the five FPGA keys (12.3-NQ5, 15.6-0OD,
         # 14.6-EJ, 14.6-DD, 12.3-NQ11) on top of the four IOC keys and the
         # OLED-IB touch key (in Blank 4's place, 2026-10-24), and the
         # Qvue-Legacy and Qvue-New IOC keys and the Qvue-New FPGA key on the
         # bottom row after the left arrow (in Blank 5/6/7's places,
-        # 2026-11-04); page 5
-        # the SDR/HDR demo keys.
+        # 2026-11-04); page 5 the SDR/HDR demo keys, padded with Blank 8-13
+        # so it is a full middle page; page 6 the Qvue-Legacy FPGA key and
+        # Blank 14 (a last page holds up to 14 keys, so page 6 only exists
+        # while more than 14 keys follow page 4).
         # The deck's arrows take one slot each, so a key inserted ahead of
         # these shifts them.
         pages = PageManager(cfg["keys"], cfg["device"].get("layout", [3, 5]))
-        assert pages.page_count == 5
+        assert pages.page_count == 6
         by_label = {k["label"]: k for k in cfg["keys"]}
         pages.switch_page("right")
         assert pages._left_arrow_pos == (2, 0)
@@ -317,7 +321,7 @@ class TestTaskConfig:
         assert pages.get_physical_pos(by_label["DMS Link"]["position"]) == (2, 3)
         assert pages.is_nav_key((2, 4)) == "right"
         pages.switch_page("right")
-        assert [pages.get_physical_pos(k["position"]) for k in flash] == [
+        assert [pages.get_physical_pos(k["position"]) for k in page4_flash] == [
             (0, 0), (0, 1), (0, 2), (0, 3), (0, 4),
             (1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (2, 1), (2, 2), (2, 3)]
         pages.switch_page("right")
@@ -325,6 +329,11 @@ class TestTaskConfig:
                 or k["label"].startswith("SDR/HDR")]
         assert len(demo) == 7
         assert all(pages.get_physical_pos(k["position"]) is not None for k in demo)
+        assert pages.is_nav_key((2, 4)) == "right"
+        pages.switch_page("right")
+        assert pages.current_page == 5
+        assert pages.get_physical_pos(qvue_legacy_fpga["position"]) == (0, 0)
+        assert pages.is_nav_key((2, 0)) == "left"
 
     def test_every_flash_key_drives_a_shared_script(self):
         """Each target differs only by its arguments, never by its script."""
@@ -342,6 +351,12 @@ class TestTaskConfig:
             # script it is -- a copy-pasted id would light up a sibling key.
             assert f"--id={k['notification_id']} " in cmd
 
+            if k["notification_id"] == "fpga.flash_qvue_legacy":
+                # The vendor image back at 0 only; it never reads the UPDATE slot.
+                assert "scripts/flash-qvue-fpga.sh " in cmd
+                assert "--golden=3xqvue-legacy.bin" in cmd and "--update=" not in cmd
+                assert "--expect-link=0xFF" in cmd
+                continue
             if k["notification_id"] == "fpga.flash_qvue_new":
                 # No JTAG on the QVue: its FPGA flash goes through its MCU.
                 assert "scripts/flash-qvue-fpga.sh " in cmd

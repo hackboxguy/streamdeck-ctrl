@@ -1,6 +1,10 @@
 #!/bin/bash
-# Write the 3x QVue's FPGA configuration flash (GOLDEN + UPDATE pair) through
-# the QVue's own MCU over I2C, and report the outcome back to the deck.
+# Write the 3x QVue's FPGA configuration flash through the QVue's own MCU
+# over I2C, and report the outcome back to the deck. Two keys use it:
+#   Qvue-New/FPGA-Flash     the pixelpipe GOLDEN 0xD7 + UPDATE 0xD8 pair
+#   Qvue-Legacy/FPGA-Flash  the vendor image back at offset 0, as delivered
+#                           (no --update; the UPDATE slot is left as it is,
+#                           the vendor image never jumps there)
 #
 # The QVue has no JTAG path (owner's rule: no JTAG writes on this board). The
 # RH850 running QVUE_9090 display_manager owns the FPGA's SPI config flash and
@@ -9,10 +13,14 @@
 #
 #   fpgaflash begin --value2=1                (display off, PROGRAM_B low, 10 MHz SCK)
 #   fpgaflash write:<golden>,0,golden         (GOLDEN at 0, about 4 min)
-#   fpgaflash write:<update>,0x400000         (UPDATE slot, about 4 min)
+#   fpgaflash write:<update>,0x400000         (UPDATE slot, about 4 min; only with --update)
 #   fpgaflash end                             (PROGRAM_B released, FPGA boots)
 #
-# then requires `fpgaident` to show FPGA link 0x01 and the expected image byte.
+# then requires `fpgaident` to show the expected FPGA link: 0x01 plus the
+# expected IDENTIFY image byte for the pixelpipe pair, 0xFF for the vendor
+# image (display_manager cannot talk to it; the panel runs at the vendor
+# bitstream's own level). als-dimmer is stopped for the session (it talks to
+# the same MCU) and started again afterwards if it was running.
 # The MCU must run display_manager (the Qvue-New/IOC-Flash key installs it);
 # with the vendor or a superseded FPGA image running, the direct path still
 # works, which is the point of the wire session.
@@ -23,8 +31,11 @@
 # in the open session and rewrites both images.
 #
 # Usage:
-#   flash-qvue-fpga.sh --id=<notification-id> --golden=<file> --update=<file> \
-#                      --expect-image=<hex byte, e.g. D8> [--label=<name>]
+#   flash-qvue-fpga.sh --id=<notification-id> --golden=<file> [--update=<file>] \
+#                      [--expect-link=0x01|0xFF] [--expect-image=<hex byte, e.g. D8>] \
+#                      [--label=<name>]
+#
+#   --expect-link   default 0x01; with 0x01, --expect-image is required
 #
 #   --golden / --update  filename under $SP6BINS/firmware/fpga, or an absolute path
 #
@@ -48,6 +59,7 @@ NOTIFY_ID=""
 GOLDEN=""
 UPDATE=""
 EXPECT_IMAGE=""
+EXPECT_LINK="0x01"
 LABEL=""
 
 for arg in "$@"; do
@@ -56,6 +68,7 @@ for arg in "$@"; do
         --golden=*)       GOLDEN="${arg#*=}" ;;
         --update=*)       UPDATE="${arg#*=}" ;;
         --expect-image=*) EXPECT_IMAGE="${arg#*=}" ;;
+        --expect-link=*)  EXPECT_LINK="${arg#*=}" ;;
         --label=*)        LABEL="${arg#*=}" ;;
         *) echo "[qvue-fpga] Unknown argument: $arg" >&2; exit 2 ;;
     esac
@@ -63,13 +76,18 @@ done
 
 [ -n "$NOTIFY_ID" ]    || { echo "[qvue-fpga] --id is required" >&2; exit 2; }
 [ -n "$GOLDEN" ]       || { echo "[qvue-fpga] --golden is required" >&2; exit 2; }
-[ -n "$UPDATE" ]       || { echo "[qvue-fpga] --update is required" >&2; exit 2; }
-[ -n "$EXPECT_IMAGE" ] || { echo "[qvue-fpga] --expect-image is required" >&2; exit 2; }
 [ -n "$LABEL" ]        || LABEL="QVue-FPGA"
+EXPECT_LINK=$(printf '%s' "$EXPECT_LINK" | tr '[:upper:]' '[:lower:]')
+EXPECT_LINK="0x$(printf '%s' "${EXPECT_LINK#0x}" | tr '[:lower:]' '[:upper:]')"
+case "$EXPECT_LINK" in
+    0x01) [ -n "$EXPECT_IMAGE" ] || { echo "[qvue-fpga] --expect-image is required with link 0x01" >&2; exit 2; } ;;
+    0xFF) ;;
+    *) echo "[qvue-fpga] --expect-link must be 0x01 or 0xFF" >&2; exit 2 ;;
+esac
 EXPECT_IMAGE=$(printf '%s' "${EXPECT_IMAGE#0x}" | tr '[:lower:]' '[:upper:]')
 
 case "$GOLDEN" in /*) ;; *) GOLDEN="$SP6BINS/firmware/fpga/$GOLDEN" ;; esac
-case "$UPDATE" in /*) ;; *) UPDATE="$SP6BINS/firmware/fpga/$UPDATE" ;; esac
+[ -n "$UPDATE" ] && case "$UPDATE" in /*) ;; *) UPDATE="$SP6BINS/firmware/fpga/$UPDATE" ;; esac
 
 notify() {
     echo "{\"id\":\"$NOTIFY_ID\",\"state\":\"$1\"}" \
@@ -106,9 +124,25 @@ fi
 : > "$LOG_FILE"
 notify running
 
-for f in "$DISPTOOL" "$GOLDEN" "$UPDATE"; do
+for f in "$DISPTOOL" "$GOLDEN" ${UPDATE:+"$UPDATE"}; do
     [ -r "$f" ] || fail "missing $f (is micropanel installed under $MICROPANEL_HOME?)"
 done
+
+# als-dimmer drives the QVue's brightness through the same MCU; keep it off
+# the bus for the session and put it back the way it was on every exit.
+ALS_WAS_ACTIVE=0
+if systemctl is-active --quiet als-dimmer 2>/dev/null; then
+    ALS_WAS_ACTIVE=1
+    log "Stopping als-dimmer for the session"
+    sudo -n systemctl stop als-dimmer || log "could not stop als-dimmer (continuing)"
+fi
+restore_als() {
+    if [ "$ALS_WAS_ACTIVE" -eq 1 ]; then
+        log "Starting als-dimmer again"
+        sudo -n systemctl start als-dimmer || log "could not start als-dimmer"
+    fi
+}
+trap restore_als EXIT
 
 # The flash is reached through display_manager's page 0x07; nothing else on
 # this board serves it (qvue_legacy, the vendor firmware: 0x66 is silent or
@@ -134,31 +168,40 @@ dt --command=fpgaflash --value=begin --value2=1 || fail "fpgaflash begin"
 
 write_image "$GOLDEN" 0 golden || \
     fail "GOLDEN write; the session is left open (display off) so the FPGA does not boot a half-written flash. Press the key again to retry"
-write_image "$UPDATE" 0x400000 || \
-    fail "UPDATE write; the session is left open (display off) so the FPGA does not boot a half-written flash. Press the key again to retry"
+if [ -n "$UPDATE" ]; then
+    write_image "$UPDATE" 0x400000 || \
+        fail "UPDATE write; the session is left open (display off) so the FPGA does not boot a half-written flash. Press the key again to retry"
+fi
 
 log "Closing the session (PROGRAM_B released, FPGA reconfigures)"
 dt --command=fpgaflash --value=end || fail "fpgaflash end"
 
-# FPGA link 0x01 and IDENTIFY's release word ending in 00 <image>, e.g.
+# Pixelpipe pair: FPGA link 0x01 and IDENTIFY's release word ending in
+# 00 <image>, e.g.
 #   FPGA link  : 0x01  PPSPI
 #   IDENTIFY   : 50 01 17 93 | 11 03 00 D8 | ...
+# Vendor image: FPGA link 0xFF (display_manager does not talk to it).
 deadline=$(( SECONDS + IDENT_TIMEOUT_SEC ))
 while :; do
     ident=$(timeout 15 "$DISPTOOL" --device=ioc --command=fpgaident 2>&1 | strip_ansi)
     link=$(printf '%s\n' "$ident" | sed -n 's/^FPGA link *: *\(0x[0-9A-Fa-f]*\).*/\1/p')
     image=$(printf '%s\n' "$ident" | sed -n 's/^IDENTIFY *: *[0-9A-F ]*| *[0-9A-F][0-9A-F] [0-9A-F][0-9A-F] 00 \([0-9A-F][0-9A-F]\) |.*/\1/p')
-    if [ "$link" = 0x01 ] && [ "$image" = "$EXPECT_IMAGE" ]; then
+    link=0x$(printf '%s' "${link#0x}" | tr '[:lower:]' '[:upper:]')
+    if [ "$link" = "$EXPECT_LINK" ] && { [ "$EXPECT_LINK" = 0xFF ] || [ "$image" = "$EXPECT_IMAGE" ]; }; then
         printf '%s\n' "$ident" >>"$LOG_FILE"
         break
     fi
     if [ "$SECONDS" -ge "$deadline" ]; then
         printf '%s\n' "$ident" >>"$LOG_FILE"
-        fail "after the flash fpgaident shows link '${link:-?}', image '${image:-?}' (want 0x01, $EXPECT_IMAGE)"
+        fail "after the flash fpgaident shows link '${link:-?}', image '${image:-?}' (want $EXPECT_LINK${EXPECT_IMAGE:+, $EXPECT_IMAGE})"
     fi
     sleep 2
 done
 
-log "FPGA link 0x01, image 0x$EXPECT_IMAGE running; done in $(( SECONDS - START )) s"
+if [ "$EXPECT_LINK" = 0xFF ]; then
+    log "FPGA link 0xFF: the vendor image is running; done in $(( SECONDS - START )) s"
+else
+    log "FPGA link 0x01, image 0x$EXPECT_IMAGE running; done in $(( SECONDS - START )) s"
+fi
 notify success
 exit 0
