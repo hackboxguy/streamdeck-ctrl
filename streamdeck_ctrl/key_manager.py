@@ -44,6 +44,11 @@ class KeyState:
             self._state = key_config.get("initial_state", "idle")
             self._task_config = key_config.get("task", {})
             self._blink_on = True
+            # 0..100 while running, from the job's value notifications; None = no bar
+            self._progress = None
+            self._press_states = set(self._task_config.get("press_states") or
+                                     [s for s in TASK_STATES if s != "running"])
+            self._grey_states = set(self._task_config.get("grey_states", []))
 
     @property
     def state(self):
@@ -54,6 +59,21 @@ class KeyState:
         if self.icon_type == "live_value":
             return self._value
         return None
+
+    @property
+    def hold_sec(self):
+        """Press-and-hold time for a task key (0 = a plain press counts)."""
+        if self.icon_type != "task":
+            return 0
+        return float(self._task_config.get("hold_sec", 0))
+
+    def can_press(self):
+        """Whether a press would do something now (for the hold UI)."""
+        if not self.enabled:
+            return False
+        if self.icon_type == "task":
+            return self._state != "running" and self._state in self._press_states
+        return True
 
     @property
     def enabled(self):
@@ -110,7 +130,11 @@ class KeyState:
             if self._state == "running":
                 logger.info("Key '%s' is already running, press ignored", self.label)
                 return self._state, None
+            if self._state not in self._press_states:
+                logger.info("Key '%s' is %s, press ignored", self.label, self._state)
+                return self._state, None
             self._state = "running"
+            self._progress = None
             self._blink_on = True
             self._enqueue_render()
             return self._state, action
@@ -153,6 +177,8 @@ class KeyState:
                     f"'{self.label}', valid: {','.join(TASK_STATES)}"
                 )
             self._state = new_state
+            if new_state != "running":
+                self._progress = None
             self._blink_on = True
             self._enqueue_render()
             return True, None
@@ -171,6 +197,17 @@ class KeyState:
         Returns:
             tuple: (success: bool, error_message: str or None)
         """
+        if self.icon_type == "task":
+            # A task's value is its progress, 0..100 ("" clears the bar)
+            if new_value in (None, ""):
+                self._progress = None
+            else:
+                try:
+                    self._progress = max(0.0, min(100.0, float(new_value)))
+                except (TypeError, ValueError):
+                    return False, f"task key '{self.label}': progress '{new_value}' is not a number"
+            self._enqueue_render()
+            return True, None
         if self.icon_type != "live_value":
             return False, (
                 f"key '{self.label}' (type={self.icon_type}) "
@@ -255,6 +292,12 @@ class KeyState:
             info["icon_path"] = icons.get("default")
             info["border_color"] = self._task_border_color()
             info["border_width"] = self._task_config.get("border_width", 0)
+            if self._state == "running" and self._progress is not None:
+                info["progress"] = self._progress / 100.0
+                info["progress_color"] = self._task_config.get("colors", {}).get(
+                    "running", "#00FF00")
+            if self._state in self._grey_states:
+                info["disabled"] = True
         elif self.icon_type == "live_value":
             info["icon_path"] = icons.get("base")
             live = self._live_config
@@ -361,6 +404,9 @@ class KeyManager:
             result = ks.notify_state(state)
             if result[0]:
                 self._render_dependents(ks)
+                # a task key may carry its progress in the same message
+                if value is not None and ks.icon_type == "task":
+                    return ks.notify_value(value)
             return result
         elif value is not None:
             return ks.notify_value(value)

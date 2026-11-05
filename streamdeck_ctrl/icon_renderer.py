@@ -75,6 +75,26 @@ def render_key_image(png_path, key_size=None, overlay_text=None,
                              font_path, text_anchor, key_size)
 
 
+def render_progress(img, fraction, color="#00FF00"):
+    """A progress bar across the bottom of a rendered key: a dark track with
+    `fraction` (0..1) of it filled in `color`. Used for a running task's
+    progress and for the fill while a press-and-hold key is held."""
+    out = img.convert("RGB").copy()
+    w, h = out.size
+    draw = ImageDraw.Draw(out)
+    margin = max(3, w // 12)
+    bar_h = max(5, h // 9)
+    y1 = h - margin
+    y0 = y1 - bar_h
+    x0, x1 = margin, w - margin
+    draw.rectangle([x0, y0, x1, y1], fill="#202020", outline="#000000")
+    frac = max(0.0, min(1.0, float(fraction)))
+    if frac > 0:
+        fill_x = x0 + 1 + int(round((x1 - x0 - 2) * frac))
+        draw.rectangle([x0 + 1, y0 + 1, max(x0 + 1, fill_x), y1 - 1], fill=color)
+    return out
+
+
 def render_disabled(img, brightness=0.35):
     """The greyed-out look of a key disabled by `enabled_when`: the rendered
     icon in greyscale at a fraction of its brightness, so it reads as

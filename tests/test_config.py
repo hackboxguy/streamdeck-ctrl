@@ -460,3 +460,26 @@ class TestEnabledWhen:
         with pytest.raises(Exception):
             load_config(_write_config(tmpdir, _base_cfg(self._keys(
                 {"key": "display.local_dimming"})), ICONS))
+
+
+class TestTaskOptions:
+    def _task(self, **task):
+        return {"position": [0, 0], "label": "OTA", "icon_type": "task",
+                "icons": {"default": "icons/red.png"}, "notification_id": "ota.ioc",
+                "initial_state": "available", "task": task}
+
+    def test_hold_press_grey_available(self, tmpdir):
+        cfg = load_config(_write_config(tmpdir, _base_cfg([self._task(
+            hold_sec=1.5, press_states=["available", "failure"], grey_states=["idle"],
+            colors={"available": "#FFD000"})]), ICONS))
+        assert cfg["keys"][0]["task"]["hold_sec"] == 1.5
+
+    @pytest.mark.parametrize("task", [
+        {"press_states": ["sometimes"]},
+        {"grey_states": ["dim"]},
+        {"hold_sec": 0},
+        {"hold_sec": 30},
+    ])
+    def test_rejected(self, tmpdir, task):
+        with pytest.raises(Exception):
+            load_config(_write_config(tmpdir, _base_cfg([self._task(**task)]), ICONS))

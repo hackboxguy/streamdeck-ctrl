@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 _HEX_COLOR = "^#[0-9A-Fa-f]{6}$"
 
 # States a `task` key moves through. "running" is the only blinking one.
-TASK_STATES = ("idle", "running", "success", "failure")
+# "available": something to do (e.g. an update), drawn with its own border colour
+TASK_STATES = ("idle", "running", "success", "failure", "available")
 
 ACTION_SCHEMA = {
     "type": "object",
@@ -95,14 +96,14 @@ KEY_COMMON = {
                     "type": "object",
                     "additionalProperties": {
                         "type": "string",
-                        "enum": ["on", "off", "idle", "running", "success", "failure"],
+                        "enum": ["on", "off"] + list(TASK_STATES),
                     },
                     "minProperties": 1,
                 },
                 "poll_interval_sec": {"type": "integer", "minimum": 1},
                 "default_state": {
                     "type": "string",
-                    "enum": ["on", "off", "idle", "running", "success", "failure"],
+                    "enum": ["on", "off"] + list(TASK_STATES),
                 },
             },
             "oneOf": [{"required": ["path"]}, {"required": ["command"]}],
@@ -272,6 +273,17 @@ TASK_KEY_SCHEMA = {
                             "exclusiveMinimum": 0,
                         },
                         "border_width": {"type": "integer", "minimum": 1},
+                        # press-and-hold: the press only counts after this
+                        # long; a bar fills while the key is held
+                        "hold_sec": {"type": "number", "exclusiveMinimum": 0,
+                                     "maximum": 10},
+                        # the states in which a press starts the task
+                        # (default: every state but running)
+                        "press_states": {"type": "array", "minItems": 1,
+                                         "items": {"enum": list(TASK_STATES)}},
+                        # the states drawn greyed out (nothing to do)
+                        "grey_states": {"type": "array",
+                                        "items": {"enum": list(TASK_STATES)}},
                         "colors": {
                             "type": "object",
                             "properties": {

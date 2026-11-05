@@ -15,6 +15,7 @@ from streamdeck_ctrl.icon_renderer import (
     render_bordered_image,
     render_disabled,
     render_key_image,
+    render_progress,
     render_live_value_image,
 )
 from streamdeck_ctrl.key_manager import KeyManager
@@ -328,10 +329,23 @@ class StreamDeckDaemon:
         logger.info("Deck setup complete (%d keys, %d pages)",
                      len(self._key_manager.all_keys()), self._page_manager.page_count)
 
+    # Press-and-hold: how often the fill bar is redrawn, and its colour
+    _HOLD_STEPS = 12
+    _HOLD_COLOR = "#FFD000"
+
     def _key_callback(self, deck, key_index, pressed):
-        """Handle physical key press."""
+        """Handle a physical key going down or up.
+
+        A key with a hold time (a task key's ``hold_sec``) only acts once it
+        has been held that long: a bar fills across it meanwhile, and letting
+        go early cancels. Every other key acts on key-down, as before.
+        """
+        holds = self.__dict__.setdefault("_holds", {})
         if not pressed:
-            return  # only handle key-down
+            hold = holds.pop(key_index, None)
+            if hold is not None:
+                hold.set()          # released early: the worker cancels
+            return
 
         # Map linear key index to (row, col)
         cols = self._deck_cols
@@ -356,6 +370,40 @@ class StreamDeckDaemon:
         else:
             position = physical_pos
 
+        ks = self._key_manager.get_key(position)
+        if ks is not None and ks.hold_sec > 0:
+            if not ks.can_press():
+                logger.info("Key '%s' is %s, hold ignored", ks.label, ks.state)
+                return
+            if key_index in holds:
+                return
+            cancel = threading.Event()
+            holds[key_index] = cancel
+            threading.Thread(target=self._hold_worker,
+                             args=(key_index, ks, position, physical_pos, cancel),
+                             name=f"hold-{ks.label}", daemon=True).start()
+            return
+
+        self._do_press(position)
+
+    def _hold_worker(self, key_index, ks, position, physical_pos, cancel):
+        """Fill the hold bar; press the key once it has been held long enough."""
+        steps = self._HOLD_STEPS
+        for i in range(1, steps + 1):
+            if cancel.wait(ks.hold_sec / steps) or self._shutdown_event.is_set():
+                logger.info("Key '%s' released before %.1f s: not pressed", ks.label, ks.hold_sec)
+                self._enqueue_key_render(ks)
+                return
+            if self._page_manager and self._page_manager.needs_pagination and \
+                    self._page_manager.get_physical_pos(ks.position) != physical_pos:
+                return      # the page changed under the finger
+            self._enqueue_key_render(ks, progress=i / steps, progress_color=self._HOLD_COLOR)
+        self.__dict__.get("_holds", {}).pop(key_index, None)
+        logger.info("Key '%s' held %.1f s", ks.label, ks.hold_sec)
+        self._do_press(position)
+
+    def _do_press(self, position):
+        """A press that counts: state change, redraw, persist, action."""
         result = self._key_manager.handle_press(position)
         if result is None:
             return
@@ -367,6 +415,8 @@ class StreamDeckDaemon:
         # here at the slot it actually occupies, so the key reacts at once.
         if self._page_manager and self._page_manager.needs_pagination:
             self._enqueue_key_render(ks)
+        elif ks.hold_sec > 0:
+            self._enqueue_key_render(ks)   # replace the full hold bar
 
         # Persist state
         self._persist_state()
@@ -437,8 +487,11 @@ class StreamDeckDaemon:
                         info["position"] = pos
                         self._render_queue.put_nowait(info)
 
-    def _enqueue_key_render(self, key_state):
+    def _enqueue_key_render(self, key_state, **overrides):
         """Enqueue a redraw of one key, remapped to its physical slot.
+
+        ``overrides`` replace render-info fields for this one draw (the hold
+        bar: ``progress``, ``progress_color``).
 
         Returns:
             False when nothing was drawn — no deck is open, the key sits on
@@ -448,6 +501,7 @@ class StreamDeckDaemon:
             return False
 
         info = key_state.get_render_info()
+        info.update(overrides)
         if self._page_manager and self._page_manager.needs_pagination:
             physical_pos = self._page_manager.get_physical_pos(key_state.position)
             if physical_pos is None:
@@ -562,6 +616,8 @@ class StreamDeckDaemon:
 
         if info.get("disabled"):
             img = render_disabled(img)
+        if info.get("progress") is not None:
+            img = render_progress(img, info["progress"], info.get("progress_color", "#00FF00"))
 
         # Convert to deck-native format
         if self._simulate:

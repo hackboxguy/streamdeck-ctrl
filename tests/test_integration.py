@@ -282,3 +282,65 @@ class TestIntegration:
 
         # Should have more image updates now
         assert len(daemon._deck.image_updates) > initial_count
+
+
+class TestPressAndHold:
+    def _daemon(self, tmpdir, hold=0.3):
+        icons_dst = os.path.join(tmpdir, "icons")
+        if not os.path.exists(icons_dst):
+            os.symlink(FIXTURES, icons_dst)
+        marker = os.path.join(tmpdir, "pressed")
+        cfg = {
+            "device": {"brightness": 75},
+            "notification": {"type": "unix_socket",
+                             "socket_path": os.path.join(tmpdir, "notify.sock"),
+                             "state_persist_path": os.path.join(tmpdir, "state.json")},
+            "keys": [{
+                "position": [0, 0], "label": "OTA", "icon_type": "task",
+                "icons": {"default": "icons/blue.png"}, "notification_id": "ota.ioc",
+                "initial_state": "available",
+                "task": {"hold_sec": hold, "press_states": ["available"],
+                         "grey_states": ["idle"],
+                         "colors": {"available": "#FFD000", "running": "#00FF00"}},
+                "action": {"on_press": {"type": "script",
+                                        "command": f"touch {marker}", "async": False}},
+            }],
+        }
+        path = os.path.join(tmpdir, "layout.json")
+        with open(path, "w") as f:
+            json.dump(cfg, f)
+        daemon = StreamDeckDaemon(config_path=path, simulate=True)
+        t = threading.Thread(target=daemon.run, daemon=True)
+        t.start()
+        for _ in range(200):
+            if daemon._deck is not None:
+                break
+            time.sleep(0.01)
+        return daemon, marker
+
+    def test_released_early_does_nothing(self, tmpdir):
+        daemon, marker = self._daemon(tmpdir)
+        try:
+            daemon._deck.simulate_key_press(0, True)
+            time.sleep(0.1)
+            daemon._deck.simulate_key_press(0, False)
+            time.sleep(0.5)
+            assert not os.path.exists(marker)
+            assert daemon._key_manager.get_key((0, 0)).state == "available"
+        finally:
+            daemon._shutdown_event.set()
+
+    def test_held_long_enough_presses(self, tmpdir):
+        daemon, marker = self._daemon(tmpdir)
+        try:
+            daemon._deck.simulate_key_press(0, True)
+            time.sleep(0.6)
+            daemon._deck.simulate_key_press(0, False)
+            for _ in range(100):
+                if os.path.exists(marker):
+                    break
+                time.sleep(0.02)
+            assert os.path.exists(marker)
+            assert daemon._key_manager.get_key((0, 0)).state == "running"
+        finally:
+            daemon._shutdown_event.set()

@@ -549,3 +549,66 @@ class TestEnabledWhen:
         ok, _ = km.handle_notification("display.pixel_compensation", state="off")
         pc = km.get_key_by_notification_id("display.pixel_compensation")
         assert ok and pc.state == "off" and not pc.enabled
+
+
+# ---------------------------------------------------------------------------
+# Task keys: available state, press/grey states, progress, hold
+# ---------------------------------------------------------------------------
+
+def ota_cfg(**task):
+    t = {"hold_sec": 1.5, "press_states": ["available", "failure"],
+         "grey_states": ["idle"],
+         "colors": {"running": "#00FF00", "success": "#00FF00",
+                    "failure": "#FF0000", "available": "#FFD000"},
+         "border_width": 6}
+    t.update(task)
+    return {"position": [0, 0], "label": "OTA", "icon_type": "task",
+            "icons": {"default": "/icons/ota.png"}, "notification_id": "ota.ioc",
+            "task": t,
+            "action": {"on_press": {"type": "script", "command": "true"}}}
+
+
+class TestTaskOta:
+    def test_idle_is_grey_and_refuses(self):
+        km = KeyManager([ota_cfg()], make_queue())
+        ks = km.get_key((0, 0))
+        assert ks.get_render_info()["disabled"] is True
+        assert not ks.can_press()
+        _, state, action = km.handle_press((0, 0))
+        assert state == "idle" and action is None
+
+    def test_available_presses_and_has_its_colour(self):
+        km = KeyManager([ota_cfg()], make_queue())
+        km.handle_notification("ota.ioc", state="available")
+        ks = km.get_key((0, 0))
+        info = ks.get_render_info()
+        assert info["border_color"] == "#FFD000" and "disabled" not in info
+        assert ks.can_press() and ks.hold_sec == 1.5
+        _, state, action = km.handle_press((0, 0))
+        assert state == "running" and action is not None
+
+    def test_progress_from_value_and_cleared_when_done(self):
+        km = KeyManager([ota_cfg()], make_queue())
+        km.handle_notification("ota.ioc", state="available")
+        km.handle_press((0, 0))
+        ok, _ = km.handle_notification("ota.ioc", state="running", value="42")
+        ks = km.get_key((0, 0))
+        assert ok and abs(ks.get_render_info()["progress"] - 0.42) < 1e-9
+        km.handle_notification("ota.ioc", value="150")
+        assert ks.get_render_info()["progress"] == 1.0
+        km.handle_notification("ota.ioc", state="success")
+        assert "progress" not in ks.get_render_info()
+
+    def test_bad_progress_rejected(self):
+        km = KeyManager([ota_cfg()], make_queue())
+        ok, err = km.handle_notification("ota.ioc", value="lots")
+        assert not ok and "not a number" in err
+
+    def test_default_press_states_unchanged(self):
+        """A task key without press_states still starts from any idle state."""
+        cfg = ota_cfg()
+        del cfg["task"]["press_states"], cfg["task"]["grey_states"], cfg["task"]["hold_sec"]
+        km = KeyManager([cfg], make_queue())
+        assert km.get_key((0, 0)).hold_sec == 0
+        _, state, _ = km.handle_press((0, 0))
+        assert state == "running"

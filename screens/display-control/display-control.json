@@ -1392,39 +1392,127 @@
     },
     {
       "position": [14, 3],
-      "label": "Blank 14",
-      "icon_type": "static",
+      "label": "OTA-IOC",
+      "icon_type": "task",
       "icons": {
-        "default": "blank.bmp"
+        "default": "ota-ioc.png"
       },
-      "action": null
+      "notification_id": "ota.ioc",
+      "initial_state": "idle",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "hold_sec": 1.5,
+        "press_states": ["available", "failure"],
+        "grey_states": ["idle"],
+        "colors": {
+          "available": "#FFD000",
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/ota-update.sh ioc",
+          "async": true,
+          "timeout_sec": 600
+        }
+      }
     },
     {
       "position": [14, 4],
-      "label": "Blank 15",
-      "icon_type": "static",
+      "label": "OTA-983",
+      "icon_type": "task",
       "icons": {
-        "default": "blank.bmp"
+        "default": "ota-983.png"
       },
-      "action": null
+      "notification_id": "ota.983",
+      "initial_state": "idle",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "hold_sec": 1.5,
+        "press_states": ["available", "failure"],
+        "grey_states": ["idle"],
+        "colors": {
+          "available": "#FFD000",
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/ota-update.sh 983",
+          "async": true,
+          "timeout_sec": 600
+        }
+      }
     },
     {
       "position": [15, 0],
-      "label": "Blank 16",
-      "icon_type": "static",
+      "label": "OTA-FPGA",
+      "icon_type": "task",
       "icons": {
-        "default": "blank.bmp"
+        "default": "ota-fpga.png"
       },
-      "action": null
+      "notification_id": "ota.fpga",
+      "initial_state": "idle",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "hold_sec": 1.5,
+        "press_states": ["available", "failure"],
+        "grey_states": ["idle"],
+        "colors": {
+          "available": "#FFD000",
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/ota-update.sh fpga",
+          "async": true,
+          "timeout_sec": 1200
+        }
+      }
     },
     {
       "position": [15, 1],
-      "label": "Blank 17",
-      "icon_type": "static",
+      "label": "OTA-System",
+      "icon_type": "task",
       "icons": {
-        "default": "blank.bmp"
+        "default": "ota-system.png"
       },
-      "action": null
+      "notification_id": "ota.system",
+      "initial_state": "idle",
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "hold_sec": 1.5,
+        "press_states": ["available", "failure"],
+        "grey_states": ["idle"],
+        "colors": {
+          "available": "#FFD000",
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/ota-update.sh system",
+          "async": true,
+          "timeout_sec": 3600
+        }
+      }
     },
     {
       "position": [15, 2],

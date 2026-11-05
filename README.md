@@ -115,6 +115,17 @@ echo '{"id":"ioc.flash_983hh","state":"success"}' \
 | `colors.success` | `#00FF00` | Solid border after a successful run |
 | `colors.failure` | `#FF0000` | Solid border after a failed run |
 | `colors.idle` | *(none)* | No border — the bare icon |
+| `colors.available` | *(none)* | A fifth state, `available`: something to do (an update), e.g. a yellow border |
+| `hold_sec` | *(none)* | Press-and-hold: the press only counts after this long; a bar fills across the key while it is held, and letting go early cancels |
+| `press_states` | every state but `running` | The states in which a press starts the job (e.g. `["available", "failure"]`) |
+| `grey_states` | *(none)* | The states drawn greyed out, e.g. `["idle"]` for "nothing to do" |
+
+A running job can show its progress: send a `value` of 0-100 (with or without `"state":"running"`)
+and a bar is drawn across the bottom of the key; it goes when the state leaves `running`.
+
+```bash
+echo '{"id":"ota.fpga","state":"running","value":"42"}' | socat - UNIX-CONNECT:/run/streamdeck-ctrl/notify.sock
+```
 
 `notification_id` is **required**: without it the script has no way to report an outcome and the key would blink forever. Task state is deliberately *not* persisted — a restart returns the key to `idle` rather than restoring a stale result.
 
@@ -300,9 +311,9 @@ The included `screens/display-control/` is micropanel's screen, six pages on a 1
 | 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Stop; DMS Link |
 | 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice) on the top row, the four IOC flash tasks and the OLED-IB touch flash task below them, and the Qvue-Legacy / Qvue-New IOC flash and Qvue-New FPGA flash tasks on the bottom row (after ←) |
 | 5 | the SDR/HDR10+ demo keys, then Blank 8-13 |
-| 6 | Qvue-Legacy/FPGA-Flash, Blank 14-17; Sync Video (row 2, column 1) |
+| 6 | Qvue-Legacy/FPGA-Flash, OTA-IOC, OTA-983, OTA-FPGA, OTA-System; Sync Video (row 2, column 1) |
 
-The paginator has no page break: a last page holds up to 14 keys (13 + ←), so page 6 exists only while more than 14 keys follow page 4. Blank 8-13 fill page 5 to a full middle page and Blank 14 after the Qvue-Legacy FPGA key keeps the count above 14. Page 6's Blank 14-17 put Sync Video at row 2, column 1; a new page-6 key replaces one of them (or goes after Sync Video); a new page-5 key replaces one of Blank 8-13.
+The paginator has no page break: a last page holds up to 14 keys (13 + ←), so page 6 exists only while more than 14 keys follow page 4. Blank 8-13 fill page 5 to a full middle page and Blank 14 after the Qvue-Legacy FPGA key keeps the count above 14. Page 6's top row is full (the OTA keys took Blank 14-17's places), so Sync Video sits at row 2, column 1; a new page-6 key goes after Sync Video; a new page-5 key replaces one of Blank 8-13.
 
 The arrows take one slot on each page (→ bottom right on all but the last, ← bottom left on
 all but the first), so page 1 holds 14 keys, the middle pages 13 and the last up to 14; the
@@ -367,6 +378,17 @@ The stand-alone screen's Video-1 / Video-2 keys are not on this page: micropanel
 `cluster-video` unit (its videos are launcher tiles of their own).
 
 **Display Power** (page 1, row 3, column 2): a toggle that switches the remote display on or off through its IOC: `scripts/display-power.sh on|off` runs `disptool --device=ioc --command=disppower --value=on|off` (0x66 `DISP_POWER` register 0x0200; the IOC switches the panel, the FPGA and the FPD-Link stay up) and confirms the result by reading the register back; the key follows the register (`display-power.sh state`, every 3 s), so a change made elsewhere shows too. Only boards running `display_manager` (OTS-OLED, LAT45, S7, 3x QVue) have it: with anything else, or while a flash key holds `/tmp/target-flash.lock`, the press is refused and the icon goes back. Only 0x66 is used (a read of 0x32 hangs the stock QVue firmware). Icons: `images/make-display-power-icon.py`.
+
+**OTA keys (page 6, top row)**: OTA-IOC, OTA-983, OTA-FPGA and OTA-System update the display IOC, the 983HH serializer board, the QVue FPGA and the SD card's system image in the field, with the same tools and rules as the System Manager app (br-wrapper `system-manager-app`), so the two never disagree. Each key is **grey** when there is nothing to do, **yellow** when an update is available, then **blinks green with a progress bar** while it runs and ends **green** or **red**. A press only counts after a **1.5 s hold** (a bar fills while held; letting go early cancels), and only on a yellow or red key.
+
+| Key | Available when | Update | After |
+|---|---|---|---|
+| OTA-IOC | `update-iocs.sh --check` says the display IOC is `outdated` against the shipped `_ota.bin` | QVue running display_manager: `update-iocs.sh --qvue A --qvue-b B --warm`; other displays: `--ots A --ots-b B --keep-stream` | QVue: nothing (warm). Others: power cycle (`/tmp/micropanel-notice`) |
+| OTA-983 | the same check says the 983HH board is `outdated` | `update-iocs.sh --983 A --983-b B` | power cycle (`/tmp/micropanel-notice`) |
+| OTA-FPGA | QVue only: the running image (`fpgaident`, link 0x01) differs from `version:` of `3xqvue-update.bin` in sp6bins' `manifest.txt` | `disptool --device=ioc --command=fpgaflash --value=write:3xqvue-update.bin,0x400000,engine` (display on; about 2.5 s dark at the end), then `fpgaident` must show the new image | nothing (als-dimmer re-applies LD / PC) |
+| OTA-System | `system-image-scan.sh` finds exactly one signed `.mpupdate` of another version on a USB stick, and the running image is committed | `ab-update install usb` (progress from the engine's progress file) | the engine reboots into the new image |
+
+The A / B images are the ones `--check` names (`image=`, plus its `_otaB` sibling); nothing is installed that the check does not call outdated, so an image that was rolled back before (`update-iocs.sh` exit 5) is never offered again. An update holds `/tmp/target-flash.lock` (every flash script and the deck's pollers stay off the bus: a second I2C user during an IOC update can wedge the Pi's controller) and System Manager's `/tmp/system-update.lock` (its pid inside), and a check never runs while either is held. `update-iocs.sh` stops als-dimmer itself; the FPGA path stops and restarts it. When the checks run: at deck start-up (`scripts/sync-ota.sh`, retried every 30 s until each board answers), after any wire flash key (`flash-ioc.sh`, `flash-qvue-fpga.sh` re-check once they release the lock), and for OTA-System whenever a USB stick comes or goes (`lsblk` every 3 s, no I2C). Logs: `/tmp/ota-check.log`, `/tmp/ota-update.log`. `OTA_FORCE=1` (bench only) lets the FPGA path rewrite an image that already runs. Icons: `images/make-ota-icons.py`.
 
 **Pixel Compensation** is greyed out and ignores presses while Local Dimming is off (`"enabled_when": {"key": "display.local_dimming", "state": "on"}`): pixel compensation has no effect without local dimming. Its own on/off still shows under the grey, and it comes back as it was when LD is switched on.
 

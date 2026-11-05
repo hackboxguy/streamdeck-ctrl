@@ -140,6 +140,9 @@ restore_als() {
         log "Starting als-dimmer again (it re-detects the QVue firmware)"
         sudo -n systemctl start als-dimmer || log "could not start als-dimmer"
     fi
+    # The board's firmware may have changed: refresh the OTA keys once this
+    # script has released the flash lock (ota-check.sh --wait waits for it).
+    setsid "$(dirname "$0")/ota-check.sh" firmware fpga --wait </dev/null >/dev/null 2>&1 &
 }
 trap restore_als EXIT
 

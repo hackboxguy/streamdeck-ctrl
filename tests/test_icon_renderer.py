@@ -178,3 +178,14 @@ class TestDisabled:
         assert r == g == b                       # no colour left
         assert r < Image.new("RGB", (1, 1), (200, 40, 40)).convert("L").getpixel((0, 0))
         assert out.size == img.size and out.mode == "RGB"
+
+
+class TestProgress:
+    def test_bar_fills_from_the_left(self):
+        from streamdeck_ctrl.icon_renderer import render_progress
+        img = Image.new("RGB", (72, 72), (0, 0, 0))
+        out = render_progress(img, 0.5, "#00FF00")
+        y = 72 - 6 - 3          # inside the bar
+        assert out.getpixel((10, y)) == (0, 255, 0)      # filled half
+        assert out.getpixel((62, y)) != (0, 255, 0)      # empty half
+        assert img.getpixel((10, y)) == (0, 0, 0)        # the input is untouched
