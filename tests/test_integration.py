@@ -344,3 +344,47 @@ class TestPressAndHold:
             assert daemon._key_manager.get_key((0, 0)).state == "running"
         finally:
             daemon._shutdown_event.set()
+
+
+class TestNotificationBurstWithPagination:
+    def test_burst_neither_raises_nor_redraws_the_page(self, tmpdir):
+        """A job's progress stream on a paginated deck: each notification
+        redraws its own key only, and a full render queue never surfaces as
+        an exception (it used to kill the notifier)."""
+        icons_dst = os.path.join(tmpdir, "icons")
+        if not os.path.exists(icons_dst):
+            os.symlink(FIXTURES, icons_dst)
+        keys = [{"position": [i // 5, i % 5], "label": f"K{i}", "icon_type": "static",
+                 "icons": {"default": "icons/blue.png"}} for i in range(20)]
+        keys[1] = {"position": [0, 1], "label": "Job", "icon_type": "task",
+                   "icons": {"default": "icons/blue.png"}, "notification_id": "job"}
+        cfg = {"device": {"brightness": 75},
+               "notification": {"type": "unix_socket",
+                                "socket_path": os.path.join(tmpdir, "notify.sock"),
+                                "state_persist_path": os.path.join(tmpdir, "state.json")},
+               "keys": keys}
+        path = os.path.join(tmpdir, "layout.json")
+        with open(path, "w") as f:
+            json.dump(cfg, f)
+        daemon = StreamDeckDaemon(config_path=path, simulate=True)
+        t = threading.Thread(target=daemon.run, daemon=True)
+        t.start()
+        try:
+            for _ in range(200):
+                if daemon._deck is not None and daemon._page_manager is not None:
+                    break
+                time.sleep(0.01)
+            time.sleep(0.3)
+            # One notification redraws one key, not the page
+            while not daemon._render_queue.empty():
+                time.sleep(0.01)
+            q_before = daemon._render_queue.qsize()
+            ok, _ = daemon._handle_notification("job", state="running", value="10")
+            assert ok
+            assert daemon._render_queue.qsize() - q_before <= 2
+            # A burst far beyond the queue's size never raises
+            for i in range(2000):
+                ok, err = daemon._handle_notification("job", value=str(i % 100))
+                assert ok, err
+        finally:
+            daemon._shutdown_event.set()

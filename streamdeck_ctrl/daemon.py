@@ -443,7 +443,7 @@ class StreamDeckDaemon:
             for r in range(rows):
                 for c in range(cols):
                     if (r, c) not in used:
-                        self._render_queue.put_nowait({
+                        self._put_render({
                             "position": (r, c),
                             "icon_type": "__blank__",
                             "icon_path": None,
@@ -462,7 +462,7 @@ class StreamDeckDaemon:
                 entry = layout.get(pos)
                 if entry is None:
                     # Empty slot — enqueue a blank (no icon_path = skipped in render)
-                    self._render_queue.put_nowait({
+                    self._put_render({
                         "position": pos,
                         "icon_type": "__blank__",
                         "icon_path": None,
@@ -470,7 +470,7 @@ class StreamDeckDaemon:
                     })
                 elif entry.get("icon_type") == "__nav__":
                     # Navigation arrow — render directly
-                    self._render_queue.put_nowait({
+                    self._put_render({
                         "position": pos,
                         "icon_type": "__nav__",
                         "icon_path": entry["icon_path"],
@@ -485,7 +485,15 @@ class StreamDeckDaemon:
                         # Override position to physical deck position
                         info["logical"] = key_pos
                         info["position"] = pos
-                        self._render_queue.put_nowait(info)
+                        self._put_render(info)
+
+    def _put_render(self, info):
+        """Queue a page-driven render job; a full queue drops it (logged)
+        instead of raising into the caller (a notification, a page switch)."""
+        try:
+            self._render_queue.put_nowait(info)
+        except queue.Full:
+            logger.warning("Render queue full, dropping render at %s", info.get("position"))
 
     def _enqueue_key_render(self, key_state, **overrides):
         """Enqueue a redraw of one key, remapped to its physical slot.
@@ -522,9 +530,12 @@ class StreamDeckDaemon:
         ok, err = self._key_manager.handle_notification(notification_id, state=state, value=value)
         if ok:
             self._persist_state()
-            # If pagination is active, re-render the key only if it's on the current page
-            if self._page_manager and self._page_manager.needs_pagination:
-                self._render_current_page()
+            # No page redraw here: the key (and any key whose enabled_when
+            # names it) has queued its own redraw through _PageRenderQueue,
+            # which maps it to its slot on the current page or drops it. A
+            # whole-page redraw per notification (15 USB image writes) let a
+            # burst of them -- a job's progress, a check setting four keys --
+            # fill the render queue.
         return ok, err
 
     def _persist_state(self):

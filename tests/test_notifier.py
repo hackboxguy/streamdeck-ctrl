@@ -164,3 +164,30 @@ class TestMultipleClients:
         assert responses1[0]["status"] == "ok"
         assert responses2[0]["status"] == "ok"
         assert len(handler.calls) == 2
+
+
+class TestNotifierSurvivesHandlerErrors:
+    def test_exception_in_handler_is_answered_and_loop_keeps_running(self, sock_path):
+        calls = []
+
+        def flaky(nid, state=None, value=None):
+            calls.append(nid)
+            if nid == "boom":
+                raise RuntimeError("render queue full")
+            return True, None
+
+        n = Notifier(sock_path, flaky)
+        n.start()
+        try:
+            for _ in range(50):
+                if os.path.exists(sock_path):
+                    break
+                time.sleep(0.01)
+            r = _send(sock_path, [{"id": "boom", "state": "on"}])
+            assert r[0]["status"] == "error" and "internal error" in r[0]["reason"]
+            # a new client is still served afterwards
+            r = _send(sock_path, [{"id": "fine", "state": "on"}])
+            assert r[0]["status"] == "ok"
+            assert calls == ["boom", "fine"]
+        finally:
+            n.stop()

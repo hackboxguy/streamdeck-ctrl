@@ -104,7 +104,17 @@ class Notifier:
                     if key.fileobj is self._server_sock:
                         self._accept_client(sel)
                     else:
-                        self._handle_client(key, sel)
+                        try:
+                            self._handle_client(key, sel)
+                        except Exception:
+                            # One bad message or client must not end the
+                            # notifier: drop that client and keep serving.
+                            logger.exception("Notifier client error; closing that client")
+                            try:
+                                sel.unregister(key.fileobj)
+                                key.fileobj.close()
+                            except Exception:
+                                pass
         except Exception:
             if not self._shutdown_event.is_set():
                 logger.exception("Notifier loop error")
@@ -177,7 +187,11 @@ class Notifier:
         if state is None and value is None:
             return {"status": "error", "reason": "message must include 'state' or 'value'"}
 
-        ok, err = self._on_notification(nid, state=state, value=value)
+        try:
+            ok, err = self._on_notification(nid, state=state, value=value)
+        except Exception as e:
+            logger.exception("Notification handler failed for '%s'", nid)
+            return {"status": "error", "reason": f"internal error: {e}"}
         if ok:
             return {"status": "ok"}
         else:
