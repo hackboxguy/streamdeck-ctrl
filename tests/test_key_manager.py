@@ -488,3 +488,64 @@ class TestKeyManager:
         assert data["t1"] == {"state": "on"}
         assert data["m1"] == {"state": "b"}
         assert data["l1"] == {"value": "42"}
+
+
+# ---------------------------------------------------------------------------
+# enabled_when: a key usable only while another key is in a given state
+# ---------------------------------------------------------------------------
+
+def _ldpc_keys():
+    ld = toggle_cfg(position=[0, 0], label="LD", initial_state="on",
+                    notification_id="display.local_dimming")
+    pc = toggle_cfg(position=[0, 1], label="PC", initial_state="on",
+                    notification_id="display.pixel_compensation",
+                    enabled_when={"key": "display.local_dimming", "state": "on"})
+    return [ld, pc]
+
+
+def _drain(q):
+    jobs = []
+    while not q.empty():
+        jobs.append(q.get_nowait())
+    return jobs
+
+
+class TestEnabledWhen:
+    def test_enabled_while_condition_holds(self):
+        km = KeyManager(_ldpc_keys(), make_queue())
+        pc = km.get_key_by_notification_id("display.pixel_compensation")
+        assert pc.enabled
+        assert "disabled" not in pc.get_render_info()
+        ks, state, action = km.handle_press((0, 1))
+        assert state == "off" and action is not None
+
+    def test_disabled_key_ignores_presses(self):
+        km = KeyManager(_ldpc_keys(), make_queue())
+        km.handle_notification("display.local_dimming", state="off")
+        pc = km.get_key_by_notification_id("display.pixel_compensation")
+        assert not pc.enabled
+        assert pc.get_render_info()["disabled"] is True
+        ks, state, action = km.handle_press((0, 1))
+        assert state == "on" and action is None      # unchanged, nothing run
+        assert pc.state == "on"
+
+    def test_dependent_redrawn_when_dependency_changes(self):
+        q = make_queue()
+        km = KeyManager(_ldpc_keys(), q)
+        _drain(q)
+        km.handle_notification("display.local_dimming", state="off")
+        jobs = _drain(q)
+        pc_jobs = [j for j in jobs if j["label"] == "PC"]
+        assert pc_jobs and pc_jobs[-1]["disabled"] is True
+        # a press on the dependency redraws it too, enabled again
+        km.handle_press((0, 0))
+        pc_jobs = [j for j in _drain(q) if j["label"] == "PC"]
+        assert pc_jobs and "disabled" not in pc_jobs[-1]
+
+    def test_notification_still_moves_a_disabled_key(self):
+        """The real state (e.g. from a state_watch) is still shown, greyed."""
+        km = KeyManager(_ldpc_keys(), make_queue())
+        km.handle_notification("display.local_dimming", state="off")
+        ok, _ = km.handle_notification("display.pixel_compensation", state="off")
+        pc = km.get_key_by_notification_id("display.pixel_compensation")
+        assert ok and pc.state == "off" and not pc.enabled

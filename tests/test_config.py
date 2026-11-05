@@ -431,3 +431,32 @@ class TestFileErrors:
             f.write("{invalid json")
         with pytest.raises(json.JSONDecodeError):
             load_config(path)
+
+
+class TestEnabledWhen:
+    def _keys(self, cond):
+        ld = _minimal_toggle(pos=(0, 0), label="LD")
+        ld["notification_id"] = "display.local_dimming"
+        pc = _minimal_toggle(pos=(0, 1), label="PC")
+        pc["notification_id"] = "display.pixel_compensation"
+        pc["enabled_when"] = cond
+        return [ld, pc]
+
+    def test_valid(self, tmpdir):
+        cfg = load_config(_write_config(tmpdir, _base_cfg(self._keys(
+            {"key": "display.local_dimming", "state": "on"})), ICONS))
+        assert cfg["keys"][1]["enabled_when"]["state"] == "on"
+
+    @pytest.mark.parametrize("cond, message", [
+        ({"key": "nope", "state": "on"}, "unknown key"),
+        ({"key": "display.local_dimming", "state": "maybe"}, "is not one of"),
+        ({"key": "display.pixel_compensation", "state": "on"}, "itself"),
+    ])
+    def test_invalid(self, tmpdir, cond, message):
+        with pytest.raises(ValueError, match=message):
+            load_config(_write_config(tmpdir, _base_cfg(self._keys(cond)), ICONS))
+
+    def test_schema_requires_state(self, tmpdir):
+        with pytest.raises(Exception):
+            load_config(_write_config(tmpdir, _base_cfg(self._keys(
+                {"key": "display.local_dimming"})), ICONS))

@@ -184,6 +184,7 @@ A config file declares the device settings, notification socket, and key layout.
 | `label` | yes | Human-readable name (used in logs and dry-run) |
 | `icon_type` | yes | `static`, `toggle`, `multistate`, `live_value`, `radio`, or `task` |
 | `notification_id` | no | Dot-separated ID for external state/value updates. Required for state persistence across restarts and socket notifications. |
+| `enabled_when` | no | `{"key": "<notification_id>", "state": "<state>"}`: the key is usable only while that other key is in that state. Otherwise it is drawn greyed out (greyscale, dimmed; its own state still shows) and presses are ignored; it is redrawn whenever the other key changes (press, notification or state watch). |
 | `state_watch` | no | For a toggle or radio with `notification_id`: polls a source and turns it into `on`/`off` — a JSON file's boolean (`json_key`), or a file's or a command's first word through `text_map`. See [Shared Toggle State](#shared-toggle-state). |
 | `task` | no | For a `task` key: blink period, border width, and per-state border colours |
 | `action` | no | Action to execute on key press (see below) |
@@ -366,6 +367,8 @@ The stand-alone screen's Video-1 / Video-2 keys are not on this page: micropanel
 `cluster-video` unit (its videos are launcher tiles of their own).
 
 **Display Power** (page 1, row 3, column 2): a toggle that switches the remote display on or off through its IOC: `scripts/display-power.sh on|off` runs `disptool --device=ioc --command=disppower --value=on|off` (0x66 `DISP_POWER` register 0x0200; the IOC switches the panel, the FPGA and the FPD-Link stay up) and confirms the result by reading the register back; the key follows the register (`display-power.sh state`, every 3 s), so a change made elsewhere shows too. Only boards running `display_manager` (OTS-OLED, LAT45, S7, 3x QVue) have it: with anything else, or while a flash key holds `/tmp/target-flash.lock`, the press is refused and the icon goes back. Only 0x66 is used (a read of 0x32 hangs the stock QVue firmware). Icons: `images/make-display-power-icon.py`.
+
+**Pixel Compensation** is greyed out and ignores presses while Local Dimming is off (`"enabled_when": {"key": "display.local_dimming", "state": "on"}`): pixel compensation has no effect without local dimming. Its own on/off still shows under the grey, and it comes back as it was when LD is switched on.
 
 **Local Dimming / Pixel Compensation** keep the choice where every app with LD/PC buttons
 keeps it (`scripts/fpga-ldpc-lib.sh`): `/data/cluster/fpga-ldpc-state.json`, else

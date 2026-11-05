@@ -13,6 +13,7 @@ from streamdeck_ctrl.action import execute_action, shutdown_executor
 from streamdeck_ctrl.config import config_for_layout, load_config
 from streamdeck_ctrl.icon_renderer import (
     render_bordered_image,
+    render_disabled,
     render_key_image,
     render_live_value_image,
 )
@@ -558,6 +559,9 @@ class StreamDeckDaemon:
             )
         else:
             img = render_key_image(icon_path, key_size=key_size)
+
+        if info.get("disabled"):
+            img = render_disabled(img)
 
         # Convert to deck-native format
         if self._simulate:

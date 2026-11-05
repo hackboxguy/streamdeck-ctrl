@@ -65,6 +65,17 @@ KEY_COMMON = {
                      "task"],
         },
         "notification_id": {"type": "string"},
+        # greyed out, presses ignored, unless the key with this
+        # notification_id is in this state
+        "enabled_when": {
+            "type": "object",
+            "properties": {
+                "key": {"type": "string"},
+                "state": {"type": "string"},
+            },
+            "required": ["key", "state"],
+            "additionalProperties": False,
+        },
         "state_watch": {
             "type": "object",
             "properties": {
@@ -435,6 +446,7 @@ def load_config(path, *, validate_icons=True):
     _validate_multistate_keys(cfg["keys"])
     _validate_state_watch_keys(cfg["keys"])
     _validate_task_keys(cfg["keys"])
+    _validate_enabled_when(cfg["keys"])
     _warn_stateful_keys_without_notification_id(cfg["keys"])
 
     # --- resolve icon paths ---
@@ -562,6 +574,40 @@ def _validate_state_watch_keys(keys):
         if not key.get("notification_id"):
             raise ValueError(
                 f"Key '{key['label']}': state_watch requires notification_id"
+            )
+
+
+def _validate_enabled_when(keys):
+    """enabled_when must name another key's notification_id and a state that
+    key can be in."""
+    by_id = {k["notification_id"]: k for k in keys if k.get("notification_id")}
+    for key in keys:
+        cond = key.get("enabled_when")
+        if not cond:
+            continue
+        other = by_id.get(cond["key"])
+        if other is None:
+            raise ValueError(
+                f"Key '{key['label']}': enabled_when names unknown key '{cond['key']}'"
+            )
+        if other is key:
+            raise ValueError(f"Key '{key['label']}': enabled_when cannot name the key itself")
+        kind = other["icon_type"]
+        if kind in ("toggle", "radio"):
+            valid = ("on", "off")
+        elif kind == "multistate":
+            valid = tuple(other.get("states", ()))
+        elif kind == "task":
+            valid = TASK_STATES
+        else:
+            raise ValueError(
+                f"Key '{key['label']}': enabled_when names '{cond['key']}', a {kind} key "
+                f"with no state"
+            )
+        if cond["state"] not in valid:
+            raise ValueError(
+                f"Key '{key['label']}': enabled_when state '{cond['state']}' is not one of "
+                f"{', '.join(valid)}"
             )
 
 

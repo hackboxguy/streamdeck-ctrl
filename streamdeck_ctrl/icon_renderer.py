@@ -75,6 +75,14 @@ def render_key_image(png_path, key_size=None, overlay_text=None,
                              font_path, text_anchor, key_size)
 
 
+def render_disabled(img, brightness=0.35):
+    """The greyed-out look of a key disabled by `enabled_when`: the rendered
+    icon in greyscale at a fraction of its brightness, so it reads as
+    unavailable while staying recognisable."""
+    grey = img.convert("L").point(lambda v: int(v * brightness))
+    return grey.convert("RGB")
+
+
 @lru_cache(maxsize=64)
 def render_bordered_image(png_path, key_size, border_color, border_width):
     """Render a base icon with a coloured border drawn inside its edges.

@@ -22,6 +22,9 @@ class KeyState:
         self.label = key_config["label"]
         self.position = tuple(key_config["position"])
         self.notification_id = key_config.get("notification_id")
+        # enabled_when: set by KeyManager to a callable that says whether the
+        # key it depends on is in the required state. None = always enabled.
+        self._enabled_check = None
 
         # State initialization
         if self.icon_type == "static":
@@ -52,6 +55,12 @@ class KeyState:
             return self._value
         return None
 
+    @property
+    def enabled(self):
+        """False while an `enabled_when` condition is not met: the key is
+        drawn greyed out and presses are ignored."""
+        return self._enabled_check is None or bool(self._enabled_check())
+
     def press(self):
         """Handle a key press. Returns the new state and action config (or None).
 
@@ -63,6 +72,10 @@ class KeyState:
             tuple: (new_state, action_config_or_none)
         """
         action = self.config.get("action")
+
+        if not self.enabled:
+            # Greyed out: no state change, no action.
+            return self._state, None
 
         if self.icon_type == "static":
             self._enqueue_render()
@@ -225,6 +238,8 @@ class KeyState:
             "icon_type": self.icon_type,
             "label": self.label,
         }
+        if not self.enabled:
+            info["disabled"] = True
 
         icons = self.config.get("icons", {})
 
@@ -279,6 +294,27 @@ class KeyManager:
             if ks.notification_id:
                 self._keys_by_notification_id[ks.notification_id] = ks
 
+        # enabled_when: a key enabled only while another key (by its
+        # notification_id) is in a given state. load_config has checked the
+        # reference; an unknown one here (a hand-built config) is ignored.
+        self._dependents = {}
+        for ks in self._keys_by_position.values():
+            cond = ks.config.get("enabled_when")
+            if not cond:
+                continue
+            dep = self._keys_by_notification_id.get(cond["key"])
+            if dep is None:
+                logger.warning("Key '%s': enabled_when names unknown key '%s', ignored",
+                               ks.label, cond["key"])
+                continue
+            ks._enabled_check = (lambda d=dep, want=cond["state"]: d.state == want)
+            self._dependents.setdefault(cond["key"], []).append(ks)
+
+    def _render_dependents(self, key_state):
+        """Redraw the keys whose enabled_when names this key."""
+        for dep in self._dependents.get(key_state.notification_id, ()):
+            dep._enqueue_render()
+
     def get_key(self, position):
         """Get KeyState by (row, col) position."""
         return self._keys_by_position.get(tuple(position))
@@ -297,8 +333,13 @@ class KeyManager:
         if ks is None:
             logger.debug("No key configured at position %s", position)
             return None
+        if not ks.enabled:
+            logger.info("Key press: '%s' at %s ignored (disabled by enabled_when)",
+                        ks.label, position)
+            return ks, ks.state, None
         new_state, action = ks.press()
         logger.info("Key press: '%s' at %s → state=%s", ks.label, position, new_state)
+        self._render_dependents(ks)
         return ks, new_state, action
 
     def handle_notification(self, notification_id, state=None, value=None):
@@ -317,7 +358,10 @@ class KeyManager:
             return False, f"unknown notification_id: {notification_id}"
 
         if state is not None:
-            return ks.notify_state(state)
+            result = ks.notify_state(state)
+            if result[0]:
+                self._render_dependents(ks)
+            return result
         elif value is not None:
             return ks.notify_value(value)
         else:

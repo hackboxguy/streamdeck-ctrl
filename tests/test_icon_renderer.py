@@ -167,3 +167,14 @@ class TestEdgeCases:
     def test_special_chars_in_text(self):
         img = render_key_image(GRAY, overlay_text="°C % ★")
         assert img.size == (72, 72)
+
+
+class TestDisabled:
+    def test_greyscale_and_darker(self):
+        from streamdeck_ctrl.icon_renderer import render_disabled
+        img = Image.new("RGB", (8, 8), (200, 40, 40))
+        out = render_disabled(img)
+        r, g, b = out.getpixel((0, 0))
+        assert r == g == b                       # no colour left
+        assert r < Image.new("RGB", (1, 1), (200, 40, 40)).convert("L").getpixel((0, 0))
+        assert out.size == img.size and out.mode == "RGB"

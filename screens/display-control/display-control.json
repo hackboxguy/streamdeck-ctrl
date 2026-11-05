@@ -247,6 +247,7 @@
       },
       "initial_state": "on",
       "notification_id": "display.pixel_compensation",
+      "enabled_when": {"key": "display.local_dimming", "state": "on"},
       "state_watch": {
         "path": [
           "/data/cluster/fpga-ldpc-state.json",
