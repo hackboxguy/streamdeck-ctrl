@@ -388,3 +388,53 @@ class TestNotificationBurstWithPagination:
                 assert ok, err
         finally:
             daemon._shutdown_event.set()
+
+
+class TestReplug:
+    def test_each_replug_draws_the_whole_page_on_the_new_deck(self, tmpdir):
+        """Unplug / replug three times: the last deck gets every key of the
+        page, the unplugged ones get nothing more (their render threads used
+        to keep eating the shared queue: a few keys drawn, diagonally)."""
+        from streamdeck_ctrl.daemon import FakeDeck
+        icons_dst = os.path.join(tmpdir, "icons")
+        if not os.path.exists(icons_dst):
+            os.symlink(FIXTURES, icons_dst)
+        keys = [{"position": [i // 5, i % 5], "label": f"K{i}", "icon_type": "static",
+                 "icons": {"default": "icons/blue.png"}} for i in range(20)]
+        cfg = {"device": {"brightness": 75},
+               "notification": {"type": "unix_socket",
+                                "socket_path": os.path.join(tmpdir, "notify.sock"),
+                                "state_persist_path": os.path.join(tmpdir, "state.json")},
+               "keys": keys}
+        path = os.path.join(tmpdir, "layout.json")
+        with open(path, "w") as f:
+            json.dump(cfg, f)
+        daemon = StreamDeckDaemon(config_path=path, simulate=True)
+        t = threading.Thread(target=daemon.run, daemon=True)
+        t.start()
+        try:
+            for _ in range(200):
+                if daemon._deck is not None and daemon._render_thread is not None:
+                    break
+                time.sleep(0.01)
+            old = []
+            for _ in range(3):
+                deck = daemon._deck
+                daemon._teardown_deck(deck)
+                old.append((deck, len(deck.image_updates)))
+                new = FakeDeck(cols=5, rows=3)
+                daemon._deck = new
+                daemon._setup_deck(new)
+                for _ in range(200):
+                    if set(range(14)) <= {k for k, _ in new.image_updates}:
+                        break
+                    time.sleep(0.01)
+                # the 14 keys of page 1 (slot 14 is the -> arrow, whose icon
+                # this temp config does not carry)
+                assert set(range(14)) <= {k for k, _ in new.image_updates}
+            for deck, n in old:
+                assert len(deck.image_updates) == n      # nothing after the unplug
+            assert sum(1 for th in threading.enumerate()
+                       if th.name == "render" and th.is_alive()) == 1
+        finally:
+            daemon._shutdown_event.set()

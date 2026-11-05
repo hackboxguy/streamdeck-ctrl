@@ -257,13 +257,33 @@ class StreamDeckDaemon:
             except Exception:
                 logger.exception("Deck error")
             finally:
-                try:
-                    deck.reset()
-                    deck.close()
-                except Exception:
-                    pass
-                self._deck = None
+                self._teardown_deck(deck)
                 logger.info("Deck disconnected, entering reconnect loop")
+
+    def _teardown_deck(self, deck):
+        """Stop the deck's render thread, then close the deck.
+
+        The render thread is bound to its deck object. Left running after an
+        unplug, it kept taking jobs off the shared queue and writing them to
+        the dead device ("No HID device"), so after a replug the new deck got
+        only its share of the page: each replug added one more such thread,
+        until a handful of keys were drawn.
+        """
+        stop = getattr(self, "_render_stop", None)
+        if stop is not None:
+            stop.set()
+        thread = self._render_thread
+        if thread is not None and thread is not threading.current_thread():
+            thread.join(timeout=3.0)
+            if thread.is_alive():
+                logger.warning("Render thread of the old deck did not stop in 3 s")
+        self._render_thread = None
+        try:
+            deck.reset()
+            deck.close()
+        except Exception:
+            pass
+        self._deck = None
 
     def _relayout(self, layout):
         """Re-paginate the loaded keys for a deck of another size, without a restart.
@@ -315,9 +335,19 @@ class StreamDeckDaemon:
 
         deck.set_brightness(self._config["device"]["brightness"])
 
-        # Start render thread
+        # Jobs queued for a previous deck (or before this one was plugged in)
+        # are stale: the whole page is drawn below.
+        while True:
+            try:
+                self._render_queue.get_nowait()
+            except queue.Empty:
+                break
+
+        # Start this deck's render thread; _teardown_deck stops it
+        self._render_stop = threading.Event()
         self._render_thread = threading.Thread(
-            target=self._render_loop, args=(deck,), name="render", daemon=True
+            target=self._render_loop, args=(deck, self._render_stop),
+            name="render", daemon=True
         )
         self._render_thread.start()
 
@@ -544,11 +574,13 @@ class StreamDeckDaemon:
             data = self._key_manager.get_persist_data()
             self._state_store.save(data)
 
-    def _render_loop(self, deck):
-        """Consume render jobs from the queue and update deck key images."""
+    def _render_loop(self, deck, stop=None):
+        """Consume render jobs from the queue and update this deck's key images,
+        until shutdown or until this deck is torn down (``stop``)."""
         key_size = tuple(deck.key_image_format()["size"])
+        stop = stop or threading.Event()
 
-        while not self._shutdown_event.is_set():
+        while not self._shutdown_event.is_set() and not stop.is_set():
             try:
                 info = self._render_queue.get(timeout=0.5)
             except queue.Empty:
