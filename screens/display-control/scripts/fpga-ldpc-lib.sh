@@ -14,6 +14,16 @@
 # bitstream is the OTA work-mode bit that locks register writes until a
 # power cycle. Only an FPGA without 0x1E gets the legacy registers (LD 0x29,
 # PC 0x47). The probe is one I2C_RDWR transaction (i2ctransfer).
+#
+# The 3x QVue is the exception: its FPGA is not on the Pi's bus at all, only
+# behind its MCU (display_manager, 0x66) over PPSPI, so neither 0x1E nor 0x1D
+# answers. disptool's --device=ioc localdim / pixelcomp reach it through the
+# MCU's bridge (page 0 0x2C / 0x2D). That path is taken first, when a read
+# through it succeeds: the MCU reports FPGA link 0x01 (a pixelpipe image).
+# On images before UPDATE 0xD9 LD/PC are always on: the read says so and a
+# write is refused, so the key goes back. Every other board fails that read
+# (no FPGA_LINK at 0x66, or no 0x66) and keeps the probe above. Only 0x66 is
+# read on the way: a read of 0x32 hangs the stock QVue firmware.
 
 DISPTOOL="${DISPTOOL:-/home/pi/micropanel/bin/disptool}"
 I2CDEV="${I2CDEV:-/dev/i2c-1}"
@@ -29,8 +39,14 @@ if [ -z "${FPGA_LDPC_STATE_FILE:-}" ]; then
 fi
 STATE_FILE=$FPGA_LDPC_STATE_FILE
 
-# fpganew or fpga (disptool's --device); fpgaauto only without i2ctransfer
+# ioc (3x QVue), fpganew or fpga (disptool's --device); fpgaauto only
+# without i2ctransfer
 fpga_device() {
+    if timeout 3 "$DISPTOOL" --i2cdev="$I2CDEV" --device=ioc --command=localdim \
+           >/dev/null 2>&1; then
+        echo ioc
+        return
+    fi
     command -v i2ctransfer >/dev/null 2>&1 || { echo fpgaauto; return; }
     if i2ctransfer -y "${I2CDEV#/dev/i2c-}" w2@0x1e 0x00 0x00 r1 >/dev/null 2>&1; then
         echo fpganew
