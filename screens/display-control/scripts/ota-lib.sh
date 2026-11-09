@@ -7,8 +7,10 @@
 #                    update-iocs.sh --ots A --ots-b B --keep-stream (other IOCs)
 #                    update-iocs.sh --983 A --983-b B               (983HH)
 #   QVue FPGA        the running IDENTIFY image byte against the manifest's
-#                    version of 3xqvue-update.bin; disptool fpgaflash
-#                    write:<file>,0x400000,engine (display stays on)
+#                    version of 3xqvue-update.bin; disptool fpgaflash: the
+#                    engine (display on) when a pixelpipe image answers, else
+#                    the direct path, with GOLDEN at 0 first when 0 is not ours
+#                    (the flasher VM's Update FPGA flow)
 #   system image     system-image-scan.sh (read-only, mounts the stick ro);
 #                    ab-update install usb (reboots by itself)
 #
@@ -31,11 +33,19 @@ QVUE_FPGA_UPDATE="3xqvue-update.bin"
 AB_UPDATE="${AB_UPDATE:-/usr/local/bin/ab-update}"
 AB_CONF="${AB_UPDATE_CONFIG:-/usr/lib/pi-ab-update/ab-update.conf}"
 
-SOCK="/run/streamdeck-ctrl/notify.sock"
-FLASH_LOCK="/tmp/target-flash.lock"
-SYSTEM_LOCK="/tmp/system-update.lock"
-NOTICE_FILE="/tmp/micropanel-notice"
-OTA_LOG="/tmp/ota-update.log"
+# OTA_TMP / OTA_NOTIFY_SOCK: for the tests only (a fake tree, no real locks)
+OTA_TMP="${OTA_TMP:-/tmp}"
+SOCK="${OTA_NOTIFY_SOCK:-/run/streamdeck-ctrl/notify.sock}"
+FLASH_LOCK="$OTA_TMP/target-flash.lock"
+SYSTEM_LOCK="$OTA_TMP/system-update.lock"
+NOTICE_FILE="$OTA_TMP/micropanel-notice"
+OTA_LOG="$OTA_TMP/ota-update.log"
+# The FPGA update's question to the user (ota-update.sh fpga): "<pid> <id>"
+# while it waits, and the answer a second press leaves. Owned by the deck's
+# user (pi), like every other file the keys share in /tmp.
+CONFIRM_WAIT="$OTA_TMP/qvue-fpga-confirm.wait"
+CONFIRM_YES="$OTA_TMP/qvue-fpga-confirm.yes"
+FPGA_STEP_OUT="$OTA_TMP/ota-fpga-step.out"
 
 ID_IOC="ota.ioc"
 ID_983="ota.983"

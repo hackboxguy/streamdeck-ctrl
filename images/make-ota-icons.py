@@ -2,7 +2,8 @@
 """The page-6 OTA keys' pictures, made from the OLED-OTS IOC-Flash key's
 picture the same way make-touch-flash-icon.py makes the OLED-IB one: the
 chip's label becomes "OTA", and the two big lines name what the key updates
-("IOC" / "983HH" / "FPGA" / "System") over "OTA-Update".
+("IOC" / "983HH" / "FPGA" / "System") over "OTA-Update". Also the FPGA
+keys' confirm picture ("GOLDEN?" / "Hold = Yes").
 
     python3 images/make-ota-icons.py screens/display-control
 """
@@ -27,6 +28,13 @@ def main(directory):
         base.LINES = [(first, (177, 723, 1075, 835)),
                       ("OTA-Update", (185, 877, 1071, 1007))]
         base.main(directory)
+    # The FPGA keys' "confirm" picture: a first-time install asks before it
+    # writes GOLDEN at flash address 0 (hold the key again = yes)
+    base.CHIP_LABEL = "1st"
+    base.DST = "fpga-golden-confirm.png"
+    base.LINES = [("GOLDEN?", (177, 723, 1075, 835)),
+                  ("Hold = Yes", (185, 877, 1071, 1007))]
+    base.main(directory)
 
 
 if __name__ == "__main__":

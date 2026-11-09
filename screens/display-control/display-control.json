@@ -1172,13 +1172,16 @@
       "label": "Qvue-New/FPGA-Flash",
       "icon_type": "task",
       "icons": {
-        "default": "qvue-new-fpga-flash.png"
+        "default": "qvue-new-fpga-flash.png",
+        "confirm": "fpga-golden-confirm.png"
       },
       "notification_id": "fpga.flash_qvue_new",
       "task": {
         "blink_interval_sec": 0.5,
         "border_width": 6,
+        "hold_sec": 1.5,
         "colors": {
+          "confirm": "#FF8C00",
           "running": "#00FF00",
           "success": "#00FF00",
           "failure": "#FF0000"
@@ -1187,7 +1190,7 @@
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-qvue-fpga.sh --id=fpga.flash_qvue_new --label=QVUE-New --golden=3xqvue.bin --update=3xqvue-update.bin",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/ota-update.sh fpga --id=fpga.flash_qvue_new --force",
           "async": true,
           "timeout_sec": 1800
         }
@@ -1457,7 +1460,8 @@
       "label": "OTA-FPGA",
       "icon_type": "task",
       "icons": {
-        "default": "ota-fpga.png"
+        "default": "ota-fpga.png",
+        "confirm": "fpga-golden-confirm.png"
       },
       "notification_id": "ota.fpga",
       "initial_state": "idle",
@@ -1465,10 +1469,11 @@
         "blink_interval_sec": 0.5,
         "border_width": 6,
         "hold_sec": 1.5,
-        "press_states": ["available", "failure"],
+        "press_states": ["available", "failure", "confirm"],
         "grey_states": ["idle"],
         "colors": {
           "available": "#FFD000",
+          "confirm": "#FF8C00",
           "running": "#00FF00",
           "success": "#00FF00",
           "failure": "#FF0000"
@@ -1479,7 +1484,7 @@
           "type": "script",
           "command": "{INSTALL_DIR}/screens/display-control/scripts/ota-update.sh fpga",
           "async": true,
-          "timeout_sec": 1200
+          "timeout_sec": 1800
         }
       }
     },

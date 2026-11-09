@@ -1,7 +1,6 @@
 #!/bin/bash
 # Write the 3x QVue's FPGA configuration flash through the QVue's own MCU
-# over I2C, and report the outcome back to the deck. Two keys use it:
-#   Qvue-New/FPGA-Flash     the pixelpipe GOLDEN + UPDATE pair (0xD7 + 0xD8 today)
+# over I2C, and report the outcome back to the deck. Used by
 #   Qvue-Legacy/FPGA-Flash  the vendor image back at offset 0, as delivered
 #                           (no --update; the UPDATE slot is left as it is,
 #                           the vendor image never jumps there)
@@ -11,10 +10,16 @@
 # exposes it on I2C page 0x07; disptool's `fpgaflash` drives that. This is the
 # baseline "wire session" from sp6bins firmware/fpga/README.md:
 #
-#   fpgaflash begin --value2=1                (display off, PROGRAM_B low, 10 MHz SCK)
+#   fpgaflash abort                           (start clean: an open session is resumed in its own mode)
+#   fpgaflash begin                           (display off, PROGRAM_B low, 1 MHz SCK: I2C dominates the time)
 #   fpgaflash write:<golden>,0,golden         (GOLDEN at 0, about 4 min)
 #   fpgaflash write:<update>,0x400000         (UPDATE slot, about 4 min; only with --update)
 #   fpgaflash end                             (PROGRAM_B released, FPGA boots)
+#
+# A begin whose flash ID read fails ("flash id is not 9D 60 18"; FF FF FF =
+# the flash does not answer) is closed again at once and reported: power-cycle
+# the QVue fully and retry, then hardware. (Qvue-New/FPGA-Flash and OTA-FPGA
+# run ota-update.sh fpga: the update flow, GOLDEN only where 0 is not ours.)
 #
 # then requires `end` to report DONE (the FPGA configured) and `fpgaident` to
 # show the expected FPGA link: 0x01 plus the expected IDENTIFY image byte for
@@ -187,8 +192,21 @@ write_image() {   # <file> <address> [golden]
 }
 
 START=$SECONDS
-log "Opening the wire session (display off, PROGRAM_B low, 10 MHz flash SCK)"
-dt --command=fpgaflash --value=begin --value2=1 || fail "fpgaflash begin"
+log "Closing any session left open"
+dt --command=fpgaflash --value=abort || fail "fpgaflash abort (an open session could not be closed)"
+log "Opening the wire session (display off, PROGRAM_B low, 1 MHz flash SCK)"
+begin_out=$(stdbuf -oL -eL "$DISPTOOL" --device=ioc --command=fpgaflash --value=begin 2>&1 | strip_ansi)
+begin_rc=${PIPESTATUS[0]}
+printf '%s\n' "$begin_out" >>"$LOG_FILE"
+if [ "$begin_rc" -ne 0 ]; then
+    if id_line=$(printf '%s\n' "$begin_out" | grep -m1 'flash id is not 9D 60 18'); then
+        dt --command=fpgaflash --value=abort
+        id_read=$(printf '%s\n' "$id_line" | sed -n 's/.*(read 0x\(..\) 0x\(..\) 0x\(..\)).*/\1 \2 \3/p')
+        fail "the FPGA config flash did not answer (ID ${id_read:-not read}, expected 9D 60 18). Nothing was written. Power-cycle the QVue fully and retry; if it persists: hardware / JTAG"
+    fi
+    dt --command=fpgaflash --value=abort
+    fail "fpgaflash begin (exit $begin_rc)"
+fi
 
 write_image "$GOLDEN" 0 golden || \
     fail "GOLDEN write; the session is left open (display off) so the FPGA does not boot a half-written flash. Press the key again to retry"

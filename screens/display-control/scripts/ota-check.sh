@@ -6,7 +6,8 @@
 #
 #   firmware  OTA-IOC and OTA-983: update-iocs.sh --check (two register reads
 #             and a file read per board, about 0.2 s)
-#   fpga      OTA-FPGA: the QVue FPGA's running image against the manifest
+#   fpga      OTA-FPGA: the QVue FPGA's running image against the manifest;
+#             no pixelpipe answer (vendor image) = available too
 #   system    OTA-System: an installable .mpupdate on a USB stick
 #   (none)    all three
 #   --wait    while an update holds the locks, wait for it (up to 20 min)
@@ -76,34 +77,60 @@ check_firmware() {
 }
 
 check_fpga() {
-    local ident link image want
+    local ident link image want ver
     # QVue only for now: its FPGA is behind display_manager's bridge.
     if ! is_qvue_display_manager; then
         push "$ID_FPGA" idle
         echo "ota-check: fpga n/a (not a QVue running display_manager)"
         return
     fi
+    # The first-time install (GOLDEN at 0) needs the golden arm: v01.03+.
+    # Older: OTA-IOC brings the MCU up first, then this key.
+    ver=$(timeout 3 "$DISPTOOL" --device=ioc --command=iocversion 2>/dev/null | strip_ansi \
+          | sed -n 's/^FW Version *: *v\([0-9][0-9]*\)\.\([0-9][0-9]*\).*/\1\2/p' | head -1)
+    if [ -z "$ver" ]; then
+        inconclusive "fpga: no display_manager version"
+        return
+    fi
+    if [ $(( 10#$ver )) -lt 103 ]; then
+        push "$ID_FPGA" idle
+        echo "ota-check: fpga: display_manager v${ver:0:2}.${ver:2} is older than v01.03, update the MCU first"
+        return
+    fi
     want=$(qvue_fpga_expected)
+    if [ -z "$want" ]; then
+        push "$ID_FPGA" idle
+        echo "ota-check: fpga: no version for $QVUE_FPGA_UPDATE in the manifest"
+        return
+    fi
     ident=$(qvue_fpga_ident)
+    # Right after an MCU restart the link reads 0x00 for a moment; a unit
+    # whose FPGA never identifies keeps reading it.
+    for _ in $(seq 1 10); do
+        [ "${ident% *}" = 0x00 ] || break
+        sleep 3; ident=$(qvue_fpga_ident)
+    done
     link=${ident% *}; image=${ident#* }
     case "$link" in
         0x01)
-            if [ -z "$want" ]; then
-                push "$ID_FPGA" idle
-                echo "ota-check: fpga: no version for $QVUE_FPGA_UPDATE in the manifest"
-            elif [ "$image" = "$want" ]; then
+            if [ "$image" = "$want" ]; then
                 push "$ID_FPGA" idle
                 echo "ota-check: fpga 0x$image current"
             else
+                # an older UPDATE, or GOLDEN running after a bad slot
                 push "$ID_FPGA" available
                 echo "ota-check: fpga 0x$image, sp6bins ships 0x$want"
             fi ;;
-        0x00) inconclusive "fpga link 0x00: not identified yet" ;;
+        "?")
+            inconclusive "fpga: fpgaident gave no answer" ;;
         *)
-            # vendor image (0xFF) or no answer: the engine needs a pixelpipe
-            # image; that is the wire keys' job (Qvue-New/FPGA-Flash)
-            push "$ID_FPGA" idle
-            echo "ota-check: fpga link $link: not a pixelpipe image, no OTA" ;;
+            # No pixelpipe image answers: the vendor image as delivered (link
+            # 0x00 / 0x02 / 0xFF), or an FPGA that did not configure. The key
+            # takes the direct path and asks before it writes GOLDEN at 0
+            # (only the flash itself can tell; reading it turns the display off,
+            # so the check does not).
+            push "$ID_FPGA" available
+            echo "ota-check: fpga link $link: no pixelpipe image answers, first-time install available" ;;
     esac
 }
 

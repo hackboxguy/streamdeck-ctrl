@@ -119,6 +119,40 @@ class TestTaskStateMachine:
         assert ok is False
         assert "invalid state 'done'" in err
 
+    def test_confirm_blinks_its_own_colour_and_picture(self):
+        """A job asking a question: amber, blinking, the question's picture."""
+        cfg = task_cfg(icons={"default": "/icons/flash.png", "confirm": "/icons/ask.png"})
+        cfg["task"]["colors"]["confirm"] = "#FF8C00"
+        ks = KeyState(cfg, queue.Queue(maxsize=10))
+        ks.press()
+        ks.notify_state("confirm")
+        info = ks.get_render_info()
+        assert info["icon_path"] == "/icons/ask.png"
+        assert info["border_color"] == "#FF8C00"
+        assert ks.advance_blink() is True
+        assert ks.get_render_info()["border_color"] is None
+        ks.notify_state("running")
+        assert ks.get_render_info()["icon_path"] == "/icons/flash.png"
+
+    def test_confirm_is_pressable_only_when_listed(self):
+        cfg = task_cfg()
+        cfg["task"]["press_states"] = ["available", "failure", "confirm"]
+        ks = KeyState(cfg, queue.Queue(maxsize=10))
+        ks.notify_state("confirm")
+        assert ks.can_press()
+        state, action = ks.press()
+        assert state == "running" and action is not None
+        cfg["task"]["press_states"] = ["available", "failure"]
+        ks = KeyState(cfg, queue.Queue(maxsize=10))
+        ks.notify_state("confirm")
+        assert not ks.can_press()
+        assert ks.press()[1] is None
+
+    def test_a_state_without_its_own_picture_uses_the_default(self):
+        ks = KeyState(task_cfg(), queue.Queue(maxsize=10))
+        ks.notify_state("confirm")
+        assert ks.get_render_info()["icon_path"] == "/icons/flash.png"
+
     def test_outcome_is_not_persisted(self):
         """A finished flash must not restore a stale green border on boot."""
         from streamdeck_ctrl.key_manager import KeyManager
@@ -375,13 +409,14 @@ class TestTaskConfig:
                 assert "--expect-link=0xFF" in cmd
                 continue
             if k["notification_id"] == "fpga.flash_qvue_new":
-                # No JTAG on the QVue: its FPGA flash goes through its MCU.
-                assert "scripts/flash-qvue-fpga.sh " in cmd
-                assert "--golden=" in cmd and "--update=" in cmd
-                # The image byte comes from sp6bins' manifest.txt, so a new
-                # UPDATE release (0xD9, ...) needs no key change.
-                assert "--expect-image=" not in cmd
-                assert k["action"]["on_press"]["timeout_sec"] >= 1200
+                # No JTAG on the QVue: its FPGA flash goes through its MCU, by
+                # the same flow as OTA-FPGA (GOLDEN only where 0 is not ours),
+                # forced so it also rewrites a current UPDATE slot.
+                assert "scripts/ota-update.sh fpga " in cmd
+                assert cmd.rstrip().endswith("--force")
+                assert k["task"]["hold_sec"] > 0
+                assert "confirm" in k["icons"]
+                assert k["action"]["on_press"]["timeout_sec"] >= 1800
                 continue
             if k["notification_id"].startswith("fpga."):
                 assert "scripts/flash-fpga.sh " in cmd

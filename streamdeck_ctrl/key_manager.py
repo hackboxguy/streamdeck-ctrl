@@ -5,6 +5,9 @@ import queue
 
 from streamdeck_ctrl.config import TASK_STATES
 
+# Task states whose border blinks: a job at work, and a job waiting for an answer
+BLINK_STATES = ("running", "confirm")
+
 logger = logging.getLogger(__name__)
 
 
@@ -224,7 +227,7 @@ class KeyState:
             self._enqueue_render()
 
     def advance_blink(self):
-        """Flip the blink phase of a running task key.
+        """Flip the blink phase of a running (or confirm-waiting) task key.
 
         The caller owns the redraw: on a paginated deck only it knows which
         physical slot the key currently occupies.
@@ -232,7 +235,7 @@ class KeyState:
         Returns:
             True if the phase changed and the key needs a redraw.
         """
-        if self.icon_type != "task" or self._state != "running":
+        if self.icon_type != "task" or self._state not in BLINK_STATES:
             return False
         self._blink_on = not self._blink_on
         return True
@@ -246,7 +249,7 @@ class KeyState:
 
     def _task_border_color(self):
         """Border colour for the current task state, or None for no border."""
-        if self._state == "running" and not self._blink_on:
+        if self._state in BLINK_STATES and not self._blink_on:
             return None  # dark half of the blink cycle
         return self._task_config.get("colors", {}).get(self._state)
 
@@ -289,7 +292,7 @@ class KeyState:
         elif self.icon_type == "multistate":
             info["icon_path"] = icons.get(self._state)
         elif self.icon_type == "task":
-            info["icon_path"] = icons.get("default")
+            info["icon_path"] = icons.get(self._state) or icons.get("default")
             info["border_color"] = self._task_border_color()
             info["border_width"] = self._task_config.get("border_width", 0)
             if self._state == "running" and self._progress is not None:

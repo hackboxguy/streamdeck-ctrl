@@ -17,7 +17,9 @@ _HEX_COLOR = "^#[0-9A-Fa-f]{6}$"
 
 # States a `task` key moves through. "running" is the only blinking one.
 # "available": something to do (e.g. an update), drawn with its own border colour
-TASK_STATES = ("idle", "running", "success", "failure", "available")
+# confirm: the task waits for a second press (hold) to go on, e.g. before
+# a step that cannot be undone; the script that asked decides what a timeout means
+TASK_STATES = ("idle", "running", "success", "failure", "available", "confirm")
 
 ACTION_SCHEMA = {
     "type": "object",
@@ -256,9 +258,13 @@ TASK_KEY_SCHEMA = {
         {
             "properties": {
                 "icon_type": {"const": "task"},
+                # default, plus an optional picture per task state (e.g.
+                # "confirm": what the key asks)
                 "icons": {
                     "type": "object",
-                    "properties": {"default": {"type": "string"}},
+                    "properties": dict({"default": {"type": "string"}},
+                                       **{state: {"type": "string"} for state in TASK_STATES}),
+                    "additionalProperties": False,
                     "required": ["default"],
                 },
                 "initial_state": {
