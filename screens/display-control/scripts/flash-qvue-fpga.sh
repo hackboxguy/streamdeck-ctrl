@@ -235,26 +235,31 @@ log "FPGA configured (DONE after $done_ms ms)"
 # 00 <image>, e.g.
 #   FPGA link  : 0x01  PPSPI
 #   IDENTIFY   : 50 01 17 93 | 11 03 00 D8 | ...
-# Vendor image: FPGA link 0xFF (display_manager does not talk to it).
+# Vendor image: FPGA link 0xFF, or 0x02 from display_manager v01.10 on (its
+# vendor-frame shim); no PPSPI either way.
 deadline=$(( SECONDS + IDENT_TIMEOUT_SEC ))
 while :; do
     ident=$(timeout 15 "$DISPTOOL" --device=ioc --command=fpgaident 2>&1 | strip_ansi)
     link=$(printf '%s\n' "$ident" | sed -n 's/^FPGA link *: *\(0x[0-9A-Fa-f]*\).*/\1/p')
     image=$(printf '%s\n' "$ident" | sed -n 's/^IDENTIFY *: *[0-9A-F ]*| *[0-9A-F][0-9A-F] [0-9A-F][0-9A-F] 00 \([0-9A-F][0-9A-F]\) |.*/\1/p')
     link=0x$(printf '%s' "${link#0x}" | tr '[:lower:]' '[:upper:]')
-    if [ "$link" = "$EXPECT_LINK" ] && { [ "$EXPECT_LINK" = 0xFF ] || [ "$image" = "$EXPECT_IMAGE" ]; }; then
+    # The vendor image: 0xFF on display_manager before its vendor-frame shim,
+    # 0x02 ("legacy vendor frame (shim)") from v01.10 on.
+    vendor_link=0
+    [ "$EXPECT_LINK" = 0xFF ] && { [ "$link" = 0xFF ] || [ "$link" = 0x02 ]; } && vendor_link=1
+    if [ "$vendor_link" = 1 ] || { [ "$link" = "$EXPECT_LINK" ] && [ "$EXPECT_LINK" = 0x01 ] && [ "$image" = "$EXPECT_IMAGE" ]; }; then
         printf '%s\n' "$ident" >>"$LOG_FILE"
         break
     fi
     if [ "$SECONDS" -ge "$deadline" ]; then
         printf '%s\n' "$ident" >>"$LOG_FILE"
-        fail "after the flash fpgaident shows link '${link:-?}', image '${image:-?}' (want $EXPECT_LINK${EXPECT_IMAGE:+, $EXPECT_IMAGE})"
+        fail "after the flash fpgaident shows link '${link:-?}', image '${image:-?}' (want $([ "$EXPECT_LINK" = 0xFF ] && echo "0xFF or 0x02, the vendor image" || echo "$EXPECT_LINK, $EXPECT_IMAGE"))"
     fi
     sleep 2
 done
 
 if [ "$EXPECT_LINK" = 0xFF ]; then
-    log "FPGA link 0xFF: the vendor image is running; done in $(( SECONDS - START )) s"
+    log "FPGA link $link: the vendor image is running; done in $(( SECONDS - START )) s"
 else
     log "FPGA link 0x01, image 0x$EXPECT_IMAGE running; done in $(( SECONDS - START )) s"
 fi
