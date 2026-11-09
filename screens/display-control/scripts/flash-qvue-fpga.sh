@@ -124,7 +124,9 @@ dt() {
 }
 
 exec 9>"$LOCK_FILE"
-if ! flock -n 9; then
+# Wait up to 3 s: the deck's pollers test this lock with `flock -n <lock> true`,
+# which holds it for a moment; a flash runs for minutes, so a real one still refuses.
+if ! flock -w 3 9; then
     echo "[qvue-fpga/$LABEL] Another flash is already in progress, ignoring" >&2
     exit 0
 fi
@@ -169,7 +171,8 @@ restore_als() {
     fi
     # The board's firmware may have changed: refresh the OTA keys once this
     # script has released the flash lock (ota-check.sh --wait waits for it).
-    setsid "$(dirname "$0")/ota-check.sh" firmware fpga --wait </dev/null >/dev/null 2>&1 &
+    # 9>&-: not the flash lock's fd, or the check would hold the very lock it waits for
+    setsid "$(dirname "$0")/ota-check.sh" firmware fpga --wait </dev/null >/dev/null 2>&1 9>&- &
 }
 trap restore_als EXIT
 

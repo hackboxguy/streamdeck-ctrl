@@ -64,7 +64,9 @@ log() {
 }
 
 exec 9>"$LOCK_FILE"
-if ! flock -n 9; then
+# Wait up to 3 s: the deck's pollers test this lock with `flock -n <lock> true`,
+# which holds it for a moment; a flash runs for minutes, so a real one still refuses.
+if ! flock -w 3 9; then
     echo "[fpga-flash/$LABEL] Another flash is already in progress, ignoring" >&2
     exit 0
 fi

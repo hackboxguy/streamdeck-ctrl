@@ -268,6 +268,23 @@ class TestEnginePath:
         assert r.states("ota.fpga") == []
 
 
+class TestLock:
+    def test_the_recheck_after_a_run_does_not_keep_the_flash_lock(self, rig):
+        """The background ota-check --wait must not inherit the lock's fd: it
+        would hold the lock it waits for, and refuse every flash key."""
+        r = rig(link="01", image="DB", engine="1", addr0="golden", slot="other")
+        assert r.run(OTA_RECHECK="1") == 0
+        lock = os.path.join(r.otatmp, "target-flash.lock")
+        time.sleep(0.5)
+        free = subprocess.run(["flock", "-n", lock, "true"]).returncode == 0
+        assert free, "the flash lock is still held after the run"
+        # and the recheck itself ran: OTA-FPGA goes idle (0xDC current)
+        end = time.time() + 20
+        while time.time() < end and "idle" not in r.states():
+            time.sleep(0.2)
+        assert "idle" in r.states()
+
+
 class TestPrecheck:
     def test_old_display_manager_points_to_the_mcu_update(self, rig):
         r = rig(version="0102")

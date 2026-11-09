@@ -82,7 +82,9 @@ fail() {
 
 # ---- locks -------------------------------------------------------------------
 exec 9>"$FLASH_LOCK" || fail "cannot open $FLASH_LOCK"
-if ! flock -n 9; then
+# Wait up to 3 s: the deck's pollers test this lock with `flock -n <lock> true`,
+# which holds it for a moment; a flash runs for minutes, so a real one still refuses.
+if ! flock -w 3 9; then
     log "another flash is in progress"
     push "$ID" failure
     exit 1
@@ -104,7 +106,12 @@ cleanup() {
         rm -f "$CONFIRM_WAIT" "$CONFIRM_YES" "$FPGA_STEP_OUT"
         # The FPGA may have changed (Qvue-New/FPGA-Flash runs this too):
         # refresh OTA-FPGA once the locks are released.
-        [ "${OTA_RECHECK:-1}" = 1 ] && setsid ./ota-check.sh fpga --wait </dev/null >/dev/null 2>&1 &
+        # 9>&-: not the flash lock's fd, or the check would hold the very lock
+        # it waits for (and a plain command, not `test && cmd &`: that forks a
+        # subshell which keeps fd 9 open until the check ends)
+        if [ "${OTA_RECHECK:-1}" = 1 ]; then
+            setsid ./ota-check.sh fpga --wait </dev/null >/dev/null 2>&1 9>&- &
+        fi
     fi
     [ "$(cat "$SYSTEM_LOCK" 2>/dev/null)" = "$$" ] && rm -f "$SYSTEM_LOCK"
     if [ "$ALS_WAS_ACTIVE" -eq 1 ]; then
