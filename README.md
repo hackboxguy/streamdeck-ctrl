@@ -311,9 +311,9 @@ attached USB stick. If the file is there and is a valid **subset** of the `--con
 config is used and the reason is logged (`journalctl -u streamdeck-ctrl | grep "USB override"`).
 
 The file can only *pick* keys of the superset, never define or change one, so a stick
-cannot add commands. Each entry of `keys` is either a key's label or a key object
-copied unchanged from the superset (its `position` is ignored; `{INSTALL_DIR}` and the
-installed path count as the same):
+cannot add commands. Each entry of `keys` is a key's label, a key object copied
+unchanged from the superset (its `position` is ignored; `{INSTALL_DIR}` and the
+installed path count as the same), or `null` for an empty key (black, does nothing):
 
 ```json
 {
@@ -321,14 +321,18 @@ installed path count as the same):
     "Home",
     "Local Dimming",
     "Pixel Compensation",
+    null,
     "HDMI 27",
     { "label": "IP Address", "icon_type": "live_value", "...": "copied from the superset" }
   ]
 }
 ```
 
-- Keys are laid out in the file's order and paginated for whatever deck is attached; the
-  per-deck variants (`*-3x2.json`) are not used while an override is active.
+- The deck fills its keys in the file's order, page by page (the last key of a page that
+  has a next one is the ▶ arrow, the first of a page after the first is ◀); `null`
+  entries leave keys empty, so a layout can put each key exactly where it wants. The same
+  file works on any deck size (it re-flows in the same order); the per-deck variants
+  (`*-3x2.json`) are not used while an override is active.
 - A file is rejected if a key is unknown, listed twice, differs from the superset in
   any field, or is missing a key its `enabled_when` depends on (e.g. *Pixel
   Compensation* without *Local Dimming*). `device` and `notification` always come from
@@ -344,8 +348,9 @@ installed path count as the same):
 
 `tools/layout-builder/` turns the superset into one self-contained HTML page (keys,
 icons and code inside; works offline in any browser, nothing to install). Users drag the
-buttons they want onto a preview of the deck, which pages exactly as the daemon will,
-and download `streamdeck-buttons.json` for the stick. It refuses to download a layout
+buttons they want onto any key of a preview of the deck (adding pages as they like),
+which pages exactly as the daemon will, and download `streamdeck-buttons.json` for the
+stick, with `null` gaps where keys are left empty. It refuses to download a layout
 with a missing `enabled_when` partner, can import an existing file, and remembers the
 draft in the browser.
 

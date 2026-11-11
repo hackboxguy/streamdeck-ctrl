@@ -83,6 +83,21 @@ class TestBuildOverride:
         with pytest.raises(OverrideError, match="action"):
             build_override({"keys": [key]}, _base(), "/opt/sd")
 
+    def test_null_is_a_blank_gap(self):
+        cfg = build_override({"keys": ["Home", None, None, "Blue"]}, _base(), "/x")
+        assert [k["label"] for k in cfg["keys"]] == ["Home", "(empty 2)", "(empty 3)", "Blue"]
+        gap = cfg["keys"][1]
+        assert gap["icons"]["default"] == ":blank:" and gap["action"] is None
+        assert [k["position"] for k in cfg["keys"]] == [[0, 0], [0, 1], [0, 2], [0, 3]]
+
+    def test_only_gaps_is_rejected(self):
+        with pytest.raises(OverrideError, match="only gaps"):
+            build_override({"keys": [None, None]}, _base(), "/x")
+
+    def test_too_many_entries_is_rejected(self):
+        with pytest.raises(OverrideError, match="more than"):
+            build_override({"keys": ["Home"] + [None] * 600}, _base(), "/x")
+
     def test_unknown_label_is_rejected(self):
         with pytest.raises(OverrideError, match="not a key"):
             build_override({"keys": ["Nope"]}, _base(), "/x")
@@ -236,6 +251,12 @@ class TestFindOverride:
         base = _write_base(tmp_path)
         _stick(monkeypatch, text)
         assert find_override(base) is None
+
+    def test_gaps_load_without_icon_files(self, tmp_path, monkeypatch):
+        base = _write_base(tmp_path)
+        _stick(monkeypatch, '{"keys": [null, "Home", null]}')
+        cfg = find_override(base)
+        assert [k["icons"]["default"] for k in cfg["keys"]][::2] == [":blank:", ":blank:"]
 
     def test_scan_error_falls_back(self, tmp_path, monkeypatch):
         base = _write_base(tmp_path)

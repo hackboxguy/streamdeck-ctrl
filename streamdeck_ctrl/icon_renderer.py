@@ -34,9 +34,15 @@ def _load_font(font_path, font_size):
     return ImageFont.load_default()
 
 
+# Icon path of an empty key (a gap in a USB layout): plain black, no file
+BLANK_ICON = ":blank:"
+
+
 @lru_cache(maxsize=64)
 def _load_and_scale(png_path, size):
     """Load a PNG and scale it to the target size. Cached."""
+    if png_path == BLANK_ICON:
+        return Image.new("RGBA", size, (0, 0, 0, 255))
     img = Image.open(png_path).convert("RGBA")
     if img.size != size:
         img = img.resize(size, Image.LANCZOS)

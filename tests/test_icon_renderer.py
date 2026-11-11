@@ -189,3 +189,9 @@ class TestProgress:
         assert out.getpixel((10, y)) == (0, 255, 0)      # filled half
         assert out.getpixel((62, y)) != (0, 255, 0)      # empty half
         assert img.getpixel((10, y)) == (0, 0, 0)        # the input is untouched
+
+
+def test_blank_icon_is_black_without_a_file():
+    from streamdeck_ctrl.icon_renderer import BLANK_ICON, render_key_image
+    img = render_key_image(BLANK_ICON, key_size=(72, 72))
+    assert img.size == (72, 72) and img.getextrema() == ((0, 0), (0, 0), (0, 0))

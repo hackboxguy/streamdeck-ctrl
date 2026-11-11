@@ -163,6 +163,13 @@ main {
 .key.flag { box-shadow: 0 0 0 2px var(--warn); }
 .slot .cap { font-size: 10px; line-height: 1.2; color: var(--key-label); text-align: center; height: 2.4em; overflow: hidden; word-break: break-word; }
 
+.add-page {
+  width: 140px; min-height: 120px; border-radius: 18px; border: 2px dashed var(--line);
+  background: transparent; color: var(--muted); font-weight: 600;
+}
+.add-page:hover, .add-page.target { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.linkbtn { border: 0; background: none; padding: 0; color: var(--accent); font-size: 12px; text-decoration: underline; }
+.key.empty.target { box-shadow: 0 0 0 3px var(--accent), 0 0 18px var(--accent); }
 #ghost {
   position: fixed; z-index: 50; pointer-events: none; width: 64px; height: 64px; border-radius: 10px;
   overflow: hidden; box-shadow: 0 8px 24px #0008; transform: translate(-50%, -50%) rotate(-3deg); display: none;
@@ -223,9 +230,11 @@ main {
       <div id="issues" role="status"><strong>Fix before download:</strong><ul id="issueList"></ul></div>
     </div>
     <div class="hint">
-      Drag buttons onto the deck (or click one to add it at the end). Drag keys to reorder,
-      drag one back to the list or press × to remove it (clicking a ticked button in the list removes it too). Keyboard: focus a key, ←/→ to move, Delete to remove.
-      Arrows are added by the deck itself when the buttons need more than one page.
+      Drag a button onto any key: an empty key takes it; on a taken key it pushes the keys
+      after it along to the next empty one. Drag keys between slots to move them (onto a taken
+      key they swap). Click a button to put it in the first empty key; drag a key back to the
+      list or press × to remove it. Keyboard: focus a key, ←/→ to swap with its neighbour,
+      Delete to empty it. ◀ ▶ are the deck's own page arrows.
     </div>
     <div id="pages"></div>
   </section>
@@ -240,11 +249,12 @@ const DATA = /*__BUILDER_DATA__*/null;
 
 const KEYS = DATA.keys;
 const BY_LABEL = new Map(KEYS.map(k => [k.label, k]));
-const STORE = "sd-layout-builder:" + DATA.superset;
+const STORE = "sd-layout-builder:v2:" + DATA.superset;
 const TYPE_NAMES = { static: "Action", toggle: "Toggle", radio: "Selector", task: "Task", live_value: "Live value", multistate: "Multi-state" };
 
 const state = {
-  order: [],                       // labels, in deck order
+  slots: [],      // a label or null (empty key) per key slot, in the order the deck fills them
+  pages: 1,       // pages shown: at least those holding keys, plus any added empty ones
   rows: DATA.default_layout[0] || 3,
   cols: DATA.default_layout[1] || 5,
   filter: "all",
@@ -254,64 +264,112 @@ const state = {
 const $ = id => document.getElementById(id);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
-// ---------------------------------------------------------------- pagination
-// Mirrors streamdeck_ctrl/page_manager.py: first page slots-1 keys (+ right
-// arrow), middle pages slots-2, last page slots-1 (+ left arrow)
-function paginate(n, rows, cols) {
-  const slots = rows * cols;
-  if (n <= slots) return [[0, n]];
-  const pages = [[0, slots - 1]];
-  let i = slots - 1;
-  while (i < n) {
-    const remaining = n - i;
-    const take = remaining <= slots - 1 ? remaining : slots - 2;
-    pages.push([i, i + take]);
-    i += take;
-  }
-  return pages;
+// ---------------------------------------------------------------- deck geometry
+// Mirrors streamdeck_ctrl/page_manager.py: the keys fill the slots in order;
+// a first page has slots-1 keys (+ right arrow), a middle page slots-2, a last
+// page slots-1 (+ left arrow), and one page alone all slots.
+const S = () => state.rows * state.cols;
+function capacity(P, s = S()) { return P <= 1 ? s : 2 * (s - 1) + (P - 2) * (s - 2); }
+function pageRanges(P, s = S()) {               // [start, end) of each page's slots
+  if (P <= 1) return [[0, s]];
+  const r = [[0, s - 1]];
+  let i = s - 1;
+  for (let p = 1; p < P - 1; p++) { r.push([i, i + s - 2]); i += s - 2; }
+  r.push([i, i + s - 1]);
+  return r;
+}
+function pagesFor(n, s = S()) { let P = 1; while (capacity(P, s) < n) P++; return P; }  // the daemon's page count
+function lastIndex() { for (let i = state.slots.length - 1; i >= 0; i--) if (state.slots[i]) return i; return -1; }
+function pageOf(i) { return pageRanges(state.pages).findIndex(([a, b]) => i >= a && i < b) + 1; }
+function keyCount() { return state.slots.filter(Boolean).length; }
+
+// The file for the stick: the slots up to the last key, padded with empty keys
+// so that the daemon makes as many pages as the keys need (its page count
+// follows the number of entries; a lone key on a last page would otherwise
+// slip back onto the page before it, under the arrow).
+function exportList() {
+  const L = lastIndex();
+  if (L < 0) return [];
+  const P = pageOf(L);
+  const out = state.slots.slice(0, L + 1);
+  if (P >= 2) while (out.length <= capacity(P - 1)) out.push(null);
+  return out;
+}
+
+function normalize() {
+  const sl = state.slots;
+  while (sl.length && !sl[sl.length - 1]) sl.pop();
+  if (state.pages < 1) state.pages = 1;
+  while (capacity(state.pages) < sl.length) state.pages++;
 }
 
 // ---------------------------------------------------------------- persistence
 function save() {
-  try { localStorage.setItem(STORE, JSON.stringify({ order: state.order, rows: state.rows, cols: state.cols })); } catch (e) {}
+  try { localStorage.setItem(STORE, JSON.stringify({ slots: state.slots, pages: state.pages, rows: state.rows, cols: state.cols })); } catch (e) {}
 }
 function restore() {
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || "null");
     if (!s) return false;
-    state.order = (s.order || []).filter(l => BY_LABEL.has(l));
     if (s.rows && s.cols) { state.rows = s.rows; state.cols = s.cols; }
+    load(s.slots || [], s.pages || 1);
     return true;
   } catch (e) { return false; }
 }
 
 // ---------------------------------------------------------------- edits
-function setOrder(order, msg) {
+function load(slots, pages = 1) {               // keeps positions; unknown or repeated labels become gaps
   const seen = new Set();
-  state.order = order.filter(l => BY_LABEL.has(l) && !seen.has(l) && seen.add(l));
-  save(); render();
-  if (msg) toast(msg);
+  state.slots = slots.map(l => (l && BY_LABEL.has(l) && !seen.has(l) && seen.add(l)) ? l : null);
+  state.pages = pages;
+  normalize();
+}
+function commit(msg) { normalize(); save(); render(); if (msg) toast(msg); }
+
+function firstFree() { const i = state.slots.indexOf(null); return i >= 0 ? i : state.slots.length; }
+
+// Put a key into slot i: an empty slot takes it; a taken one passes its key
+// (and the keys after it) one slot on, up to the next empty slot.
+function place(i, label) {
+  const sl = state.slots;
+  while (sl.length <= i) sl.push(null);
+  if (!sl[i]) { sl[i] = label; return; }
+  let j = i;
+  while (j < sl.length && sl[j]) j++;
+  for (let k = j; k > i; k--) sl[k] = sl[k - 1];
+  sl[i] = label;
 }
 function addKey(label, at) {
-  if (state.order.includes(label)) return;
-  const o = state.order.slice();
-  o.splice(at == null ? o.length : Math.min(at, o.length), 0, label);
-  setOrder(o);
+  if (state.slots.includes(label)) return;
+  place(at == null ? firstFree() : at, label);
+  commit();
 }
+// A key moved onto an empty slot goes there; onto a taken one, the two swap
 function moveKey(from, to) {
-  const o = state.order.slice();
-  const [x] = o.splice(from, 1);
-  o.splice(Math.min(to, o.length), 0, x);
-  setOrder(o);
+  if (from === to) return;
+  const sl = state.slots;
+  while (sl.length <= to) sl.push(null);
+  [sl[from], sl[to]] = [sl[to], sl[from]];
+  commit();
 }
-function removeAt(i) {
-  const o = state.order.slice(); o.splice(i, 1); setOrder(o);
+function removeAt(i) { state.slots[i] = null; commit(); }
+
+function addPage() {
+  const under = capacity(state.pages) - 1;      // last page's bottom-right key: becomes the arrow
+  const moved = state.pages > 0 && state.slots[under];
+  state.pages++;
+  commit(moved ? `“${moved}” moved to page ${state.pages}: its key now holds the ▶ arrow` : null);
+}
+function removeLastPage() {
+  const [a] = pageRanges(state.pages)[state.pages - 1];
+  if (state.slots.slice(a).some(Boolean)) return;
+  state.pages--; commit();
 }
 
 function issues() {
-  const on = new Set(state.order);
+  const on = new Set(state.slots.filter(Boolean));
   const out = [];
-  for (const l of state.order)
+  for (const l of on)
     for (const need of BY_LABEL.get(l).needs)
       if (!on.has(need)) out.push({ label: l, need });
   return out;
@@ -324,7 +382,7 @@ function iconEl(k, cls) {
 }
 
 function renderPalette() {
-  const used = new Set(state.order);
+  const used = new Set(state.slots.filter(Boolean));
   const q = state.query.trim().toLowerCase();
   const tiles = $("tiles");
   tiles.textContent = "";
@@ -336,7 +394,7 @@ function renderPalette() {
     t.dataset.label = k.label;
     t.title = `${k.label} — ${TYPE_NAMES[k.type] || k.type}` +
       (k.needs.length ? `\nNeeds: ${k.needs.join(", ")}` : "") +
-      (used.has(k.label) ? "\nOn the deck (click to remove)" : "\nClick to add, or drag onto the deck");
+      (used.has(k.label) ? "\nOn the deck (click to remove, drag to move)" : "\nClick to add, or drag onto a key");
     t.setAttribute("aria-pressed", used.has(k.label) ? "true" : "false");
     t.append(iconEl(k), el("span", "name", k.label), el("span", "badge", "✓"));
     if (k.needs.length) {
@@ -347,7 +405,7 @@ function renderPalette() {
     tiles.append(t);
   }
   if (!tiles.children.length) tiles.append(el("div", "hint", "No buttons match."));
-  $("usedCount").textContent = `${state.order.length} of ${KEYS.length} on deck`;
+  $("usedCount").textContent = `${used.size} of ${KEYS.length} on deck`;
 }
 
 function renderChips() {
@@ -364,17 +422,21 @@ function renderChips() {
 
 function renderDeck() {
   const { rows, cols } = state;
-  const n = state.order.length;
-  const pages = paginate(n, rows, cols);
+  const ranges = pageRanges(state.pages);
   const flagged = new Set(issues().map(x => x.label));
   const wrap = $("pages"); wrap.textContent = "";
-  pages.forEach(([a, b], p) => {
-    const first = p === 0, last = p === pages.length - 1;
+  ranges.forEach(([a, b], p) => {
+    const first = p === 0, last = p === ranges.length - 1;
     const page = el("div", "page");
-    page.append(el("div", "page-title", pages.length > 1 ? `Page ${p + 1} of ${pages.length}` : "Deck"));
+    const head = el("div", "page-title", ranges.length > 1 ? `Page ${p + 1} of ${ranges.length}` : "Deck");
+    if (last && ranges.length > 1 && !state.slots.slice(a).some(Boolean)) {
+      const rmp = el("button", "linkbtn", "remove page"); rmp.type = "button"; rmp.onclick = removeLastPage;
+      head.append(" · ", rmp);
+    }
+    page.append(head);
     const deck = el("div", "deck");
     deck.style.setProperty("--cols", cols);
-    let k = a;
+    let idx = a;
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
       const slot = el("div", "slot");
       let key, cap = "";
@@ -382,20 +444,25 @@ function renderDeck() {
         key = el("div", "key nav", "◀"); key.setAttribute("aria-label", "previous page (automatic)");
       } else if (!last && r === rows - 1 && c === cols - 1) {
         key = el("div", "key nav", "▶"); key.setAttribute("aria-label", "next page (automatic)");
-      } else if (k < b) {
-        const label = state.order[k], info = BY_LABEL.get(label);
-        key = el("button", "key" + (flagged.has(label) ? " flag" : ""));
-        key.type = "button";
-        key.dataset.index = k; key.dataset.drop = k;
-        key.setAttribute("aria-label", `${label}, position ${k + 1}`);
-        key.title = label;
-        key.append(iconEl(info));
-        const rm = el("span", "rm", "×"); rm.setAttribute("aria-hidden", "true"); rm.dataset.rm = k;
-        key.append(rm);
-        cap = label; k++;
       } else {
-        key = el("div", "key empty"); key.dataset.drop = n;
-        key.setAttribute("aria-label", "empty: drop to add at the end");
+        const label = state.slots[idx];
+        if (label) {
+          const info = BY_LABEL.get(label);
+          key = el("button", "key" + (flagged.has(label) ? " flag" : ""));
+          key.type = "button";
+          key.dataset.index = idx;
+          key.setAttribute("aria-label", `${label}, page ${p + 1}, row ${r + 1}, column ${c + 1}`);
+          key.title = label;
+          key.append(iconEl(info));
+          const rm = el("span", "rm", "×"); rm.setAttribute("aria-hidden", "true"); rm.dataset.rm = idx;
+          key.append(rm);
+          cap = label;
+        } else {
+          key = el("div", "key empty");
+          key.setAttribute("aria-label", `empty key, page ${p + 1}, row ${r + 1}, column ${c + 1}`);
+        }
+        key.dataset.drop = idx;
+        idx++;
       }
       slot.append(key, el("div", "cap", cap));
       deck.append(slot);
@@ -403,32 +470,31 @@ function renderDeck() {
     page.append(deck);
     wrap.append(page);
   });
-  // a full last page still needs somewhere to append to
-  const lastPage = pages[pages.length - 1];
-  const slotsOnLast = rows * cols - (pages.length > 1 ? 1 : 0);
-  if (lastPage[1] - lastPage[0] >= slotsOnLast) {
-    const page = el("div", "page");
-    page.append(el("div", "page-title", "Drop here for a new page"));
-    const deck = el("div", "deck"); deck.style.setProperty("--cols", 1);
-    const slot = el("div", "slot"); const key = el("div", "key empty"); key.dataset.drop = n;
-    slot.append(key, el("div", "cap", "")); deck.append(slot); page.append(deck); wrap.append(page);
-  }
+  const add = el("div", "page");
+  add.append(el("div", "page-title", " "));
+  const btn = el("button", "add-page", "+ Add page");
+  btn.type = "button"; btn.dataset.drop = "newpage"; btn.onclick = addPage;
+  btn.title = "Add an empty page (or drop a button here to put it on a new page)";
+  add.append(btn);
+  wrap.append(add);
 }
 
 function renderSummary() {
-  const n = state.order.length;
+  const n = keyCount();
+  const L = lastIndex();
+  const P = L < 0 ? 0 : pageOf(L);
+  const len = exportList().length;
   const sizes = [[3, 5, "15-key"], [2, 3, "Mini"], [2, 4, "Neo"], [4, 8, "XL"]];
-  const pages = paginate(n, state.rows, state.cols).length;
-  $("sumMain").textContent = n ? `${n} button${n > 1 ? "s" : ""} · ${pages} page${pages > 1 ? "s" : ""}` : "Empty deck: add buttons from the list";
-  $("sumOther").textContent = n ? "Same file on other decks: " + sizes
-    .filter(([r, c]) => !(r === state.rows && c === state.cols))
-    .map(([r, c, name]) => `${name} ${paginate(n, r, c).length}p`).join(" · ") : "";
+  const here = sizes.find(([r, c]) => r === state.rows && c === state.cols);
+  $("sumMain").textContent = n ? `${n} button${n > 1 ? "s" : ""} · ${P} page${P > 1 ? "s" : ""}` : "Empty deck: drag buttons onto the keys";
+  $("sumOther").textContent = n ? `Laid out for the ${here ? here[2] : "selected"} deck; other decks fill the same order: ` + sizes
+    .filter(s => s !== here).map(([r, c, name]) => `${name} ${pagesFor(len, r * c)}p`).join(" · ") : "";
   const list = $("issueList"); list.textContent = "";
   const iss = issues();
   for (const { label, need } of iss) {
     const li = el("li"); li.append(`“${label}” only works together with “${need}”.`);
     const fix = el("button", "btn", `Add ${need}`); fix.type = "button";
-    fix.onclick = () => addKey(need, state.order.indexOf(label));
+    fix.onclick = () => addKey(need);
     li.append(fix); list.append(li);
   }
   $("issues").classList.toggle("show", iss.length > 0);
@@ -446,13 +512,14 @@ const ghost = $("ghost");
 function dropTarget(x, y) {
   const hit = document.elementFromPoint(x, y);
   if (!hit) return null;
-  const key = hit.closest("[data-drop]");
-  if (key && key.dataset.drop !== "remove") return { el: key, index: +key.dataset.drop };
+  const t = hit.closest("[data-drop]");
+  if (t && t.dataset.drop === "newpage") return { el: t, newPage: true };
+  if (t && t.dataset.drop !== "remove") return { el: t, index: +t.dataset.drop };
   if (hit.closest("#palette")) return { el: $("palette"), remove: true };
   return null;
 }
 function clearTarget() {
-  document.querySelectorAll(".key.target").forEach(e => e.classList.remove("target"));
+  document.querySelectorAll(".target").forEach(e => e.classList.remove("target"));
   $("palette").classList.remove("drop-remove");
 }
 
@@ -463,7 +530,7 @@ document.addEventListener("pointerdown", e => {
   if (!tile && !key) return;
   drag = {
     x: e.clientX, y: e.clientY, id: e.pointerId, started: false,
-    label: tile ? tile.dataset.label : state.order[+key.dataset.index],
+    label: tile ? tile.dataset.label : state.slots[+key.dataset.index],
     from: key ? +key.dataset.index : null, src: tile || key,
   };
 });
@@ -473,15 +540,15 @@ document.addEventListener("pointermove", e => {
   if (!drag.started) {
     if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
     // a button already on the deck, dragged from the list, moves that key
-    if (drag.from == null && state.order.includes(drag.label)) {
-      drag.from = state.order.indexOf(drag.label);
+    if (drag.from == null && state.slots.includes(drag.label)) {
+      drag.from = state.slots.indexOf(drag.label);
       drag.src = document.querySelector(`.key[data-index="${drag.from}"]`) || drag.src;
     }
     drag.started = true;
     ghost.textContent = "";
     ghost.append(iconEl(BY_LABEL.get(drag.label)));
     ghost.style.display = "block";
-    if (drag.from != null) drag.src.classList.add("dragging");
+    if (drag.src.classList.contains("key")) drag.src.classList.add("dragging");
     document.body.style.cursor = "grabbing";
   }
   e.preventDefault();
@@ -502,7 +569,7 @@ function endDrag(e, cancelled) {
   if (!d.started) {                         // a click: released where it was pressed
     if (Math.hypot(e.clientX - d.x, e.clientY - d.y) >= 6 || !d.src.contains(e.target)) return;
     if (!d.src.classList.contains("key")) {
-      const i = state.order.indexOf(d.label);
+      const i = state.slots.indexOf(d.label);
       if (i >= 0) removeAt(i); else addKey(d.label);
     }
     return;
@@ -510,7 +577,9 @@ function endDrag(e, cancelled) {
   const t = dropTarget(e.clientX, e.clientY);
   if (!t) return;
   if (t.remove) { if (d.from != null) removeAt(d.from); return; }
-  if (d.from != null) moveKey(d.from, t.index); else addKey(d.label, t.index);
+  let to = t.index;
+  if (t.newPage) { addPage(); to = pageRanges(state.pages)[state.pages - 1][0]; }
+  if (d.from != null) moveKey(d.from, to); else addKey(d.label, to);
 }
 document.addEventListener("pointerup", e => endDrag(e, false));
 document.addEventListener("pointercancel", e => endDrag(e, true));
@@ -521,24 +590,24 @@ $("pages").addEventListener("click", e => {
   if (rm) { e.stopPropagation(); removeAt(+rm.dataset.rm); }
 });
 
-// keyboard on the deck: ←/→ move, Delete remove; Enter on a tile toggles it
+// keyboard on the deck: ←/→ swap with the neighbouring key, Delete empties it
 $("pages").addEventListener("keydown", e => {
   const key = e.target.closest(".key[data-index]");
   if (!key) return;
   const i = +key.dataset.index;
   let next = null;
   if (e.key === "ArrowLeft" && i > 0) { moveKey(i, i - 1); next = i - 1; }
-  else if (e.key === "ArrowRight" && i < state.order.length - 1) { moveKey(i, i + 1); next = i + 1; }
-  else if (e.key === "Delete" || e.key === "Backspace") { removeAt(i); next = Math.min(i, state.order.length - 1); }
+  else if (e.key === "ArrowRight" && i + 1 < capacity(state.pages)) { moveKey(i, i + 1); next = i + 1; }
+  else if (e.key === "Delete" || e.key === "Backspace") { removeAt(i); }
   else return;
   e.preventDefault();
-  const f = document.querySelector(`.key[data-index="${next}"]`); if (f) f.focus();
+  const f = next != null && document.querySelector(`.key[data-index="${next}"]`); if (f) f.focus();
 });
 $("tiles").addEventListener("keydown", e => {
   const t = e.target.closest(".tile");
   if (!t || (e.key !== "Enter" && e.key !== " ")) return;
   e.preventDefault();
-  const i = state.order.indexOf(t.dataset.label);
+  const i = state.slots.indexOf(t.dataset.label);
   if (i >= 0) removeAt(i); else addKey(t.dataset.label);
   const again = document.querySelector(`.tile[data-label="${CSS.escape(t.dataset.label)}"]`);
   if (again) again.focus();
@@ -549,7 +618,8 @@ $("search").addEventListener("input", e => { state.query = e.target.value; rende
 
 $("deckSize").addEventListener("change", e => {
   const [r, c] = e.target.value.split("x").map(Number);
-  state.rows = r; state.cols = c; save(); render();
+  state.rows = r; state.cols = c; state.pages = 1;
+  commit(keyCount() ? "Keys re-flowed in the same order for this deck size" : null);
 });
 
 for (const [i, p] of DATA.presets.entries()) {
@@ -559,13 +629,13 @@ $("preset").addEventListener("change", e => {
   if (e.target.value === "") return;
   const p = DATA.presets[+e.target.value];
   e.target.value = "";
-  if (state.order.length && !confirm(`Replace the ${state.order.length} buttons on the deck with “${p.name}”?`)) return;
-  setOrder(p.keys.slice(), `Loaded ${p.name}`);
+  if (keyCount() && !confirm(`Replace the ${keyCount()} buttons on the deck with “${p.name}”?`)) return;
+  load(p.keys.slice()); commit(`Loaded ${p.name}`);
 });
 
 $("clearBtn").addEventListener("click", () => {
-  if (!state.order.length) return;
-  if (confirm(`Remove all ${state.order.length} buttons from the deck?`)) setOrder([], "Deck cleared");
+  if (!keyCount()) return;
+  if (confirm(`Remove all ${keyCount()} buttons from the deck?`)) { load([]); commit("Deck cleared"); }
 });
 
 $("importBtn").addEventListener("click", () => $("importFile").click());
@@ -575,21 +645,21 @@ $("importFile").addEventListener("change", async e => {
   let cfg;
   try { cfg = JSON.parse(await f.text()); } catch (err) { toast(`${f.name} is not valid JSON`); return; }
   if (!cfg || !Array.isArray(cfg.keys)) { toast(`${f.name} has no "keys" array`); return; }
-  const labels = cfg.keys.map(k => typeof k === "string" ? k : k && k.label);
-  const unknown = labels.filter(l => !BY_LABEL.has(l));
+  const labels = cfg.keys.map(k => typeof k === "string" ? k : (k && k.label) || null);
+  const unknown = labels.filter(l => l && !BY_LABEL.has(l));
   const lay = cfg._layout_builder && cfg._layout_builder.deck;
   if (lay && /^\d+x\d+$/.test(lay)) {
     const [c, r] = lay.split("x").map(Number);
     if ([...$("deckSize").options].some(o => o.value === `${r}x${c}`)) { state.rows = r; state.cols = c; }
   }
-  setOrder(labels.filter(l => BY_LABEL.has(l)),
-    `Imported ${labels.length - unknown.length} buttons from ${f.name}` +
-    (unknown.length ? ` — skipped ${unknown.length} not in ${DATA.superset}: ${unknown.slice(0, 3).join(", ")}${unknown.length > 3 ? "…" : ""}` : ""));
+  load(labels);
+  commit(`Imported ${keyCount()} buttons from ${f.name}` +
+    (unknown.length ? ` — ${unknown.length} not in ${DATA.superset} left empty: ${unknown.slice(0, 3).join(", ")}${unknown.length > 3 ? "…" : ""}` : ""));
 });
 
 $("downloadBtn").addEventListener("click", () => {
   const out = {
-    keys: state.order,
+    keys: exportList(),
     _layout_builder: { superset: DATA.superset, superset_sha: DATA.superset_sha,
                        deck: `${state.cols}x${state.rows}`, saved: new Date().toISOString() },
   };
@@ -603,7 +673,7 @@ $("downloadBtn").addEventListener("click", () => {
 let toastTimer;
 function toast(msg) {
   const t = $("toast"); t.textContent = msg; t.classList.add("show");
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 4000);
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 4500);
 }
 
 // ---------------------------------------------------------------- start
@@ -611,6 +681,7 @@ $("meta").textContent = `${KEYS.length} buttons from ${DATA.superset} · built $
 restore();
 $("deckSize").value = `${state.rows}x${state.cols}`;
 if (!$("deckSize").value) { state.rows = 3; state.cols = 5; $("deckSize").value = "3x5"; }
+normalize();
 renderChips();
 render();
 </script>

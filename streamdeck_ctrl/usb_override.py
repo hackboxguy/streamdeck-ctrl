@@ -11,7 +11,9 @@ already have. Each entry of its ``keys`` array is either
   * a label of a default key, e.g. ``"HDMI 27"``, or
   * a full key object copied from the default config. It must be identical to
     that key, except for ``position``, which is ignored (``{INSTALL_DIR}`` and
-    the installed path count as the same).
+    the installed path count as the same), or
+  * ``null``: an empty key (black, does nothing) - a gap, so that the keys after
+    it land where the layout builder put them.
 
 Keys are laid out in the file's order (and renumbered in it), paginated for
 whatever deck is attached.
@@ -27,9 +29,12 @@ import os
 import subprocess
 from copy import deepcopy
 
+from streamdeck_ctrl.icon_renderer import BLANK_ICON
+
 logger = logging.getLogger(__name__)
 
 USB_FILENAME = "streamdeck-buttons.json"
+MAX_ENTRIES = 512  # keys plus gaps; far more than any deck pages sensibly
 PLACEHOLDER = "{INSTALL_DIR}"
 # The directory streamdeck_ctrl/ is installed in (what setup.sh puts in for {INSTALL_DIR})
 INSTALL_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -76,9 +81,15 @@ def build_override(usb_cfg, base_cfg, install_dir=INSTALL_DIR):
     base_cfg = _expand(base_cfg, install_dir)
     by_label = {k.get("label"): k for k in base_cfg.get("keys", [])}
 
+    if len(usb_cfg["keys"]) > MAX_ENTRIES:
+        raise OverrideError(f"more than {MAX_ENTRIES} entries in \"keys\"")
+
     chosen = []
     seen = set()
     for i, entry in enumerate(usb_cfg["keys"]):
+        if entry is None:
+            chosen.append(None)
+            continue
         if isinstance(entry, str):
             label = entry
         elif isinstance(entry, dict):
@@ -102,11 +113,14 @@ def build_override(usb_cfg, base_cfg, install_dir=INSTALL_DIR):
         seen.add(label)
         chosen.append(base_key)
 
+    if not any(chosen):
+        raise OverrideError("no keys, only gaps")
+
     # A key enabled by another key's state needs that key on the deck too
-    chosen_ids = {k.get("notification_id") for k in chosen if k.get("notification_id")}
+    chosen_ids = {k.get("notification_id") for k in chosen if k and k.get("notification_id")}
     by_id = {k.get("notification_id"): k for k in base_cfg.get("keys", [])
              if k.get("notification_id")}
-    for key in chosen:
+    for key in filter(None, chosen):
         dep = (key.get("enabled_when") or {}).get("key")
         if dep and dep not in chosen_ids:
             dep_label = by_id.get(dep, {}).get("label", dep)
@@ -118,10 +132,16 @@ def build_override(usb_cfg, base_cfg, install_dir=INSTALL_DIR):
     # a subset that fits on one page)
     cols = (base_cfg.get("device") or {}).get("layout", [3, 5])[1]
     result = deepcopy(base_cfg)
-    result["keys"] = deepcopy(chosen)
+    result["keys"] = [deepcopy(k) if k else _gap(i) for i, k in enumerate(chosen)]
     for i, key in enumerate(result["keys"]):
         key["position"] = [i // cols, i % cols]
     return result
+
+
+def _gap(i):
+    """An empty key: black, no action, no state."""
+    return {"label": f"(empty {i + 1})", "icon_type": "static",
+            "icons": {"default": BLANK_ICON}, "action": None}
 
 
 # ---------------------------------------------------------------------------

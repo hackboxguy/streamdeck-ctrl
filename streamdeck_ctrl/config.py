@@ -7,6 +7,8 @@ from copy import deepcopy
 
 import jsonschema
 
+from streamdeck_ctrl.icon_renderer import BLANK_ICON
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -670,6 +672,8 @@ def _resolve_icon_paths(keys, config_dir):
     for key in keys:
         icons = key.get("icons", {})
         for icon_key, icon_path in icons.items():
+            if icon_path == BLANK_ICON:
+                continue
             if not os.path.isabs(icon_path):
                 icons[icon_key] = os.path.normpath(
                     os.path.join(config_dir, icon_path)
@@ -689,7 +693,7 @@ def _validate_icon_files(keys):
     for key in keys:
         icons = key.get("icons", {})
         for icon_key, icon_path in icons.items():
-            if not os.path.isfile(icon_path):
+            if icon_path != BLANK_ICON and not os.path.isfile(icon_path):
                 raise FileNotFoundError(
                     f"Icon not found: {icon_path} "
                     f"(key '{key['label']}', icons.{icon_key})"
