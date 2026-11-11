@@ -80,6 +80,15 @@ def main(args=None):
         help="Deck size for --simulate (default 5x3; 3x2 = Stream Deck Mini)",
     )
     parser.add_argument(
+        "--no-usb-override", action="store_true",
+        help="Do not look for streamdeck-buttons.json on a USB stick at startup",
+    )
+    parser.add_argument(
+        "--check-buttons", metavar="FILE",
+        help="Check that FILE is an acceptable streamdeck-buttons.json for --config "
+             "(a subset of its keys), print the keys it picks, and exit",
+    )
+    parser.add_argument(
         "--log-level", default="info",
         choices=["debug", "info", "warning", "error"],
         help="Logging level (default: info)",
@@ -91,6 +100,19 @@ def main(args=None):
     opts = parser.parse_args(args)
 
     setup_logging(opts.log_level)
+
+    if opts.check_buttons:
+        from streamdeck_ctrl.usb_override import load_override_config
+        try:
+            with open(opts.check_buttons, "r") as f:
+                cfg = load_override_config(opts.config, f.read())
+        except Exception as e:
+            print(f"REJECTED: {e}", file=sys.stderr)
+            sys.exit(1)
+        print(f"OK: {len(cfg['keys'])} keys")
+        for i, key in enumerate(cfg["keys"]):
+            print(f"  {i + 1:3d}. {key['icon_type']:<10} {key['label']}")
+        return
 
     if opts.dry_run:
         try:
@@ -114,6 +136,7 @@ def main(args=None):
         brightness=opts.brightness,
         simulate=opts.simulate,
         simulate_layout=(sim_rows, sim_cols),
+        usb_override=not opts.no_usb_override,
     )
 
     try:

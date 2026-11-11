@@ -303,6 +303,43 @@ plugged in while the daemon runs (no restart; key states are kept). For example,
 `{INSTALL_DIR}` in the variants too. Keys that appear in both files should keep the same
 `notification_id`, so state and scripts are shared.
 
+### Button layout from a USB stick
+
+At start-up the daemon looks for `streamdeck-buttons.json` at the top level of an
+attached USB stick. If the file is there and is a valid **subset** of the `--config` file
+(the superset), its keys are shown instead of the default ones; otherwise the default
+config is used and the reason is logged (`journalctl -u streamdeck-ctrl | grep "USB override"`).
+
+The file can only *pick* keys of the superset, never define or change one, so a stick
+cannot add commands. Each entry of `keys` is either a key's label or a key object
+copied unchanged from the superset (its `position` is ignored; `{INSTALL_DIR}` and the
+installed path count as the same):
+
+```json
+{
+  "keys": [
+    "Home",
+    "Local Dimming",
+    "Pixel Compensation",
+    "HDMI 27",
+    { "label": "IP Address", "icon_type": "live_value", "...": "copied from the superset" }
+  ]
+}
+```
+
+- Keys are laid out in the file's order and paginated for whatever deck is attached; the
+  per-deck variants (`*-3x2.json`) are not used while an override is active.
+- A file is rejected if a key is unknown, listed twice, differs from the superset in
+  any field, or is missing a key its `enabled_when` depends on (e.g. *Pixel
+  Compensation* without *Local Dimming*). `device` and `notification` always come from
+  the superset.
+- An unmounted stick is mounted read-only through udisks2 just to read the file; one
+  already mounted (e.g. `/media/pi/<LABEL>`) is read in place. The stick is only read at
+  start-up (boot, deck replug, `systemctl restart streamdeck-ctrl`).
+- Check a file on any PC before copying it to the stick:
+  `python3 -m streamdeck_ctrl.main --config screens/display-control/display-control.json --check-buttons streamdeck-buttons.json`
+- `--no-usb-override` turns the lookup off.
+
 ## Real-World Example: Display Control
 
 The included `screens/display-control/` is micropanel's screen, six pages on a 15-key deck:
@@ -552,6 +589,8 @@ This keeps both services fully decoupled — the external service doesn't know a
 
 `streamdeck-ctrl` is designed for **trusted, single-operator environments** (e.g. a dedicated Pi appliance). Script actions use `shell=True` with token substitution, and the Unix socket accepts connections from any local process. This is intentional for ease of integration with shell scripts and local services.
 
+A `streamdeck-buttons.json` on a USB stick can only select keys of the installed config; any key that differs from it is rejected (see *Button layout from a USB stick*).
+
 Do not expose the notification socket to untrusted networks or allow untrusted users to modify config files or notification payloads.
 
 ## CLI Reference
@@ -564,6 +603,8 @@ Options:
   --socket-path PATH   Override Unix socket path from config
   --brightness INT     Override brightness (0-100) from config
   --dry-run            Validate config and print key layout, do not open deck
+  --check-buttons FILE Check FILE as a USB streamdeck-buttons.json for --config, list its keys
+  --no-usb-override    Do not look for streamdeck-buttons.json on a USB stick
   --simulate           Run full daemon with simulated deck (no hardware)
   --simulate-layout CxR Deck size for --simulate, e.g. 3x2 (default 5x3)
   --daemon             Fork to background (for non-systemd environments)
@@ -610,6 +651,7 @@ streamdeck_ctrl/
 ├── main.py            # CLI entry point, signal handling
 ├── daemon.py          # Deck lifecycle, reconnect loop, FakeDeck (simulate)
 ├── config.py          # JSON loader, schema validator, defaults
+├── usb_override.py    # streamdeck-buttons.json from a USB stick (subset of the config)
 ├── key_manager.py     # Per-key state machines (static/toggle/multistate/live_value/radio/task)
 ├── action.py          # Script + HTTP execution, token substitution
 ├── notifier.py        # Unix socket server (selectors-based)

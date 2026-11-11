@@ -414,12 +414,14 @@ def config_for_layout(path, rows, cols):
     return variant if os.path.isfile(variant) else path
 
 
-def load_config(path, *, validate_icons=True):
+def load_config(path, *, validate_icons=True, data=None):
     """Load, validate, inject defaults, and resolve icon paths.
 
     Args:
         path: Path to the JSON config file.
         validate_icons: If True, verify that all referenced icon files exist.
+        data: An already parsed config to use instead of reading path; relative
+            paths in it are still resolved against path's directory.
 
     Returns:
         dict: The fully resolved configuration.
@@ -433,8 +435,11 @@ def load_config(path, *, validate_icons=True):
     path = os.path.abspath(path)
     config_dir = os.path.dirname(path)
 
-    with open(path, "r") as f:
-        cfg = json.load(f)
+    if data is not None:
+        cfg = deepcopy(data)
+    else:
+        with open(path, "r") as f:
+            cfg = json.load(f)
 
     # --- schema validation ---
     jsonschema.validate(cfg, CONFIG_SCHEMA)
@@ -474,7 +479,8 @@ def load_config(path, *, validate_icons=True):
     if validate_icons:
         _validate_icon_files(cfg["keys"])
 
-    logger.info("Config loaded: %s (%d keys)", path, len(cfg["keys"]))
+    logger.info("Config loaded: %s%s (%d keys)", path,
+                " (USB override keys)" if data is not None else "", len(cfg["keys"]))
     return cfg
 
 

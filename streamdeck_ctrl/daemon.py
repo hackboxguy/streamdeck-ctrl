@@ -22,6 +22,7 @@ from streamdeck_ctrl.key_manager import KeyManager
 from streamdeck_ctrl.notifier import Notifier
 from streamdeck_ctrl.page_manager import PageManager
 from streamdeck_ctrl.state_store import StateStore
+from streamdeck_ctrl.usb_override import find_override
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +110,7 @@ class StreamDeckDaemon:
     """
 
     def __init__(self, config_path, socket_path=None, brightness=None,
-                 simulate=False, simulate_layout=(3, 5)):
+                 simulate=False, simulate_layout=(3, 5), usb_override=True):
         # config_path may have per-deck variants (<stem>-<cols>x<rows>.json); the one
         # matching the connected deck is chosen in run()
         self._base_config_path = config_path
@@ -119,6 +120,9 @@ class StreamDeckDaemon:
         self._socket_path_override = socket_path
         self._brightness_override = brightness
         self._simulate = simulate
+        # Look for a streamdeck-buttons.json on a USB stick at startup
+        self._usb_override = usb_override
+        self._overridden = False
 
         self._shutdown_event = threading.Event()
         self._render_queue = queue.Queue(maxsize=256)
@@ -136,11 +140,18 @@ class StreamDeckDaemon:
         """Main entry point. Load config, start services, enter reconnect loop."""
         # Load the config variant for the deck that is plugged in (if any yet)
         deck_layout = self._probe_deck_layout()
-        if deck_layout:
-            self._config_path = config_for_layout(self._base_config_path, *deck_layout)
-            logger.info("Stream Deck with %dx%d keys detected, using %s",
-                        deck_layout[1], deck_layout[0], self._config_path)
-        self._config = load_config(self._config_path)
+        # A valid streamdeck-buttons.json on a USB stick wins over the default
+        # config and its per-deck variants: one file, paginated for any deck
+        override = find_override(self._base_config_path) if self._usb_override else None
+        if override is not None:
+            self._overridden = True
+            self._config = override
+        else:
+            if deck_layout:
+                self._config_path = config_for_layout(self._base_config_path, *deck_layout)
+                logger.info("Stream Deck with %dx%d keys detected, using %s",
+                            deck_layout[1], deck_layout[0], self._config_path)
+            self._config = load_config(self._config_path)
 
         # Apply overrides
         if self._brightness_override is not None:
@@ -233,7 +244,9 @@ class StreamDeckDaemon:
             # A different deck model needs its own config; everything (pages, key
             # states, poll threads) is built from it, so restart rather than rebuild.
             # systemd (Restart=on-failure) brings the daemon back with the right file.
-            wanted = config_for_layout(self._base_config_path, *deck.key_layout())
+            # (A USB override is the same file for every deck: it re-paginates)
+            wanted = (self._config_path if self._overridden
+                      else config_for_layout(self._base_config_path, *deck.key_layout()))
             if wanted != self._config_path:
                 logger.warning("Stream Deck changed: %dx%d keys need %s, but %s is loaded; "
                                "exiting so the service restarts with it",
