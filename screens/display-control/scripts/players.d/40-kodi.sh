@@ -27,5 +27,12 @@ case "${1:-}" in
     toggle)  rpc Player.PlayPause "{\"playerid\":$PID,\"play\":\"toggle\"}" | ok ;;
     seek)    rpc Player.Seek "{\"playerid\":$PID,\"value\":{\"seconds\":${2#+}}}" | ok ;;
     stop)    rpc Player.Stop "{\"playerid\":$PID}" | ok ;;
+    loop-status) case "$(rpc Player.GetProperties "{\"playerid\":$PID,\"properties\":[\"repeat\"]}")" in
+                 *'"repeat":"off"'*) echo off ;; *'"repeat":'*) echo on ;; *) echo unknown ;; esac ;;
+    loop)    case "$2" in
+                 on)  rpc Player.SetRepeat "{\"playerid\":$PID,\"repeat\":\"one\"}" | ok ;;
+                 off) rpc Player.SetRepeat "{\"playerid\":$PID,\"repeat\":\"off\"}" | ok ;;
+                 *)   if [ "$("$0" loop-status)" = on ]; then "$0" loop off; else "$0" loop on; fi ;;
+             esac ;;
     *)       exit 2 ;;
 esac

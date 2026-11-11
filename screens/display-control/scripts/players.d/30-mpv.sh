@@ -23,5 +23,12 @@ case "${1:-}" in
     toggle)  ipc "$S" '["cycle","pause"]' | grep -q success ;;
     seek)    ipc "$S" "[\"seek\",${2#+},\"relative\"]" | grep -q success ;;
     stop)    ipc "$S" '["stop"]' | grep -q success ;;
+    loop-status) case "$(ipc "$S" '["get_property","loop-file"]')" in
+                 *'"data":false'*|*'"data":"no"'*) echo off ;; *'"error":"success"'*) echo on ;; *) echo unknown ;; esac ;;
+    loop)    case "$2" in
+                 on)  ipc "$S" '["set_property","loop-file","inf"]' | grep -q success ;;
+                 off) ipc "$S" '["set_property","loop-file","no"]' | grep -q success ;;
+                 *)   if [ "$("$0" loop-status)" = on ]; then "$0" loop off; else "$0" loop on; fi ;;
+             esac ;;
     *)       exit 2 ;;
 esac

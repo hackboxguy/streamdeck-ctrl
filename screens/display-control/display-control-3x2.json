@@ -151,6 +151,29 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [2,  2],
+      "label": "Player Loop",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "video-loop-on.bmp",
+        "off": "video-loop-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "player.loop",
+      "state_watch": {
+        "command": "{INSTALL_DIR}/screens/display-control/scripts/player-ctl.sh loop-status",
+        "text_map": {"on": "on", "off": "off", "none": "off"},
+        "poll_interval_sec": 2
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/player-ctl.sh loop toggle",
+          "async": true
+        }
+      }
     }
   ]
 }

@@ -334,7 +334,7 @@ class TestTaskConfig:
         # OLED-IB touch key (in Blank 4's place, 2026-10-24), and the
         # Qvue-Legacy and Qvue-New IOC keys and the Qvue-New FPGA key on the
         # bottom row after the left arrow (in Blank 5/6/7's places,
-        # 2026-11-04); page 5 the SDR/HDR demo clip keys and the Player keys, padded with Blank 8-13
+        # 2026-11-04); page 5 the SDR/HDR demo clip keys and the Player keys (Player Loop in Blank 8's place), padded with Blank 9-13
         # so it is a full middle page; page 6 the Qvue-Legacy FPGA key and
         # Blank 14 (a last page holds up to 14 keys, so page 6 only exists
         # while more than 14 keys follow page 4).
@@ -362,7 +362,7 @@ class TestTaskConfig:
         # the shoot-out's clip keys and the Player transport keys
         demo = [k for k in cfg["keys"] if k.get("notification_id", "").startswith("demo.")
                 or k["label"].startswith(("SDR/HDR", "Player "))]
-        assert len(demo) == 7
+        assert len(demo) == 8   # 3 clips + Player Stop, -10s, Pause, +10s, Loop
         assert all(pages.get_physical_pos(k["position"]) is not None for k in demo)
         assert pages.is_nav_key((2, 4)) == "right"
         pages.switch_page("right")

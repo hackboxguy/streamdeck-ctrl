@@ -8,5 +8,7 @@ case "${1:-}" in
     status)  case "$(send status)" in *'"state":"paused"'*) echo paused ;; *'"state":'*) echo playing ;; *) exit 1 ;; esac ;;
     pause|resume|toggle|stop) send "$1" | grep -q '^ok' ;;
     seek)    send "seek $2" | grep -q '^ok' ;;
+    loop)    send "loop $2" | grep -q '^ok' ;;
+    loop-status) case "$(send status)" in *'"loop":true'*) echo on ;; *'"loop":false'*) echo off ;; *) echo unknown ;; esac ;;
     *)       exit 2 ;;
 esac
