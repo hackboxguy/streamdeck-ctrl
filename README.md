@@ -340,6 +340,25 @@ installed path count as the same):
   `python3 -m streamdeck_ctrl.main --config screens/display-control/display-control.json --check-buttons streamdeck-buttons.json`
 - `--no-usb-override` turns the lookup off.
 
+#### Layout builder (browser)
+
+`tools/layout-builder/` turns the superset into one self-contained HTML page (keys,
+icons and code inside; works offline in any browser, nothing to install). Users drag the
+buttons they want onto a preview of the deck, which pages exactly as the daemon will,
+and download `streamdeck-buttons.json` for the stick. It refuses to download a layout
+with a missing `enabled_when` partner, can import an existing file, and remembers the
+draft in the browser.
+
+```bash
+python3 tools/layout-builder/make-layout-builder.py \
+    --config screens/display-control/display-control.json \
+    -o streamdeck-layout-builder.html
+```
+
+Re-run it whenever keys are added to the superset; the page picks keys by label. The
+downloaded file carries a `_layout_builder` note (superset name and hash, deck size) that
+the daemon ignores.
+
 ## Real-World Example: Display Control
 
 The included `screens/display-control/` is micropanel's screen, six pages on a 15-key deck:
