@@ -69,6 +69,15 @@ def preview_icon(key, config_dir, cache):
     return None
 
 
+def inert(key):
+    """A key that does nothing - no action, no state (the superset's "Blank N"
+    padding, which keeps later keys on their pages): left out of the builder,
+    where an empty key is simply an empty slot."""
+    action = key.get("action") or {}
+    return not action.get("on_press") and not key.get("notification_id") \
+        and "state_watch" not in key
+
+
 def build_data(config_path):
     config_dir = os.path.dirname(os.path.abspath(config_path))
     with open(config_path) as f:
@@ -83,6 +92,8 @@ def build_data(config_path):
     cache = {}
     out_keys = []
     for k in keys:
+        if inert(k):
+            continue
         dep = (k.get("enabled_when") or {}).get("key")
         out_keys.append({
             "label": k["label"],
@@ -93,7 +104,9 @@ def build_data(config_path):
 
     # Per-deck variants next to the superset make handy starting points
     stem = os.path.splitext(os.path.abspath(config_path))[0]
-    presets = [{"name": f"Everything ({len(keys)} keys)", "keys": labels}]
+    # presets name every key in order; the builder leaves labels it does not
+    # list (the inert keys) as empty keys, so the pages come out the same
+    presets = [{"name": f"Everything ({len(out_keys)} keys)", "keys": labels}]
     for variant in sorted(glob.glob(stem + "-[0-9]*x[0-9]*.json")):
         try:
             with open(variant) as f:
@@ -102,7 +115,8 @@ def build_data(config_path):
             print(f"warning: preset {variant}: {e}", file=sys.stderr)
             continue
         if all(l in set(labels) for l in vkeys):
-            presets.append({"name": f"{os.path.basename(variant)} ({len(vkeys)} keys)",
+            shown = sum(1 for l in vkeys if any(k["label"] == l for k in out_keys))
+            presets.append({"name": f"{os.path.basename(variant)} ({shown} keys)",
                             "keys": vkeys})
 
     return {

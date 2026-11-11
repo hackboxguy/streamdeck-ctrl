@@ -365,7 +365,9 @@ python3 tools/layout-builder/make-layout-builder.py \
     -o streamdeck-layout-builder.html
 ```
 
-Re-run it whenever keys are added to the superset; the page picks keys by label. The
+Re-run it whenever keys are added to the superset; the page picks keys by label. Keys that
+do nothing (no action, no state: the superset's "Blank N" padding) are not offered - an
+empty key is just an empty slot there. The
 downloaded file carries a `_layout_builder` note (superset name and hash, deck size) that
 the daemon ignores.
 

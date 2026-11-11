@@ -22,8 +22,13 @@ def builder():
 def test_every_superset_key_with_icon_and_deps(builder):
     data = builder.build_data(CONFIG)
     with open(CONFIG) as f:
-        labels = [k["label"] for k in json.load(f)["keys"]]
+        keys = json.load(f)["keys"]
+    labels = [k["label"] for k in keys if not builder.inert(k)]
     assert [k["label"] for k in data["keys"]] == labels
+    # the "Blank N" padding keys do nothing: not offered, but still in the presets
+    hidden = [k["label"] for k in keys if builder.inert(k)]
+    assert hidden and all(l.startswith("Blank ") for l in hidden)
+    assert set(hidden) <= set(data["presets"][0]["keys"])
     assert all(k["icon"] and k["icon"].startswith("data:image/png;base64,") for k in data["keys"])
     pix = next(k for k in data["keys"] if k["label"] == "Pixel Compensation")
     assert pix["needs"] == ["Local Dimming"]
