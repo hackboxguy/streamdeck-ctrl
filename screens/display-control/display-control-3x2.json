@@ -14,6 +14,7 @@
     {
       "position": [0, 0],
       "label": "SDR/HDR Peru",
+      "description": "SDR vs HDR10+ comparison stand: plays the Peru clip on both displays at once, in sync (the HDR10+ player on one, the Pi's SDR version on the other). Lit while it plays. Only on a Pi set up as that stand.",
       "icon_type": "radio",
       "icons": {
         "on": "demo-peru-on.png",
@@ -32,6 +33,7 @@
     {
       "position": [0, 1],
       "label": "SDR/HDR HDR10+ Test",
+      "description": "SDR vs HDR10+ comparison stand: plays the HDR10+ test clip on both displays at once, in sync (the HDR10+ player on one, the Pi's SDR version on the other). Lit while it plays. Only on a Pi set up as that stand.",
       "icon_type": "radio",
       "icons": {
         "on": "demo-test-on.png",
@@ -50,6 +52,7 @@
     {
       "position": [0, 2],
       "label": "SDR/HDR Harman",
+      "description": "SDR vs HDR10+ comparison stand: plays the Harman clip on both displays at once, in sync (the HDR10+ player on one, the Pi's SDR version on the other). Lit while it plays. Only on a Pi set up as that stand.",
       "icon_type": "radio",
       "icons": {
         "on": "demo-harman-on.png",
@@ -68,6 +71,7 @@
     {
       "position": [1, 0],
       "label": "Player Stop",
+      "description": "Stops the video that is playing: Kodi, Dual Video or a USB Media playlist, or the SDR/HDR stand.",
       "icon_type": "static",
       "icons": {
         "default": "demo-stop.png"
@@ -83,6 +87,7 @@
     {
       "position": [1, 1],
       "label": "IP Address",
+      "description": "Shows the Pi's network address (IPv4), or \"No IP!\" when it has none. Display only: pressing it does nothing.",
       "icon_type": "live_value",
       "icons": {
         "base": "ip-address.png"
@@ -102,6 +107,7 @@
     {
       "position": [2, 0],
       "label": "Player -10s",
+      "description": "Jumps 10 seconds back in the video that is playing.",
       "icon_type": "static",
       "icons": {
         "default": "demo-rew.png"
@@ -117,6 +123,7 @@
     {
       "position": [1, 2],
       "label": "Player Pause",
+      "description": "Pauses the video that is playing on the current frame, or plays on. Lit while paused.",
       "icon_type": "toggle",
       "icons": {
         "on": "demo-pause-on.png",
@@ -140,6 +147,7 @@
     {
       "position": [2, 1],
       "label": "Player +10s",
+      "description": "Jumps 10 seconds forward in the video that is playing.",
       "icon_type": "static",
       "icons": {
         "default": "demo-fwd.png"
@@ -155,6 +163,7 @@
     {
       "position": [2,  2],
       "label": "Player Loop",
+      "description": "Repeats the video that is playing, over and over. Lit while repeat is on.",
       "icon_type": "toggle",
       "icons": {
         "on": "video-loop-on.bmp",

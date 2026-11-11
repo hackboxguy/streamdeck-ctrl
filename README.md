@@ -197,6 +197,7 @@ A config file declares the device settings, notification socket, and key layout.
 |---|---|---|
 | `position` | yes | `[row, col]` — zero-indexed, within `device.layout` bounds |
 | `label` | yes | Human-readable name (used in logs and dry-run) |
+| `description` | no | What the key does, in plain words for users. The daemon ignores it; the layout builder shows it in its tooltip and info box (every key of `display-control.json` has one; a test checks it) |
 | `icon_type` | yes | `static`, `toggle`, `multistate`, `live_value`, `radio`, or `task` |
 | `notification_id` | no | Dot-separated ID for external state/value updates. Required for state persistence across restarts and socket notifications. |
 | `enabled_when` | no | `{"key": "<notification_id>", "state": "<state>"}`: the key is usable only while that other key is in that state. Otherwise it is drawn greyed out (greyscale, dimmed; its own state still shows) and presses are ignored; it is redrawn whenever the other key changes (press, notification or state watch). |
@@ -365,7 +366,9 @@ python3 tools/layout-builder/make-layout-builder.py \
     -o streamdeck-layout-builder.html
 ```
 
-Re-run it whenever keys are added to the superset; the page picks keys by label. Keys that
+Re-run it whenever keys are added to the superset (give each new key a `description`: the
+page shows it when a button is pointed at, in its tooltip and an info box, and the
+generator warns about a key without one); the page picks keys by label. Keys that
 do nothing (no action, no state: the superset's "Blank N" padding) are not offered - an
 empty key is just an empty slot there. The
 downloaded file carries a `_layout_builder` note (superset name and hash, deck size) that

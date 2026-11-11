@@ -64,6 +64,8 @@ KEY_COMMON = {
             "maxItems": 2,
         },
         "label": {"type": "string"},
+        # what the key does, in plain words (the layout builder shows it)
+        "description": {"type": "string"},
         "icon_type": {
             "type": "string",
             "enum": ["static", "toggle", "multistate", "live_value", "radio",

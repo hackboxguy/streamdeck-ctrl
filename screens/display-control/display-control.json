@@ -13,6 +13,7 @@
     {
       "position": [0, 0],
       "label": "Home",
+      "description": "Stops whatever is playing or running (a video, the cluster demo, an app) and returns the touch screen to the launcher's home screen.",
       "icon_type": "static",
       "icons": {
         "default": "home.bmp"
@@ -28,6 +29,7 @@
     {
       "position": [0, 1],
       "label": "Media Player",
+      "description": "Opens Kodi, the media player, on its home screen. If Kodi is already playing something, the playback stops.",
       "icon_type": "static",
       "icons": {
         "default": "kodi.bmp"
@@ -43,6 +45,7 @@
     {
       "position": [0, 2],
       "label": "Slideshow",
+      "description": "Starts a slideshow of the pictures stored on the Pi in Kodi (opens Kodi first if needed).",
       "icon_type": "static",
       "icons": {
         "default": "slideshow.bmp"
@@ -58,6 +61,7 @@
     {
       "position": [0, 3],
       "label": "Default Ref Video",
+      "description": "Plays the reference video in Kodi: the first video on a USB stick (its Videos folder, else its top folder), otherwise the reference video built into the Pi. Does nothing if it is already playing.",
       "icon_type": "static",
       "icons": {
         "default": "default-ref-video.bmp"
@@ -73,6 +77,7 @@
     {
       "position": [0, 4],
       "label": "Display Settings",
+      "description": "Opens the Display Settings app on the touch screen (stops any running app first).",
       "icon_type": "static",
       "icons": {
         "default": "settings.bmp"
@@ -88,6 +93,7 @@
     {
       "position": [1, 0],
       "label": "Brightness Up",
+      "description": "Makes the display brighter, 10 % per press.",
       "icon_type": "static",
       "icons": {
         "default": "brightness-up.bmp"
@@ -103,6 +109,7 @@
     {
       "position": [1, 1],
       "label": "Brightness",
+      "description": "Shows the display brightness and, on displays that report it, the backlight temperature (e.g. 30 % and 32 °C). Display only: pressing it does nothing.",
       "icon_type": "live_value",
       "icons": {
         "base": "brightness-value.png"
@@ -122,6 +129,7 @@
     {
       "position": [1, 2],
       "label": "Cluster Demo",
+      "description": "Starts the instrument-cluster demo in its classic look: the analog (Legacy) theme, the map shown and the driver-monitoring (DMS) panel off.",
       "icon_type": "static",
       "icons": {
         "default": "cluster-demo.bmp"
@@ -138,6 +146,7 @@
     {
       "position": [1, 3],
       "label": "ALS Adaptive",
+      "description": "Automatic brightness on or off. On (lit): the ambient light sensor adapts the display brightness to the room. Off: the brightness stays where you set it.",
       "icon_type": "toggle",
       "icons": {
         "on": "als-adaptive-on.bmp",
@@ -156,6 +165,7 @@
     {
       "position": [1, 4],
       "label": "IP Address",
+      "description": "Shows the Pi's network address (IPv4), or \"No IP!\" when it has none. Display only: pressing it does nothing.",
       "icon_type": "live_value",
       "icons": {
         "base": "ip-address.png"
@@ -175,6 +185,7 @@
     {
       "position": [2, 0],
       "label": "Brightness Down",
+      "description": "Makes the display darker, 10 % per press.",
       "icon_type": "static",
       "icons": {
         "default": "brightness-down.bmp"
@@ -190,6 +201,7 @@
     {
       "position": [2, 1],
       "label": "Display Power",
+      "description": "Switches the display panel on or off (the video link stays up). Lit while the display is on.",
       "icon_type": "toggle",
       "icons": {
         "on": "display-power-on.bmp",
@@ -213,6 +225,7 @@
     {
       "position": [2, 2],
       "label": "Local Dimming",
+      "description": "Local dimming on or off: the backlight is dimmed zone by zone behind dark parts of the picture, for deeper blacks and more contrast. Lit while on.",
       "icon_type": "toggle",
       "icons": {
         "on": "local-dimming-on.bmp",
@@ -240,6 +253,7 @@
     {
       "position": [2, 3],
       "label": "Pixel Compensation",
+      "description": "Pixel compensation on or off: corrects the picture for the zone-dimmed backlight. Only works while Local Dimming is on (greyed out otherwise). Lit while on.",
       "icon_type": "toggle",
       "icons": {
         "on": "pixel-compensation-on.bmp",
@@ -268,6 +282,7 @@
     {
       "position": [3, 0],
       "label": "HDMI 12.3-nq1",
+      "description": "Sets the Pi's HDMI video output to the timing of the 12.3\" NQ1 display and restarts the Pi (about a minute). Pick the key that matches the connected display; the lit key is the current setting.",
       "icon_type": "radio",
       "icons": {
         "on": "12-3-nq1-on.bmp",
@@ -286,6 +301,7 @@
     {
       "position": [3, 1],
       "label": "HDMI 15.6-2k5",
+      "description": "Sets the Pi's HDMI video output to the timing of the 15.6\" 2.5K display and restarts the Pi (about a minute). Pick the key that matches the connected display; the lit key is the current setting.",
       "icon_type": "radio",
       "icons": {
         "on": "15-6-2k5-on.bmp",
@@ -304,6 +320,7 @@
     {
       "position": [3, 2],
       "label": "HDMI 14.6-fhd-DD",
+      "description": "Sets the Pi's HDMI video output to the timing of the 14.6\" Full-HD (direct-drive backlight, DD) display and restarts the Pi (about a minute). Pick the key that matches the connected display; the lit key is the current setting. If the display's FPGA reports the other variant (EJ), the Pi switches to it at the next start.",
       "icon_type": "radio",
       "icons": {
         "on": "14-6-fhd-dd-on.bmp",
@@ -322,6 +339,7 @@
     {
       "position": [3, 3],
       "label": "HDMI EDID",
+      "description": "For an ordinary HDMI monitor: the Pi reads the monitor's own description (EDID) and picks its resolution by itself, then restarts (about a minute). The lit key is the current setting.",
       "icon_type": "radio",
       "icons": {
         "on": "edid-on.bmp",
@@ -340,6 +358,7 @@
     {
       "position": [3, 4],
       "label": "HDMI 12.3-nq5",
+      "description": "Sets the Pi's HDMI video output to the timing of the 12.3\" NQ5 display and restarts the Pi (about a minute). Pick the key that matches the connected display; the lit key is the current setting.",
       "icon_type": "radio",
       "icons": {
         "on": "12-3-nq5-on.bmp",
@@ -358,6 +377,7 @@
     {
       "position": [4, 0],
       "label": "HDMI 14.6-2k5",
+      "description": "Sets the Pi's HDMI video output to the timing of the 14.6\" 2.5K display and restarts the Pi (about a minute). Pick the key that matches the connected display; the lit key is the current setting.",
       "icon_type": "radio",
       "icons": {
         "on": "14-6-2k5-on.bmp",
@@ -376,6 +396,7 @@
     {
       "position": [4, 1],
       "label": "HDMI 17.3-3k",
+      "description": "Sets the Pi's HDMI video output to the timing of the 17.3\" 3K display and restarts the Pi (about a minute). Pick the key that matches the connected display; the lit key is the current setting.",
       "icon_type": "radio",
       "icons": {
         "on": "17-3-3k-on.bmp",
@@ -394,6 +415,7 @@
     {
       "position": [4, 2],
       "label": "HDMI 17.3-OTS-OLED",
+      "description": "Sets the Pi's HDMI video output to the timing of the 17.3\" OTS OLED display and restarts the Pi (about a minute). Pick the key that matches the connected display; the lit key is the current setting.",
       "icon_type": "radio",
       "icons": {
         "on": "17-3-ots-oled-on.bmp",
@@ -412,6 +434,7 @@
     {
       "position": [4, 3],
       "label": "HDMI 3x-QVue",
+      "description": "Sets the Pi's HDMI video output to the timing of the 3x QVue (three 12\" panels side by side) display and restarts the Pi (about a minute). Pick the key that matches the connected display; the lit key is the current setting.",
       "icon_type": "radio",
       "icons": {
         "on": "3x-qvue-on.bmp",
@@ -430,6 +453,7 @@
     {
       "position": [11, 3],
       "label": "HDMI 12.3-nq1v1.1",
+      "description": "Sets the Pi's HDMI video output to the timing of the 12.3\" NQ1 v1.1 display and restarts the Pi (about a minute). Pick the key that matches the connected display; the lit key is the current setting.",
       "icon_type": "radio",
       "icons": {
         "on": "12-3-nq1v11-on.bmp",
@@ -448,6 +472,7 @@
     {
       "position": [11, 4],
       "label": "HDMI 27",
+      "description": "Sets the Pi's HDMI video output to the timing of the 27\" wide display and restarts the Pi (about a minute). Pick the key that matches the connected display; the lit key is the current setting.",
       "icon_type": "radio",
       "icons": {
         "on": "27-on.bmp",
@@ -466,6 +491,7 @@
     {
       "position": [12, 0],
       "label": "HDMI 14.6-fhd-EJ",
+      "description": "Sets the Pi's HDMI video output to the timing of the 14.6\" Full-HD (scan-mode backlight, EJ) display and restarts the Pi (about a minute). Pick the key that matches the connected display; the lit key is the current setting. If the display's FPGA reports the other variant (DD), the Pi switches to it at the next start.",
       "icon_type": "radio",
       "icons": {
         "on": "14-6-fhd-ej-on.bmp",
@@ -484,6 +510,7 @@
     {
       "position": [12, 1],
       "label": "HDMI 17-IB-OLED",
+      "description": "Sets the Pi's HDMI video output to the timing of the 17\" IB OLED display and restarts the Pi (about a minute). Pick the key that matches the connected display; the lit key is the current setting.",
       "icon_type": "radio",
       "icons": {
         "on": "17-ib-oled-on.bmp",
@@ -502,6 +529,7 @@
     {
       "position": [9, 0],
       "label": "Cluster V2 Legacy",
+      "description": "Starts the instrument-cluster demo (Cluster V2) with the Legacy (classic analog gauges) theme, stopping whatever runs first. Lit while this theme is running.",
       "icon_type": "radio",
       "icons": {
         "on": "cluster-legacy-on.bmp",
@@ -529,6 +557,7 @@
     {
       "position": [9, 1],
       "label": "Cluster V2 EV",
+      "description": "Starts the instrument-cluster demo (Cluster V2) with the EV (electric vehicle) theme, stopping whatever runs first. Lit while this theme is running.",
       "icon_type": "radio",
       "icons": {
         "on": "cluster-ev-on.bmp",
@@ -556,6 +585,7 @@
     {
       "position": [9, 2],
       "label": "Cluster V2 Harman",
+      "description": "Starts the instrument-cluster demo (Cluster V2) with the Harman theme, stopping whatever runs first. Lit while this theme is running.",
       "icon_type": "radio",
       "icons": {
         "on": "cluster-harman-on.bmp",
@@ -583,6 +613,7 @@
     {
       "position": [9, 3],
       "label": "Cluster V2 Fable",
+      "description": "Starts the instrument-cluster demo (Cluster V2) with the Horizon (Fable) theme, stopping whatever runs first. Lit while this theme is running.",
       "icon_type": "radio",
       "icons": {
         "on": "cluster-fable1-on.bmp",
@@ -610,6 +641,7 @@
     {
       "position": [9, 4],
       "label": "Cluster V2 Tiles",
+      "description": "Starts the instrument-cluster demo (Cluster V2) with the Tiles theme, stopping whatever runs first. Lit while this theme is running.",
       "icon_type": "radio",
       "icons": {
         "on": "cluster-tiles-on.bmp",
@@ -637,6 +669,7 @@
     {
       "position": [10, 0],
       "label": "Cluster V2 Atelier",
+      "description": "Starts the instrument-cluster demo (Cluster V2) with the Atelier theme, stopping whatever runs first. Lit while this theme is running.",
       "icon_type": "radio",
       "icons": {
         "on": "cluster-atelier-on.bmp",
@@ -664,6 +697,7 @@
     {
       "position": [10, 1],
       "label": "Cluster V2 Neo",
+      "description": "Starts the instrument-cluster demo (Cluster V2) with the Neo theme, stopping whatever runs first. Lit while this theme is running.",
       "icon_type": "radio",
       "icons": {
         "on": "cluster-neo-on.bmp",
@@ -691,6 +725,7 @@
     {
       "position": [10, 2],
       "label": "Cluster V2 Auto",
+      "description": "Starts the instrument-cluster demo (Cluster V2) with the Auto theme, stopping whatever runs first. Lit while this theme is running.",
       "icon_type": "radio",
       "icons": {
         "on": "cluster-auto-on.bmp",
@@ -718,6 +753,7 @@
     {
       "position": [10, 3],
       "label": "Cluster Map",
+      "description": "Shows or hides the map behind the cluster demo's gauges. Works while the cluster runs and is remembered for its next start. Lit while the map is shown.",
       "icon_type": "toggle",
       "icons": {
         "on": "cluster-map-on.bmp",
@@ -747,6 +783,7 @@
     {
       "position": [10, 4],
       "label": "Cluster Camera",
+      "description": "Shows or hides the camera view in the cluster demo's driver-monitoring (DMS) panel. Lit while the camera is shown.",
       "icon_type": "toggle",
       "icons": {
         "on": "cluster-camera-on.bmp",
@@ -777,6 +814,7 @@
     {
       "position": [11, 0],
       "label": "Cluster DMS",
+      "description": "Shows or hides the whole driver-monitoring (DMS) panel in the cluster demo. Lit while the panel is shown.",
       "icon_type": "toggle",
       "icons": {
         "on": "cluster-dms-on.bmp",
@@ -806,6 +844,7 @@
     {
       "position": [11, 1],
       "label": "Cluster Stop",
+      "description": "Stops the cluster demo and returns to the launcher's home screen (the same as Home).",
       "icon_type": "static",
       "icons": {
         "default": "cluster-stop.bmp"
@@ -821,6 +860,7 @@
     {
       "position": [11, 2],
       "label": "DMS Link",
+      "description": "Sets up the Pi's wired network port as the link to the driver-monitoring computer (FocusDrive Xavier); the Pi hands it its network address. Green when the link is set up (kept across restarts); red if another network was found on the port, which is never overridden.",
       "icon_type": "task",
       "icons": {
         "default": "cluster-dms-link.bmp"
@@ -858,6 +898,7 @@
     {
       "position": [5, 4],
       "label": "12.3-NQ5 FPGA Flash",
+      "description": "Service: writes the FPGA image stored on the Pi into the 12.3\" NQ5 display board (over JTAG). Use only with that board connected. Blinks while writing, then green (done) or red (failed); do not unplug or switch off while it blinks.",
       "icon_type": "task",
       "icons": {
         "default": "12-3-nq5-fpga-flash.png"
@@ -884,6 +925,7 @@
     {
       "position": [6, 0],
       "label": "15.6-0OD FPGA Flash",
+      "description": "Service: writes the FPGA image stored on the Pi into the 15.6\" 0OD display board (over JTAG). Use only with that board connected. Blinks while writing, then green (done) or red (failed); do not unplug or switch off while it blinks.",
       "icon_type": "task",
       "icons": {
         "default": "15-6-0od-fpga-flash.png"
@@ -910,6 +952,7 @@
     {
       "position": [4, 4],
       "label": "14.6-EJ FPGA Flash",
+      "description": "Service: writes the FPGA image stored on the Pi into the 14.6\" Full-HD EJ display board (over JTAG). Use only with that board connected. Blinks while writing, then green (done) or red (failed); do not unplug or switch off while it blinks.",
       "icon_type": "task",
       "icons": {
         "default": "14-6-ej-fpga-flash.png"
@@ -936,6 +979,7 @@
     {
       "position": [6, 1],
       "label": "14.6-DD FPGA Flash",
+      "description": "Service: writes the FPGA image stored on the Pi into the 14.6\" Full-HD DD display board (over JTAG). Use only with that board connected. Blinks while writing, then green (done) or red (failed); do not unplug or switch off while it blinks.",
       "icon_type": "task",
       "icons": {
         "default": "14-6-dd-fpga-flash.png"
@@ -962,6 +1006,7 @@
     {
       "position": [6, 2],
       "label": "12.3-NQ11 FPGA Flash",
+      "description": "Service: writes the FPGA image stored on the Pi into the 12.3\" NQ1 v1.1 display board (over JTAG). Use only with that board connected. Blinks while writing, then green (done) or red (failed); do not unplug or switch off while it blinks.",
       "icon_type": "task",
       "icons": {
         "default": "12-3-nq11-fpga-flash.png"
@@ -988,6 +1033,7 @@
     {
       "position": [5, 0],
       "label": "983HH IOC Flash",
+      "description": "Service: reflashes the controller (RH850 IOC) of the 983HH serializer board with the firmware stored on the Pi, through a Bluebox programmer if one is plugged in, otherwise the Pi's own wiring. Use only with that board connected. Blinks while flashing, then green (done) or red (failed).",
       "icon_type": "task",
       "icons": {
         "default": "983hh-ioc-flash.png"
@@ -1014,6 +1060,7 @@
     {
       "position": [5, 1],
       "label": "S7-9090 IOC Flash",
+      "description": "Service: reflashes the controller (RH850 IOC) of the Spartan-7 (S7-9090) display board with the firmware stored on the Pi, through a Bluebox programmer if one is plugged in, otherwise the Pi's own wiring. Use only with that board connected. Blinks while flashing, then green (done) or red (failed).",
       "icon_type": "task",
       "icons": {
         "default": "spartn7-ioc-flash.png"
@@ -1040,6 +1087,7 @@
     {
       "position": [5, 2],
       "label": "LAT45 IOC Flash",
+      "description": "Service: reflashes the controller (RH850 IOC) of the Lattice ECP5 (LAT45) display board with the firmware stored on the Pi, through a Bluebox programmer if one is plugged in, otherwise the Pi's own wiring. Use only with that board connected. Blinks while flashing, then green (done) or red (failed).",
       "icon_type": "task",
       "icons": {
         "default": "LAT45-ioc-flash.png"
@@ -1066,6 +1114,7 @@
     {
       "position": [5, 3],
       "label": "OLED-OTS IOC Flash",
+      "description": "Service: reflashes the controller (RH850 IOC) of the 17.3\" OTS OLED display with the firmware stored on the Pi, through a Bluebox programmer if one is plugged in, otherwise the Pi's own wiring. Use only with that board connected. Blinks while flashing, then green (done) or red (failed).",
       "icon_type": "task",
       "icons": {
         "default": "oled-ots-ioc-flash.png"
@@ -1092,6 +1141,7 @@
     {
       "position": [12, 2],
       "label": "OLED-IB Touch-Flash",
+      "description": "Service: reflashes the touch controller of the 17\" IB OLED display from the Pi (about 25 s). Green, then the Pi restarts by itself; red if it failed. Only with that display connected.",
       "icon_type": "task",
       "icons": {
         "default": "oled-ib-touch-flash.png"
@@ -1118,6 +1168,7 @@
     {
       "position": [12, 3],
       "label": "Qvue-Legacy/IOC-Flash",
+      "description": "Service: puts the 3x QVue display's controller back on its original (legacy) firmware. Needs the Bluebox programmer. Run Qvue-Legacy/FPGA-Flash first, then this key.",
       "icon_type": "task",
       "icons": {
         "default": "qvue-legacy-ioc-flash.png"
@@ -1144,6 +1195,7 @@
     {
       "position": [12, 4],
       "label": "Qvue-New/IOC-Flash",
+      "description": "Service: flashes the 3x QVue display's controller with the new display_manager firmware. Needs the Bluebox programmer. Run this key first, then Qvue-New/FPGA-Flash.",
       "icon_type": "task",
       "icons": {
         "default": "qvue-new-ioc-flash.png"
@@ -1170,6 +1222,7 @@
     {
       "position": [13, 0],
       "label": "Qvue-New/FPGA-Flash",
+      "description": "Service: writes the new FPGA image into the 3x QVue display, through its controller (run Qvue-New/IOC-Flash first). Hold the key 1.5 s to start. Can take about 10 minutes: keep the display powered.",
       "icon_type": "task",
       "icons": {
         "default": "qvue-new-fpga-flash.png",
@@ -1199,6 +1252,7 @@
     {
       "position": [6, 3],
       "label": "SDR/HDR Peru",
+      "description": "SDR vs HDR10+ comparison stand: plays the Peru clip on both displays at once, in sync (the HDR10+ player on one, the Pi's SDR version on the other). Lit while it plays. Only on a Pi set up as that stand.",
       "icon_type": "radio",
       "icons": {
         "on": "demo-peru-on.png",
@@ -1217,6 +1271,7 @@
     {
       "position": [6, 4],
       "label": "SDR/HDR HDR10+ Test",
+      "description": "SDR vs HDR10+ comparison stand: plays the HDR10+ test clip on both displays at once, in sync (the HDR10+ player on one, the Pi's SDR version on the other). Lit while it plays. Only on a Pi set up as that stand.",
       "icon_type": "radio",
       "icons": {
         "on": "demo-test-on.png",
@@ -1235,6 +1290,7 @@
     {
       "position": [7, 1],
       "label": "SDR/HDR Harman",
+      "description": "SDR vs HDR10+ comparison stand: plays the Harman clip on both displays at once, in sync (the HDR10+ player on one, the Pi's SDR version on the other). Lit while it plays. Only on a Pi set up as that stand.",
       "icon_type": "radio",
       "icons": {
         "on": "demo-harman-on.png",
@@ -1253,6 +1309,7 @@
     {
       "position": [7, 0],
       "label": "Player Stop",
+      "description": "Stops the video that is playing: Kodi, Dual Video or a USB Media playlist, or the SDR/HDR stand.",
       "icon_type": "static",
       "icons": {
         "default": "demo-stop.png"
@@ -1268,6 +1325,7 @@
     {
       "position": [8, 0],
       "label": "Player -10s",
+      "description": "Jumps 10 seconds back in the video that is playing.",
       "icon_type": "static",
       "icons": {
         "default": "demo-rew.png"
@@ -1283,6 +1341,7 @@
     {
       "position": [7, 2],
       "label": "Player Pause",
+      "description": "Pauses the video that is playing on the current frame, or plays on. Lit while paused.",
       "icon_type": "toggle",
       "icons": {
         "on": "demo-pause-on.png",
@@ -1306,6 +1365,7 @@
     {
       "position": [8, 1],
       "label": "Player +10s",
+      "description": "Jumps 10 seconds forward in the video that is playing.",
       "icon_type": "static",
       "icons": {
         "default": "demo-fwd.png"
@@ -1321,6 +1381,7 @@
     {
       "position": [13, 1],
       "label": "Player Loop",
+      "description": "Repeats the video that is playing, over and over. Lit while repeat is on.",
       "icon_type": "toggle",
       "icons": {
         "on": "video-loop-on.bmp",
@@ -1344,6 +1405,7 @@
     {
       "position": [13, 2],
       "label": "Dual Video",
+      "description": "Plays two videos in sync, one on each HDMI output: dual-player-video-1.mp4 and dual-player-video-2.mp4 from the USB stick (top folder or Videos folder). Greyed out until both files are on the stick; green while playing.",
       "icon_type": "task",
       "icons": {
         "default": "dual-video.png"
@@ -1371,6 +1433,7 @@
     {
       "position": [13, 3],
       "label": "Mute",
+      "description": "Mutes or unmutes the media player's sound (Kodi). Lit while muted.",
       "icon_type": "toggle",
       "icons": {
         "on": "mute-on.png",
@@ -1394,6 +1457,7 @@
     {
       "position": [13, 4],
       "label": "Volume Down",
+      "description": "Turns the media player's volume (Kodi) down, 5 % per press.",
       "icon_type": "static",
       "icons": {
         "default": "volume-down.png"
@@ -1409,6 +1473,7 @@
     {
       "position": [14, 0],
       "label": "Volume",
+      "description": "Shows the media player's volume (e.g. 45 %), \"muted\", or -- when nothing with sound is running. Display only: pressing it does nothing.",
       "icon_type": "live_value",
       "icons": {
         "base": "volume-value.png"
@@ -1428,6 +1493,7 @@
     {
       "position": [14, 1],
       "label": "Volume Up",
+      "description": "Turns the media player's volume (Kodi) up, 5 % per press.",
       "icon_type": "static",
       "icons": {
         "default": "volume-up.png"
@@ -1443,6 +1509,7 @@
     {
       "position": [14, 2],
       "label": "Qvue-Legacy/FPGA-Flash",
+      "description": "Service: puts the 3x QVue display's FPGA back on the original vendor image (its controller must run the new firmware). Then run Qvue-Legacy/IOC-Flash.",
       "icon_type": "task",
       "icons": {
         "default": "qvue-legacy-fpga-flash.png"
@@ -1469,6 +1536,7 @@
     {
       "position": [14, 3],
       "label": "OTA-IOC",
+      "description": "Updates the display controller's firmware to the version on the Pi. Grey: up to date. Yellow: an update is available, hold the key 1.5 s to install. Some displays need a power cycle afterwards (the touch screen says so).",
       "icon_type": "task",
       "icons": {
         "default": "ota-ioc.png"
@@ -1500,6 +1568,7 @@
     {
       "position": [14, 4],
       "label": "OTA-983",
+      "description": "Updates the 983HH serializer board's firmware to the version on the Pi. Grey: up to date. Yellow: an update is available, hold the key 1.5 s to install, then power-cycle.",
       "icon_type": "task",
       "icons": {
         "default": "ota-983.png"
@@ -1531,6 +1600,7 @@
     {
       "position": [15, 0],
       "label": "OTA-FPGA",
+      "description": "Updates the 3x QVue display's FPGA image. Grey: up to date. Yellow: an update is available, hold the key 1.5 s. A unit that still has the factory image asks \"GOLDEN?\" (blinking amber): hold again to confirm the one-time first install (about 10 minutes, keep powered).",
       "icon_type": "task",
       "icons": {
         "default": "ota-fpga.png",
@@ -1564,6 +1634,7 @@
     {
       "position": [15, 1],
       "label": "OTA-System",
+      "description": "Installs a new system for the Pi from a USB stick (a signed .mpupdate file). Grey: nothing to install. Yellow: one was found, hold the key 1.5 s; the Pi restarts into the new system.",
       "icon_type": "task",
       "icons": {
         "default": "ota-system.png"
@@ -1595,6 +1666,7 @@
     {
       "position": [15, 2],
       "label": "Sync Video",
+      "description": "Brings back a frozen or missing picture on an FPD-Link display: resets the display link's video path for the current display type.",
       "icon_type": "static",
       "icons": {
         "default": "sync-video.bmp"

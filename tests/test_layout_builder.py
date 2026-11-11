@@ -50,3 +50,18 @@ def test_page_is_self_contained(builder, tmp_path, monkeypatch):
     # no external resources: nothing loaded by src= / href= from the network
     assert 'src="http' not in page and 'href="http' not in page
     assert '"superset":"display-control.json"' in page
+
+
+@pytest.mark.parametrize("name", ["display-control.json", "display-control-3x2.json"])
+def test_every_key_says_what_it_does(name):
+    """The builder's tooltip and info box explain each key with its description."""
+    with open(os.path.join(os.path.dirname(CONFIG), name)) as f:
+        keys = json.load(f)["keys"]
+    missing = [k["label"] for k in keys if len(k.get("description", "")) < 20]
+    assert not missing, f"keys without a description: {missing}"
+
+
+def test_descriptions_reach_the_page(builder):
+    data = builder.build_data(CONFIG)
+    home = next(k for k in data["keys"] if k["label"] == "Home")
+    assert "home screen" in home["description"]

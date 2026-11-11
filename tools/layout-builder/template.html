@@ -118,6 +118,15 @@ main {
 .tile .needs { position: absolute; top: 2px; left: 6px; width: 18px; height: 18px; border-radius: 50%;
   background: var(--warn); color: #fff; display: grid; place-items: center; }
 .tile .needs svg { width: 12px; height: 12px; }
+#about {
+  flex-shrink: 0; border-top: 1px solid var(--line); padding: 10px 14px 12px; min-height: 92px;
+  font-size: 13px; line-height: 1.45; color: var(--muted); background: var(--panel-2);
+  border-radius: 0 0 12px 12px;
+}
+#about strong { color: var(--text); font-size: 14px; }
+#about .kind { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; margin-left: 6px; }
+#about .desc { color: var(--text); margin-top: 4px; }
+#about .need { color: var(--warn); margin-top: 4px; font-size: 12px; }
 
 /* decks */
 #work { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
@@ -225,6 +234,7 @@ main {
       <div class="chips" id="chips"></div>
     </div>
     <div id="tiles" data-drop="remove"></div>
+    <div id="about" aria-live="polite">Point at a button (or tab to it) to see what it does.</div>
   </section>
 
   <section id="work">
@@ -441,7 +451,8 @@ function renderPalette() {
     t.type = "button";
     t.dataset.label = k.label;
     t.title = `${k.label} — ${TYPE_NAMES[k.type] || k.type}` +
-      (k.needs.length ? `\nNeeds: ${k.needs.join(", ")}` : "") +
+      (k.description ? `\n\n${k.description}` : "") +
+      (k.needs.length ? `\n\nNeeds: ${k.needs.join(", ")}` : "") + "\n" +
       (used.has(k.label) ? "\nOn the deck (click to remove, drag to move)" : "\nClick to add, or drag onto a key");
     t.setAttribute("aria-pressed", used.has(k.label) ? "true" : "false");
     t.append(iconEl(k), el("span", "name", k.label), el("span", "badge", "✓"));
@@ -501,7 +512,7 @@ function renderDeck() {
           key.type = "button";
           key.dataset.index = idx;
           key.setAttribute("aria-label", `${label}, page ${p + 1}, row ${r + 1}, column ${c + 1}`);
-          key.title = label;
+          key.title = info.description ? `${label}\n\n${info.description}` : label;
           key.append(iconEl(info));
           const rm = el("span", "rm", "×"); rm.setAttribute("aria-hidden", "true"); rm.dataset.rm = idx;
           key.append(rm);
@@ -661,6 +672,26 @@ $("tiles").addEventListener("keydown", e => {
   const again = document.querySelector(`.tile[data-label="${CSS.escape(t.dataset.label)}"]`);
   if (again) again.focus();
 });
+
+// ---------------------------------------------------------------- what a key does (the info box)
+function showAbout(label) {
+  const k = BY_LABEL.get(label);
+  if (!k) return;
+  const box = $("about");
+  box.textContent = "";
+  const head = el("div");
+  head.append(el("strong", null, k.label), el("span", "kind", TYPE_NAMES[k.type] || k.type));
+  box.append(head, el("div", "desc", k.description || "No description yet."));
+  if (k.needs.length) box.append(el("div", "need", `Only works together with: ${k.needs.join(", ")}`));
+}
+function aboutFrom(e) {
+  if (drag && drag.started) return;
+  const t = e.target.closest && e.target.closest(".tile, .key[data-index]");
+  if (!t) return;
+  showAbout(t.classList.contains("tile") ? t.dataset.label : state.slots[+t.dataset.index]);
+}
+document.addEventListener("pointerover", aboutFrom);
+document.addEventListener("focusin", aboutFrom);
 
 // ---------------------------------------------------------------- toolbar
 $("search").addEventListener("input", e => { state.query = e.target.value; renderPalette(); });

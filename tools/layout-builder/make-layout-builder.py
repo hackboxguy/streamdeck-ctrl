@@ -95,8 +95,12 @@ def build_data(config_path):
         if inert(k):
             continue
         dep = (k.get("enabled_when") or {}).get("key")
+        if not k.get("description"):
+            print(f"warning: key '{k['label']}' has no description (the page's tooltip "
+                  f"and info box explain each key with it)", file=sys.stderr)
         out_keys.append({
             "label": k["label"],
+            "description": k.get("description", ""),
             "type": k["icon_type"],
             "icon": preview_icon(k, config_dir, cache),
             "needs": [by_id[dep]] if dep in by_id else [],
