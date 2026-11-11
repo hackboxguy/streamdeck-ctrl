@@ -334,7 +334,7 @@ class TestTaskConfig:
         # OLED-IB touch key (in Blank 4's place, 2026-10-24), and the
         # Qvue-Legacy and Qvue-New IOC keys and the Qvue-New FPGA key on the
         # bottom row after the left arrow (in Blank 5/6/7's places,
-        # 2026-11-04); page 5 the SDR/HDR demo clip keys and the Player keys (Player Loop in Blank 8's place), padded with Blank 9-13
+        # 2026-11-04); page 5 the SDR/HDR demo clip keys, the Player keys, Dual Video and the volume keys (in the places of Blank 8-13, which kept it a full middle page)
         # so it is a full middle page; page 6 the Qvue-Legacy FPGA key and
         # Blank 14 (a last page holds up to 14 keys, so page 6 only exists
         # while more than 14 keys follow page 4).

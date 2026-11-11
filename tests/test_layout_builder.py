@@ -25,10 +25,15 @@ def test_every_superset_key_with_icon_and_deps(builder):
         keys = json.load(f)["keys"]
     labels = [k["label"] for k in keys if not builder.inert(k)]
     assert [k["label"] for k in data["keys"]] == labels
-    # the "Blank N" padding keys do nothing: not offered, but still in the presets
+    # keys that do nothing ("Blank N" padding) are not offered, but stay in the presets
     hidden = [k["label"] for k in keys if builder.inert(k)]
-    assert hidden and all(l.startswith("Blank ") for l in hidden)
+    assert all(l.startswith("Blank ") for l in hidden)
     assert set(hidden) <= set(data["presets"][0]["keys"])
+    blank = {"position": [0, 0], "label": "Blank 99", "icon_type": "static",
+             "icons": {"default": "blank.bmp"}, "action": None}
+    assert builder.inert(blank)
+    assert not builder.inert(dict(blank, notification_id="x.y"))
+    assert not builder.inert(dict(blank, action={"on_press": {"type": "script", "command": "true"}}))
     assert all(k["icon"] and k["icon"].startswith("data:image/png;base64,") for k in data["keys"])
     pix = next(k for k in data["keys"] if k["label"] == "Pixel Compensation")
     assert pix["needs"] == ["Local Dimming"]

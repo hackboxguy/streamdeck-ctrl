@@ -1370,39 +1370,75 @@
     },
     {
       "position": [13, 3],
-      "label": "Blank 10",
-      "icon_type": "static",
+      "label": "Mute",
+      "icon_type": "toggle",
       "icons": {
-        "default": "blank.bmp"
+        "on": "mute-on.png",
+        "off": "mute-off.png"
       },
-      "action": null
+      "initial_state": "off",
+      "notification_id": "audio.mute",
+      "state_watch": {
+        "command": "{INSTALL_DIR}/screens/display-control/scripts/player-ctl.sh mute-status",
+        "text_map": {"on": "on", "off": "off", "none": "off"},
+        "poll_interval_sec": 2
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/player-ctl.sh mute toggle",
+          "async": false
+        }
+      }
     },
     {
       "position": [13, 4],
-      "label": "Blank 11",
+      "label": "Volume Down",
       "icon_type": "static",
       "icons": {
-        "default": "blank.bmp"
+        "default": "volume-down.png"
       },
-      "action": null
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/player-ctl.sh volume down",
+          "async": false
+        }
+      }
     },
     {
       "position": [14, 0],
-      "label": "Blank 12",
-      "icon_type": "static",
+      "label": "Volume",
+      "icon_type": "live_value",
       "icons": {
-        "default": "blank.bmp"
+        "base": "volume-value.png"
+      },
+      "notification_id": "audio.volume",
+      "live": {
+        "source": "poll+notify",
+        "poll_command": "{INSTALL_DIR}/screens/display-control/scripts/player-ctl.sh volume-level",
+        "poll_interval_sec": 2,
+        "format": "{value}",
+        "text_anchor": "bottom",
+        "text_color": "#FFFFFF",
+        "font_size": 16
       },
       "action": null
     },
     {
       "position": [14, 1],
-      "label": "Blank 13",
+      "label": "Volume Up",
       "icon_type": "static",
       "icons": {
-        "default": "blank.bmp"
+        "default": "volume-up.png"
       },
-      "action": null
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/player-ctl.sh volume up",
+          "async": false
+        }
+      }
     },
     {
       "position": [14, 2],

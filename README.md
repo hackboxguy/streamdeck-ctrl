@@ -381,7 +381,7 @@ The included `screens/display-control/` is micropanel's screen, six pages on a 1
 | 2 | the thirteen HDMI timing radios (12.3 NQ1, 15.6 2K5, 14.6 FHD DD, EDID, 12.3 NQ5, 14.6 2K5, 17.3 3K, 17.3 OTS-OLED, 3×QVue, 12.3 NQ1v1.1, 27", 14.6 FHD EJ, 17" IB-OLED) |
 | 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Stop; DMS Link |
 | 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice) on the top row, the four IOC flash tasks and the OLED-IB touch flash task below them, and the Qvue-Legacy / Qvue-New IOC flash and Qvue-New FPGA flash tasks on the bottom row (after ←) |
-| 5 | the SDR/HDR10+ demo clip keys and the Player keys (Stop, -10s, Pause, +10s; Loop in Blank 8's place), Dual Video (in Blank 9's place), then Blank 10-13 |
+| 5 | the SDR/HDR10+ demo clip keys, the Player keys (Stop, -10s, Pause, +10s, Loop), Dual Video, Mute, and Volume Down / Volume / Volume Up on the bottom row (in the places of the former Blank 8-13) |
 | 6 | Qvue-Legacy/FPGA-Flash, OTA-IOC, OTA-983, OTA-FPGA, OTA-System; Sync Video (row 2, column 1) |
 
 The paginator has no page break: a last page holds up to 14 keys (13 + ←), so page 6 exists only while more than 14 keys follow page 4. Blank 8-13 fill page 5 to a full middle page and Blank 14 after the Qvue-Legacy FPGA key keeps the count above 14. Page 6's top row is full (the OTA keys took Blank 14-17's places), so Sync Video sits at row 2, column 1; a new page-6 key goes after Sync Video; a new page-5 key replaces one of Blank 8-13.
@@ -567,6 +567,16 @@ shoot-out's sync reports its frozen state on the same key. `player-ctl.sh status
 the same keys over two pages (with IP Address in place of Home): the clips, Player Stop and
 IP with a -> key, then Player -10s, Player Pause, Player +10s, the <- key and Player Loop — see
 [Per-deck layouts](#per-deck-layouts).
+
+**Volume keys** — Volume Down, Volume Up (±5), Mute and Volume (a `live_value` key like
+Brightness: "45%", "muted", or "--" when nothing with sound runs) use `player-ctl.sh
+volume up|down|N`, `mute on|off|toggle`, `volume-level` and `mute-status`. They go to the
+first player in `players.d/` whose `has-audio` succeeds: Kodi whenever it runs (its own
+application volume, also at its menu, also under the SDR/HDR shoot-out) and mpv; the
+shoot-out sync and dual-video-player have none (dual-video-player plays video only).
+Mute (`audio.mute`) is a toggle whose `state_watch` follows the player; the Volume key
+(`audio.volume`) is polled every 2 s and set at once after each press. Icons from
+`images/make-volume-icons.py`, after the brightness keys.
 
 **Dual Video** — a `task` key (`app.dual_video`, `dual-video.png` from
 `images/make-dual-video-icon.py`) that plays `dual-player-video-1.mp4` / `-2.mp4` from the

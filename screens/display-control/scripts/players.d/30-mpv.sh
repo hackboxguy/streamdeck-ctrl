@@ -15,8 +15,21 @@ find_sock() {
     return 1
 }
 S=$(find_sock) || exit 1
+prop() { ipc "$S" "[\"get_property\",\"$1\"]" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("data"))' 2>/dev/null; }
 case "${1:-}" in
-    active)  exit 0 ;;
+    active|has-audio) exit 0 ;;
+    volume-level) v=$(prop volume); echo "${v%%.*}" ;;
+    mute-status) case "$(prop mute)" in True) echo on ;; False) echo off ;; *) echo unknown ;; esac ;;
+    mute)    case "$2" in
+                 on)  ipc "$S" '["set_property","mute",true]' | grep -q success ;;
+                 off) ipc "$S" '["set_property","mute",false]' | grep -q success ;;
+                 *)   ipc "$S" '["cycle","mute"]' | grep -q success ;;
+             esac ;;
+    volume)  case "$2" in
+                 up)   ipc "$S" '["add","volume",5]' | grep -q success ;;
+                 down) ipc "$S" '["add","volume",-5]' | grep -q success ;;
+                 *)    ipc "$S" "[\"set_property\",\"volume\",$2]" | grep -q success ;;
+             esac ;;
     status)  case "$(ipc "$S" '["get_property","pause"]')" in *'"data":true'*) echo paused ;; *) echo playing ;; esac ;;
     pause)   ipc "$S" '["set_property","pause",true]' | grep -q success ;;
     resume)  ipc "$S" '["set_property","pause",false]' | grep -q success ;;
