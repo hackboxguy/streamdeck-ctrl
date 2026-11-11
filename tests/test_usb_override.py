@@ -127,6 +127,15 @@ class TestBuildOverride:
         assert "notification" not in cfg
 
 
+    def test_nav_position_may_come_from_the_file(self):
+        cfg = build_override({"device": {"nav_position": "top"}, "keys": ["Home"]}, _base(), "/x")
+        assert cfg["device"] == {"brightness": 80, "nav_position": "top"}
+
+    def test_bad_nav_position_is_rejected(self):
+        with pytest.raises(OverrideError, match="nav_position"):
+            build_override({"device": {"nav_position": "left"}, "keys": ["Home"]}, _base(), "/x")
+
+
 class TestRealSuperset:
     def test_mini_config_is_a_subset_of_display_control(self):
         with open(DISPLAY_CONTROL) as f:

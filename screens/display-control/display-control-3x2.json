@@ -67,7 +67,7 @@
     },
     {
       "position": [1, 0],
-      "label": "SDR/HDR Stop",
+      "label": "Player Stop",
       "icon_type": "static",
       "icons": {
         "default": "demo-stop.png"
@@ -75,7 +75,7 @@
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/sdr-hdr-demo.sh stop",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/player-ctl.sh stop",
           "async": true
         }
       }
@@ -101,7 +101,7 @@
     },
     {
       "position": [2, 0],
-      "label": "SDR/HDR -10s",
+      "label": "Player -10s",
       "icon_type": "static",
       "icons": {
         "default": "demo-rew.png"
@@ -109,32 +109,37 @@
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/sdr-hdr-demo.sh rew",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/player-ctl.sh seek -10",
           "async": true
         }
       }
     },
     {
       "position": [1, 2],
-      "label": "SDR/HDR Pause",
-      "icon_type": "radio",
+      "label": "Player Pause",
+      "icon_type": "toggle",
       "icons": {
         "on": "demo-pause-on.png",
         "off": "demo-pause-off.png"
       },
       "initial_state": "off",
-      "notification_id": "demo.pause",
+      "notification_id": "player.pause",
+      "state_watch": {
+        "command": "{INSTALL_DIR}/screens/display-control/scripts/player-ctl.sh status",
+        "text_map": {"paused": "on", "playing": "off", "none": "off"},
+        "poll_interval_sec": 2
+      },
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/sdr-hdr-demo.sh pause",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/player-ctl.sh toggle",
           "async": true
         }
       }
     },
     {
       "position": [2, 1],
-      "label": "SDR/HDR +10s",
+      "label": "Player +10s",
       "icon_type": "static",
       "icons": {
         "default": "demo-fwd.png"
@@ -142,7 +147,7 @@
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/sdr-hdr-demo.sh fwd",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/player-ctl.sh seek +10",
           "async": true
         }
       }

@@ -202,6 +202,12 @@ main {
       <option value="4x8">XL (8×4)</option>
     </select>
   </label>
+  <label class="inline">Arrows
+    <select id="navPos" class="btn" aria-label="Page arrows on the top or bottom row">
+      <option value="bottom">Bottom row</option>
+      <option value="top">Top row</option>
+    </select>
+  </label>
   <label class="inline">Start from
     <select id="preset" class="btn" aria-label="Start from a preset"><option value="">Choose…</option></select>
   </label>
@@ -255,6 +261,7 @@ const TYPE_NAMES = { static: "Action", toggle: "Toggle", radio: "Selector", task
 const state = {
   slots: [],      // a label or null (empty key) per key slot, in the order the deck fills them
   pages: 1,       // pages shown: at least those holding keys, plus any added empty ones
+  nav: "bottom",  // row of the page arrows: "bottom" or "top" (device.nav_position)
   rows: DATA.default_layout[0] || 3,
   cols: DATA.default_layout[1] || 5,
   filter: "all",
@@ -265,7 +272,8 @@ const $ = id => document.getElementById(id);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
 // ---------------------------------------------------------------- deck geometry
-// Mirrors streamdeck_ctrl/page_manager.py: the keys fill the slots in order;
+// Mirrors streamdeck_ctrl/page_manager.py: the keys fill the slots in order
+// (row by row, around the arrows on the bottom or top row);
 // a first page has slots-1 keys (+ right arrow), a middle page slots-2, a last
 // page slots-1 (+ left arrow), and one page alone all slots.
 const S = () => state.rows * state.cols;
@@ -305,13 +313,14 @@ function normalize() {
 
 // ---------------------------------------------------------------- persistence
 function save() {
-  try { localStorage.setItem(STORE, JSON.stringify({ slots: state.slots, pages: state.pages, rows: state.rows, cols: state.cols })); } catch (e) {}
+  try { localStorage.setItem(STORE, JSON.stringify({ slots: state.slots, pages: state.pages, rows: state.rows, cols: state.cols, nav: state.nav })); } catch (e) {}
 }
 function restore() {
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || "null");
     if (!s) return false;
     if (s.rows && s.cols) { state.rows = s.rows; state.cols = s.cols; }
+    if (s.nav === "top" || s.nav === "bottom") state.nav = s.nav;
     load(s.slots || [], s.pages || 1);
     return true;
   } catch (e) { return false; }
@@ -354,16 +363,55 @@ function moveKey(from, to) {
 }
 function removeAt(i) { state.slots[i] = null; commit(); }
 
+// Every key slot of the current geometry: cb(page, row, col, index)
+function forEachSlot(cb) {
+  const { rows, cols } = state;
+  const navRow = state.nav === "top" ? 0 : rows - 1;
+  const ranges = pageRanges(state.pages);
+  ranges.forEach(([a], p) => {
+    let idx = a;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      if (p > 0 && r === navRow && c === 0) continue;                       // ◀
+      if (p < ranges.length - 1 && r === navRow && c === cols - 1) continue; // ▶
+      cb(p, r, c, idx++);
+    }
+  });
+}
+
+// Change the pages or the arrow row, keeping every key on its page, row and
+// column; a key whose place becomes an arrow goes to the first empty key
+// after it (the bottom-right key of a page that gets a ▶ starts the next page).
+function remap(change) {
+  const at = new Map(), was = new Map();
+  forEachSlot((p, r, c, i) => {
+    if (state.slots[i]) { at.set(`${p},${r},${c}`, state.slots[i]); was.set(state.slots[i], i); }
+  });
+  change();
+  const slots = [];
+  forEachSlot((p, r, c, i) => {
+    const k = `${p},${r},${c}`;
+    if (at.has(k)) { slots[i] = at.get(k); at.delete(k); }
+  });
+  state.slots = Array.from(slots, x => x || null);
+  const displaced = [...at.values()];
+  for (const l of displaced) {
+    let i = was.get(l);
+    while (state.slots[i]) i++;
+    place(i, l);
+  }
+  return displaced;
+}
+function movedMsg(displaced) {
+  return displaced.length ? `${displaced.map(l => `“${l}”`).join(", ")} moved to the next empty key: an arrow took its place` : null;
+}
+
 function addPage() {
-  const under = capacity(state.pages) - 1;      // last page's bottom-right key: becomes the arrow
-  const moved = state.pages > 0 && state.slots[under];
-  state.pages++;
-  commit(moved ? `“${moved}” moved to page ${state.pages}: its key now holds the ▶ arrow` : null);
+  commit(movedMsg(remap(() => state.pages++)));
 }
 function removeLastPage() {
   const [a] = pageRanges(state.pages)[state.pages - 1];
   if (state.slots.slice(a).some(Boolean)) return;
-  state.pages--; commit();
+  commit(movedMsg(remap(() => state.pages--)));
 }
 
 function issues() {
@@ -422,6 +470,7 @@ function renderChips() {
 
 function renderDeck() {
   const { rows, cols } = state;
+  const navRow = state.nav === "top" ? 0 : rows - 1;
   const ranges = pageRanges(state.pages);
   const flagged = new Set(issues().map(x => x.label));
   const wrap = $("pages"); wrap.textContent = "";
@@ -440,9 +489,9 @@ function renderDeck() {
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
       const slot = el("div", "slot");
       let key, cap = "";
-      if (!first && r === rows - 1 && c === 0) {
+      if (!first && r === navRow && c === 0) {
         key = el("div", "key nav", "◀"); key.setAttribute("aria-label", "previous page (automatic)");
-      } else if (!last && r === rows - 1 && c === cols - 1) {
+      } else if (!last && r === navRow && c === cols - 1) {
         key = el("div", "key nav", "▶"); key.setAttribute("aria-label", "next page (automatic)");
       } else {
         const label = state.slots[idx];
@@ -616,6 +665,11 @@ $("tiles").addEventListener("keydown", e => {
 // ---------------------------------------------------------------- toolbar
 $("search").addEventListener("input", e => { state.query = e.target.value; renderPalette(); });
 
+$("navPos").addEventListener("change", e => {
+  const nav = e.target.value === "top" ? "top" : "bottom";
+  commit(movedMsg(remap(() => { state.nav = nav; })));
+});
+
 $("deckSize").addEventListener("change", e => {
   const [r, c] = e.target.value.split("x").map(Number);
   state.rows = r; state.cols = c; state.pages = 1;
@@ -647,6 +701,8 @@ $("importFile").addEventListener("change", async e => {
   if (!cfg || !Array.isArray(cfg.keys)) { toast(`${f.name} has no "keys" array`); return; }
   const labels = cfg.keys.map(k => typeof k === "string" ? k : (k && k.label) || null);
   const unknown = labels.filter(l => l && !BY_LABEL.has(l));
+  const nav = cfg.device && cfg.device.nav_position;
+  if (nav === "top" || nav === "bottom") { state.nav = nav; $("navPos").value = nav; }
   const lay = cfg._layout_builder && cfg._layout_builder.deck;
   if (lay && /^\d+x\d+$/.test(lay)) {
     const [c, r] = lay.split("x").map(Number);
@@ -659,6 +715,7 @@ $("importFile").addEventListener("change", async e => {
 
 $("downloadBtn").addEventListener("click", () => {
   const out = {
+    device: { nav_position: state.nav },
     keys: exportList(),
     _layout_builder: { superset: DATA.superset, superset_sha: DATA.superset_sha,
                        deck: `${state.cols}x${state.rows}`, saved: new Date().toISOString() },
@@ -680,6 +737,7 @@ function toast(msg) {
 $("meta").textContent = `${KEYS.length} buttons from ${DATA.superset} · built ${DATA.generated}`;
 restore();
 $("deckSize").value = `${state.rows}x${state.cols}`;
+$("navPos").value = state.nav;
 if (!$("deckSize").value) { state.rows = 3; state.cols = 5; $("deckSize").value = "3x5"; }
 normalize();
 renderChips();

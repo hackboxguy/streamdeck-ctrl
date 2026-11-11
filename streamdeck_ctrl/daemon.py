@@ -174,7 +174,8 @@ class StreamDeckDaemon:
                         self._layout[1], self._layout[0], os.path.basename(self._config_path))
         config_dir = os.path.dirname(os.path.abspath(self._config_path))
         self._page_manager = PageManager(
-            self._config["keys"], list(self._layout), config_dir=config_dir
+            self._config["keys"], list(self._layout), config_dir=config_dir,
+            nav_position=self._config["device"]["nav_position"],
         )
 
         # Load persisted state
@@ -308,7 +309,8 @@ class StreamDeckDaemon:
         self._layout = tuple(layout)
         config_dir = os.path.dirname(os.path.abspath(self._config_path))
         self._page_manager = PageManager(
-            self._config["keys"], list(self._layout), config_dir=config_dir
+            self._config["keys"], list(self._layout), config_dir=config_dir,
+            nav_position=self._config["device"]["nav_position"],
         )
         logger.info("Stream Deck changed from %dx%d to %dx%d keys: %d keys re-paginated "
                     "over %d pages", old[1], old[0], self._layout[1], self._layout[0],

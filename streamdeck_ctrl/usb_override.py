@@ -18,8 +18,8 @@ already have. Each entry of its ``keys`` array is either
 Keys are laid out in the file's order (and renumbered in it), paginated for
 whatever deck is attached.
 Every key a chosen key depends on (``enabled_when``) must be chosen too.
-Everything outside ``keys`` (device, notification) always comes from the
-default config.
+Everything else comes from the default config, except ``device.nav_position``
+("bottom" or "top": the row of the page arrows), which the file may set.
 """
 
 import glob
@@ -127,6 +127,11 @@ def build_override(usb_cfg, base_cfg, install_dir=INSTALL_DIR):
             raise OverrideError(
                 f"'{key['label']}' depends on '{dep_label}', which is not chosen")
 
+    nav = (usb_cfg.get("device") or {}).get("nav_position") \
+        if isinstance(usb_cfg.get("device"), dict) else None
+    if nav is not None and nav not in ("bottom", "top"):
+        raise OverrideError(f"device.nav_position must be \"bottom\" or \"top\", not {nav!r}")
+
     # Keys are placed in this order; positions are only their identifiers, so
     # number them in that order (the superset's own would be out of bounds for
     # a subset that fits on one page)
@@ -135,6 +140,8 @@ def build_override(usb_cfg, base_cfg, install_dir=INSTALL_DIR):
     result["keys"] = [deepcopy(k) if k else _gap(i) for i, k in enumerate(chosen)]
     for i, key in enumerate(result["keys"]):
         key["position"] = [i // cols, i % cols]
+    if nav is not None:
+        result.setdefault("device", {})["nav_position"] = nav
     return result
 
 

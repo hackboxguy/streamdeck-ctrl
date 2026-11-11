@@ -327,6 +327,8 @@ CONFIG_SCHEMA = {
                     "type": "integer",
                     "minimum": 1,
                 },
+                # row of the page arrows when the keys need more than one page
+                "nav_position": {"type": "string", "enum": ["bottom", "top"]},
                 "layout": {
                     "type": "array",
                     "items": {"type": "integer", "minimum": 1},
@@ -373,6 +375,7 @@ DEVICE_DEFAULTS = {
     "layout": [3, 5],
     "reconnect_timeout_sec": 30,
     "reconnect_interval_sec": 2,
+    "nav_position": "bottom",
 }
 
 NOTIFICATION_DEFAULTS = {

@@ -203,3 +203,22 @@ class TestCustomLayout:
         pm = PageManager(keys, [2, 3])
         assert pm.page_count == 2
         assert pm.needs_pagination
+
+
+class TestNavOnTop:
+    def test_arrows_on_the_top_row_keys_fill_around_them(self):
+        keys = _make_keys(20)
+        pm = PageManager(keys, [3, 5], nav_position="top")
+        first = pm.get_physical_layout(0)
+        assert first[(0, 4)]["icon_type"] == "__nav__" and first[(0, 4)]["direction"] == "right"
+        assert first[(0, 0)]["label"] == keys[0]["label"]
+        assert first[(1, 0)]["label"] == keys[4]["label"]     # row 0 had 4 key slots
+        assert first[(2, 4)]["label"] == keys[13]["label"]
+        last = pm.get_physical_layout(1)
+        assert last[(0, 0)]["direction"] == "left"
+        assert last[(0, 1)]["label"] == keys[14]["label"]
+        assert pm.is_nav_key((0, 4)) == "right" and pm.is_nav_key((0, 0)) is None
+
+    def test_default_is_bottom(self):
+        pm = PageManager(_make_keys(20), [3, 5])
+        assert pm.get_physical_layout(0)[(2, 4)]["icon_type"] == "__nav__"

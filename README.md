@@ -187,6 +187,7 @@ A config file declares the device settings, notification socket, and key layout.
 | `device.layout` | `[3, 5]` | `[rows, cols]` — grid size. `[3,5]` for 15-key, `[2,3]` for Mini, `[4,8]` for XL |
 | `device.reconnect_timeout_sec` | `30` | Give up reconnecting after N seconds (0 = forever) |
 | `device.reconnect_interval_sec` | `2` | Interval between reconnect attempts |
+| `device.nav_position` | `"bottom"` | Row of the page arrows when the keys need more than one page: `"bottom"` (bottom-left ◀, bottom-right ▶) or `"top"`; the keys fill the other slots row by row. A USB `streamdeck-buttons.json` may set it too |
 | `notification.socket_path` | `/run/streamdeck-ctrl/notify.sock` | Unix domain socket path |
 | `notification.state_persist_path` | `/run/streamdeck-ctrl/state.json` | Runtime state file |
 
@@ -335,8 +336,9 @@ installed path count as the same), or `null` for an empty key (black, does nothi
   (`*-3x2.json`) are not used while an override is active.
 - A file is rejected if a key is unknown, listed twice, differs from the superset in
   any field, or is missing a key its `enabled_when` depends on (e.g. *Pixel
-  Compensation* without *Local Dimming*). `device` and `notification` always come from
-  the superset.
+  Compensation* without *Local Dimming*). `device` and `notification` come from the
+  superset, except `device.nav_position` (`"bottom"` or `"top"`, the row of the page
+  arrows), which the file may set.
 - An unmounted stick is mounted read-only through udisks2 just to read the file; one
   already mounted (e.g. `/media/pi/<LABEL>`) is read in place. The stick is only read at
   start-up (boot, deck replug, `systemctl restart streamdeck-ctrl`).
@@ -350,7 +352,10 @@ installed path count as the same), or `null` for an empty key (black, does nothi
 icons and code inside; works offline in any browser, nothing to install). Users drag the
 buttons they want onto any key of a preview of the deck (adding pages as they like),
 which pages exactly as the daemon will, and download `streamdeck-buttons.json` for the
-stick, with `null` gaps where keys are left empty. It refuses to download a layout
+stick, with `null` gaps where keys are left empty. The *Arrows* list puts the page
+arrows on the bottom (default) or the top row; switching it, or adding and removing
+pages, keeps every key where it is (a key whose place becomes an arrow moves to the next
+empty key). It refuses to download a layout
 with a missing `enabled_when` partner, can import an existing file, and remembers the
 draft in the browser.
 
@@ -374,7 +379,7 @@ The included `screens/display-control/` is micropanel's screen, six pages on a 1
 | 2 | the thirteen HDMI timing radios (12.3 NQ1, 15.6 2K5, 14.6 FHD DD, EDID, 12.3 NQ5, 14.6 2K5, 17.3 3K, 17.3 OTS-OLED, 3×QVue, 12.3 NQ1v1.1, 27", 14.6 FHD EJ, 17" IB-OLED) |
 | 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Stop; DMS Link |
 | 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice) on the top row, the four IOC flash tasks and the OLED-IB touch flash task below them, and the Qvue-Legacy / Qvue-New IOC flash and Qvue-New FPGA flash tasks on the bottom row (after ←) |
-| 5 | the SDR/HDR10+ demo keys, then Blank 8-13 |
+| 5 | the SDR/HDR10+ demo clip keys and the Player keys (Stop, -10s, Pause, +10s), then Blank 8-13 |
 | 6 | Qvue-Legacy/FPGA-Flash, OTA-IOC, OTA-983, OTA-FPGA, OTA-System; Sync Video (row 2, column 1) |
 
 The paginator has no page break: a last page holds up to 14 keys (13 + ←), so page 6 exists only while more than 14 keys follow page 4. Blank 8-13 fill page 5 to a full middle page and Blank 14 after the Qvue-Legacy FPGA key keeps the count above 14. Page 6's top row is full (the OTA keys took Blank 14-17's places), so Sync Video sits at row 2, column 1; a new page-6 key goes after Sync Video; a new page-5 key replaces one of Blank 8-13.
@@ -474,8 +479,8 @@ keeps it (`scripts/fpga-ldpc-lib.sh`): `/data/cluster/fpga-ldpc-state.json`, els
 apps' rule — the new register slave (`0x1E`) whenever it answers, the legacy registers
 (`0x29`, `0x47`) only on an FPGA without it.
 
-The Mini variant (`display-control-3x2.json`) is a page of its own, the SDR/HDR demo keys
-with IP Address; it is unchanged.
+The Mini variant (`display-control-3x2.json`) is a page of its own, the SDR/HDR demo clip
+keys and the Player keys with IP Address; it is unchanged.
 
 The screen integrates bidirectionally with [als-dimmer](https://github.com/hackboxguy/als-dimmer) for display brightness and feature control. Key presses send commands to als-dimmer, and als-dimmer's callback script pushes state changes back to update the deck icons in real time:
 
@@ -529,16 +534,37 @@ The script takes a single lock across every board, since they all program over t
 
 **OLED-IB Touch-Flash key** — a fifth `task` key on page 4, after OLED-OTS, reflashes the 17" OLED-IB's touch controller (Himax HX8530) from the Pi itself; no dongle and no RH850 involved. It runs `scripts/flash-touch.sh --firmware=<file>`, which takes the image from micropanel's sp6bins tree (`share/sp6bins/firmware/touch/`), copies it to `/lib/firmware` (RAM on the overlayroot) and hands its name to the `himax_oledib` driver (`echo t <file> > /proc/android_touch/debug`). The driver programs and CRC-checks the flash in about 25 s. On success the border goes solid green and the Pi reboots 5 s later; the driver switches touch sensing back on when it probes. On failure the border goes solid red, the Pi stays up, and `/tmp/touch-flash.log` has the driver's messages. The key refuses to run unless `himax_oledib` is loaded, so on any other display type it fails without touching anything. It shares the flash scripts' lock. A new image is a new file in sp6bins and a new `--firmware=` here.
 
-**SDR vs HDR10+ demo keys** — page 5 drives the side-by-side comparison
+**SDR vs HDR10+ demo keys** — page 5 starts the side-by-side comparison
 stand from [sdr-hdr-shootout-demo](https://github.com/hackboxguy/sdr-hdr-shootout-demo):
-Peru, HDR10+ Test and Harman start that clip on both players in sync, Stop ends it,
-Pause freezes both on the same frame and -10s / +10s jump both back or forward (a frozen
-demo stays frozen on the new frame). The clip and Pause keys are `radio` keys
-(`demo.<clip>`, `demo.pause`) lit by the demo's control script over the notify socket;
-each key runs `scripts/sdr-hdr-demo.sh <clip>|stop|pause|rew|fwd`, a wrapper for the
-demo's `demo-ctl.sh`. On a 6-key Mini, `display-control-3x2.json` spreads the same keys
-over two pages (with IP Address in place of Home): the clips, Stop and IP with a -> key,
-then -10s, Pause and +10s with a <- key — see [Per-deck layouts](#per-deck-layouts).
+Peru, HDR10+ Test and Harman start that clip on both players in sync (`radio` keys
+`demo.<clip>`, lit by the demo's control script; each runs `scripts/sdr-hdr-demo.sh <clip>`,
+a wrapper for the demo's `demo-ctl.sh`).
+
+**Player keys** — Player Stop, Player -10s, Player Pause and Player +10s drive whatever is
+playing, through `scripts/player-ctl.sh stop|seek -10|toggle|seek +10`. It asks the players
+in `scripts/players.d/` in name order and drives the first that is active:
+
+| File | Player | How |
+|---|---|---|
+| `10-sdr-hdr-sync.sh` | the SDR/HDR shoot-out (its `sdr-hdr-sync` unit runs) | `demo-ctl.sh pause` / `rew` / `fwd` / `stop`: synchronized freeze and 10 s seeks of Kodi and the Zidoo; first, so Kodi is never driven behind the sync's back |
+| `20-dual-video-player.sh` | dual-video-player (USB Media, Dual Video) | its control socket `/tmp/dual-video-player.sock` (br-wrapper `micropanel-media-player`) |
+| `30-mpv.sh` | mpv-based players (qt-mpv-wrapper) | mpv JSON IPC on `/tmp/mpv-socket` or any `/tmp/mpv-*.sock` with a file open |
+| `40-kodi.sh` | Kodi (Media Player) | JSON-RPC on :8080; Stop ends playback, Kodi stays open |
+
+Each file is an executable answering `active`, `status`, `pause`, `resume`, `toggle`,
+`seek [+-]S` and `stop`; a new player is a new file (an mpv-based one with its IPC socket
+at `/tmp/mpv-*.sock` needs none). Player Pause is a `toggle` key (`player.pause`) whose
+`state_watch` runs `player-ctl.sh status` every 2 s, so it is lit exactly while the player
+is paused, whoever paused it; `player-ctl.sh` also sets it right after a press. The
+shoot-out's sync reports its frozen state on the same key. `player-ctl.sh status` /
+`which` / `stop-all` help from a shell. On a 6-key Mini, `display-control-3x2.json` spreads
+the same keys over two pages (with IP Address in place of Home): the clips, Player Stop and
+IP with a -> key, then Player -10s, Player Pause and Player +10s with a <- key — see
+[Per-deck layouts](#per-deck-layouts).
+
+**Home** — `scripts/launch-home.sh`: `player-ctl.sh stop-all` stops every active player
+(also ones the launcher did not start, such as the shoot-out's sync), then the launcher's
+`stop-app` brings back its home screen.
 
 **ALS Adaptive** — toggles between auto and manual mode:
 

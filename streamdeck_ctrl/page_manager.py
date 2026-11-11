@@ -1,10 +1,14 @@
 """Multi-page support for Stream Deck key layouts.
 
 Auto-paginates when more keys are configured than fit on a single page.
-Navigation arrows are rendered automatically at fixed positions:
-  - Right arrow: [max_row, max_col] (bottom-right) on non-last pages
-  - Left arrow:  [max_row, 0] (bottom-left) on non-first pages
+Navigation arrows are rendered automatically at fixed positions, on the
+bottom row by default (device.nav_position "bottom") or the top row ("top"):
+  - Right arrow: [row, max_col] (bottom-/top-right) on non-last pages
+  - Left arrow:  [row, 0] (bottom-/top-left) on non-first pages
+Keys fill the remaining slots row by row in either case.
 """
+
+NAV_POSITIONS = ("bottom", "top")
 
 import logging
 import os
@@ -23,12 +27,13 @@ class PageManager:
     Provides mapping between physical deck positions and logical keys.
     """
 
-    def __init__(self, keys_config, layout, config_dir=""):
+    def __init__(self, keys_config, layout, config_dir="", nav_position="bottom"):
         """
         Args:
             keys_config: List of key config dicts (from JSON).
             layout: [rows, cols] — deck grid size.
             config_dir: Directory containing the config file (for icon resolution).
+            nav_position: "bottom" (default) or "top": the row of the page arrows.
         """
         self._rows, self._cols = layout
         self._total_slots = self._rows * self._cols
@@ -36,8 +41,9 @@ class PageManager:
         self._current_page = 0
 
         # Positions reserved for navigation arrows
-        self._right_arrow_pos = (self._rows - 1, self._cols - 1)  # bottom-right
-        self._left_arrow_pos = (self._rows - 1, 0)  # bottom-left
+        nav_row = 0 if nav_position == "top" else self._rows - 1
+        self._right_arrow_pos = (nav_row, self._cols - 1)  # bottom-/top-right
+        self._left_arrow_pos = (nav_row, 0)  # bottom-/top-left
 
         # Resolve arrow icon paths
         self._right_arrow_icon = self._resolve_icon(_ARROW_RIGHT)
