@@ -379,7 +379,7 @@ The included `screens/display-control/` is micropanel's screen, six pages on a 1
 | 2 | the thirteen HDMI timing radios (12.3 NQ1, 15.6 2K5, 14.6 FHD DD, EDID, 12.3 NQ5, 14.6 2K5, 17.3 3K, 17.3 OTS-OLED, 3×QVue, 12.3 NQ1v1.1, 27", 14.6 FHD EJ, 17" IB-OLED) |
 | 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Stop; DMS Link |
 | 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice) on the top row, the four IOC flash tasks and the OLED-IB touch flash task below them, and the Qvue-Legacy / Qvue-New IOC flash and Qvue-New FPGA flash tasks on the bottom row (after ←) |
-| 5 | the SDR/HDR10+ demo clip keys and the Player keys (Stop, -10s, Pause, +10s; Loop in Blank 8's place), then Blank 9-13 |
+| 5 | the SDR/HDR10+ demo clip keys and the Player keys (Stop, -10s, Pause, +10s; Loop in Blank 8's place), Dual Video (in Blank 9's place), then Blank 10-13 |
 | 6 | Qvue-Legacy/FPGA-Flash, OTA-IOC, OTA-983, OTA-FPGA, OTA-System; Sync Video (row 2, column 1) |
 
 The paginator has no page break: a last page holds up to 14 keys (13 + ←), so page 6 exists only while more than 14 keys follow page 4. Blank 8-13 fill page 5 to a full middle page and Blank 14 after the Qvue-Legacy FPGA key keeps the count above 14. Page 6's top row is full (the OTA keys took Blank 14-17's places), so Sync Video sits at row 2, column 1; a new page-6 key goes after Sync Video; a new page-5 key replaces one of Blank 8-13.
@@ -565,6 +565,18 @@ shoot-out's sync reports its frozen state on the same key. `player-ctl.sh status
 the same keys over two pages (with IP Address in place of Home): the clips, Player Stop and
 IP with a -> key, then Player -10s, Player Pause, Player +10s, the <- key and Player Loop — see
 [Per-deck layouts](#per-deck-layouts).
+
+**Dual Video** — a `task` key (`app.dual_video`, `dual-video.png` from
+`images/make-dual-video-icon.py`) that plays `dual-player-video-1.mp4` / `-2.mp4` from the
+USB stick (its top folder or `Videos/`), one per HDMI output, through the launcher's
+`dual-video` entry, so Home and the Player keys work on it. Its `state_watch` runs
+`scripts/launch-dual-video.sh state` every 3 s, which asks the launcher's own
+`dual-video.sh --check`: no stick or no pair → `missing` = `idle`, greyed out, presses
+ignored (`grey_states`, `press_states`); the pair is there → `ready` = `available`, the bare
+icon, a press starts it (the border blinks until the player answers on its control
+socket); playing → `success`, a green border, presses ignored. A start that fails turns it
+red until the next poll, with the reason in `journalctl -t dual-video-key`. Not on the
+Mini (its pages are full); the layout builder can put it on any deck.
 
 **Home** — `scripts/launch-home.sh`: `player-ctl.sh stop-all` stops every active player
 (also ones the launcher did not start, such as the shoot-out's sync), then the launcher's

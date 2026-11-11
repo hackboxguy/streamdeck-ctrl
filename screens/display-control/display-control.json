@@ -1343,12 +1343,30 @@
     },
     {
       "position": [13, 2],
-      "label": "Blank 9",
-      "icon_type": "static",
+      "label": "Dual Video",
+      "icon_type": "task",
       "icons": {
-        "default": "blank.bmp"
+        "default": "dual-video.png"
       },
-      "action": null
+      "notification_id": "app.dual_video",
+      "state_watch": {
+        "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-dual-video.sh state",
+        "text_map": {"missing": "idle", "ready": "available", "playing": "success"},
+        "poll_interval_sec": 3,
+        "timeout_sec": 10
+      },
+      "task": {
+        "press_states": ["available", "failure"],
+        "grey_states": ["idle"]
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-dual-video.sh",
+          "async": true,
+          "timeout_sec": 30
+        }
+      }
     },
     {
       "position": [13, 3],
