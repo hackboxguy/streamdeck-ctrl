@@ -450,6 +450,13 @@ class TestKeyManager:
         assert not ok
         assert "unknown notification_id" in err
 
+    def test_handle_notification_hidden_id_is_accepted(self):
+        keys = [toggle_cfg(position=[0, 0], label="Toggle1", notification_id="t1")]
+        km = KeyManager(keys, make_queue(), hidden_ids={"left.out"})
+        assert km.handle_notification("left.out", state="on") == (True, None)
+        ok, err = km.handle_notification("other.id", state="on")
+        assert not ok and "unknown notification_id" in err
+
     def test_handle_notification_no_state_no_value(self):
         km, _ = self._make_manager()
         ok, err = km.handle_notification("t1")

@@ -300,6 +300,11 @@ class TestDaemonUsesOverride:
         assert [k["label"] for k in daemon._config["keys"]] == ["Blue"]
         assert daemon._config_path == base
         assert daemon._overridden
+        # the sync scripts still report keys the stick's layout left out
+        km = daemon._key_manager
+        assert km.handle_notification("d.dim", state="on") == (True, None)
+        ok, err = km.handle_notification("no.such", state="on")
+        assert not ok and "unknown notification_id" in err
 
     def test_disabled_override_is_not_looked_for(self, tmp_path, monkeypatch):
         base = _write_base(tmp_path)
@@ -311,3 +316,4 @@ class TestDaemonUsesOverride:
                                   socket_path=str(tmp_path / "s.sock"))
         self._run(daemon)
         assert len(daemon._config["keys"]) == 4
+        assert daemon._key_manager._hidden_ids == frozenset()

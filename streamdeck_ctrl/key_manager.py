@@ -329,10 +329,14 @@ class KeyState:
 class KeyManager:
     """Manages all KeyState instances, dispatches presses and notifications."""
 
-    def __init__(self, keys_config, render_queue):
+    def __init__(self, keys_config, render_queue, hidden_ids=()):
         self._keys_by_position = {}
         self._keys_by_notification_id = {}
         self.render_queue = render_queue
+        # notification_ids of superset keys this layout leaves out (a USB
+        # stick layout, a per-deck variant): the scripts that report them run
+        # anyway, so their notifications are accepted and dropped, not errors
+        self._hidden_ids = frozenset(hidden_ids)
 
         for key_cfg in keys_config:
             ks = KeyState(key_cfg, render_queue)
@@ -401,6 +405,10 @@ class KeyManager:
         """
         ks = self.get_key_by_notification_id(notification_id)
         if ks is None:
+            if notification_id in self._hidden_ids:
+                logger.debug("Notification for '%s' ignored: key not on this layout",
+                             notification_id)
+                return True, None
             return False, f"unknown notification_id: {notification_id}"
 
         if state is not None:

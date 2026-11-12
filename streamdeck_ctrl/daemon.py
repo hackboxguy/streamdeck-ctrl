@@ -136,6 +136,21 @@ class StreamDeckDaemon:
         self._render_thread = None
         self._config = None
 
+    def _hidden_notification_ids(self):
+        """notification_ids the superset has but the loaded config does not
+        (a USB stick layout or a per-deck variant left those keys out)"""
+        if not self._overridden and self._config_path == self._base_config_path:
+            return ()
+        try:
+            base = load_config(self._base_config_path)
+        except Exception as e:  # the loaded config works without this
+            logger.warning("Cannot read %s for its notification ids: %s",
+                           self._base_config_path, e)
+            return ()
+        shown = {k.get("notification_id") for k in self._config["keys"]}
+        return {k["notification_id"] for k in base["keys"]
+                if k.get("notification_id") and k["notification_id"] not in shown}
+
     def run(self):
         """Main entry point. Load config, start services, enter reconnect loop."""
         # Load the config variant for the deck that is plugged in (if any yet)
@@ -163,7 +178,8 @@ class StreamDeckDaemon:
         self._config["notification"]["socket_path"] = socket_path
 
         # Initialize key manager
-        self._key_manager = KeyManager(self._config["keys"], _PageRenderQueue(self))
+        self._key_manager = KeyManager(self._config["keys"], _PageRenderQueue(self),
+                                       hidden_ids=self._hidden_notification_ids())
 
         # Initialize page manager for auto-pagination. Pages follow the connected
         # deck: a deck without its own config variant gets the same keys re-paginated.
