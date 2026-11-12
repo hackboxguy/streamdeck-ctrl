@@ -10,7 +10,8 @@
 # to the display IOC's (0x66) DISP_POWER register 0x0200; without a value it
 # reads the register back. The IOC switches the panel off and on itself; the
 # FPGA and the FPD-Link stay up. Every board running display_manager has it
-# (OTS-OLED, LAT45, S7, 3x QVue). Anything else (no answer on 0x66: an HDMI
+# (OTS-OLED, LAT45, S7, 3x QVue); firmware too old to report its App Name
+# (v01.14) is accepted when the DISP_POWER register reads back. Anything else (no answer on 0x66: an HDMI
 # monitor, stock QVue firmware; qvue_legacy) is refused, and the key's icon
 # goes back. Only 0x66 is used: a read of 0x32 hangs the stock QVue firmware.
 #
@@ -30,17 +31,23 @@ flash_running() {
     [ -e "$FLASH_LOCK" ] && ! flock -n "$FLASH_LOCK" true 2>/dev/null
 }
 
-is_display_manager() {
-    local app
-    app=$(timeout 2 "$DISPTOOL" --device=ioc --command=iocversion 2>/dev/null \
-          | strip_ansi | sed -n 's/^App Name *: *//p' | tr -d '[:space:]')
-    [ "$app" = display_manager ]
-}
-
 # Prints "on" / "off", or nothing when the read fails.
 read_state() {
     timeout 2 "$DISPTOOL" --device=ioc --command=disppower 2>/dev/null | strip_ansi \
         | sed -n 's/^Display Power: *\(ON\|OFF\).*/\1/p' | tr '[:upper:]' '[:lower:]'
+}
+
+# display_manager by name. Firmware older than the App Name field (v01.14
+# answers "not served by this firmware") counts when DISP_POWER reads back.
+is_display_manager() {
+    local app
+    app=$(timeout 2 "$DISPTOOL" --device=ioc --command=iocversion 2>/dev/null \
+          | strip_ansi | sed -n 's/^App Name *: *//p' | tr -d '[:space:]')
+    case "$app" in
+        display_manager) return 0 ;;
+        notservedbythisfirmware) [ -n "$(read_state)" ] ;;
+        *) return 1 ;;
+    esac
 }
 
 notify_key() {
