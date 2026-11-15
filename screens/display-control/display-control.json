@@ -898,16 +898,19 @@
     {
       "position": [5, 4],
       "label": "12.3-NQ5 FPGA Flash",
-      "description": "Service: writes the FPGA image stored on the Pi into the 12.3\" NQ5 display board (over JTAG). Use only with that board connected. Blinks while writing, then green (done) or red (failed); do not unplug or switch off while it blinks.",
+      "description": "Service: installs our FPGA images into the 12.3\" NQ5 display board over JTAG (GOLDEN at 0, UPDATE in the slot), then restarts the FPGA and checks that the UPDATE runs. Hold the key 1.5 s to start. A board that still has the factory (vendor) image asks \"GOLDEN?\" (blinking amber): hold again within 60 s to confirm. The flash is backed up to /data/fpga-backups first. Takes about 15 min the first time; keep the display powered while it blinks. Green: running the new image. Red: failed (see /tmp/fpga-flash.log); run it again.",
       "icon_type": "task",
       "icons": {
-        "default": "12-3-nq5-fpga-flash.png"
+        "default": "12-3-nq5-fpga-flash.png",
+        "confirm": "fpga-golden-confirm.png"
       },
       "notification_id": "fpga.flash_12_3_nq5",
       "task": {
         "blink_interval_sec": 0.5,
         "border_width": 6,
+        "hold_sec": 1.5,
         "colors": {
+          "confirm": "#FF8C00",
           "running": "#00FF00",
           "success": "#00FF00",
           "failure": "#FF0000"
@@ -916,9 +919,9 @@
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-fpga.sh --id=fpga.flash_12_3_nq5 --label=12.3-NQ5 --file=12-3-inch-new --fpga-type=xilinx",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-fpga-ab.sh --id=fpga.flash_12_3_nq5 --label=12.3-NQ5 --golden=12-3-inch-new.bin --update=12-3-inch-new_ota.bin",
           "async": true,
-          "timeout_sec": 600
+          "timeout_sec": 1800
         }
       }
     },
@@ -952,16 +955,19 @@
     {
       "position": [4, 4],
       "label": "14.6-EJ FPGA Flash",
-      "description": "Service: writes the FPGA image stored on the Pi into the 14.6\" Full-HD EJ display board (over JTAG). Use only with that board connected. Blinks while writing, then green (done) or red (failed); do not unplug or switch off while it blinks.",
+      "description": "Service: installs our FPGA images into the 14.6\" Full-HD EJ display board over JTAG (GOLDEN at 0, UPDATE in the slot), then restarts the FPGA and checks that the UPDATE runs. Hold the key 1.5 s to start. A board that still has the factory (vendor) image asks \"GOLDEN?\" (blinking amber): hold again within 60 s to confirm. The flash is backed up to /data/fpga-backups first. Takes about 15 min the first time; keep the display powered while it blinks. Green: running the new image. Red: failed (see /tmp/fpga-flash.log); run it again.",
       "icon_type": "task",
       "icons": {
-        "default": "14-6-ej-fpga-flash.png"
+        "default": "14-6-ej-fpga-flash.png",
+        "confirm": "fpga-golden-confirm.png"
       },
       "notification_id": "fpga.flash_14_6_ej",
       "task": {
         "blink_interval_sec": 0.5,
         "border_width": 6,
+        "hold_sec": 1.5,
         "colors": {
+          "confirm": "#FF8C00",
           "running": "#00FF00",
           "success": "#00FF00",
           "failure": "#FF0000"
@@ -970,25 +976,28 @@
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-fpga.sh --id=fpga.flash_14_6_ej --label=14.6-EJ --file=14-6-fhd-ej-new --fpga-type=xilinx",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-fpga-ab.sh --id=fpga.flash_14_6_ej --label=14.6-EJ --golden=14-6-fhd-ej-new.bin --update=14-6-fhd-ej-new_ota.bin",
           "async": true,
-          "timeout_sec": 600
+          "timeout_sec": 1800
         }
       }
     },
     {
       "position": [6, 1],
       "label": "14.6-DD FPGA Flash",
-      "description": "Service: writes the FPGA image stored on the Pi into the 14.6\" Full-HD DD display board (over JTAG). Use only with that board connected. Blinks while writing, then green (done) or red (failed); do not unplug or switch off while it blinks.",
+      "description": "Service: installs our FPGA images into the 14.6\" Full-HD DD display board over JTAG (GOLDEN at 0, UPDATE in the slot), then restarts the FPGA and checks that the UPDATE runs. Hold the key 1.5 s to start. A board that still has the factory (vendor) image asks \"GOLDEN?\" (blinking amber): hold again within 60 s to confirm. The flash is backed up to /data/fpga-backups first. Takes about 15 min the first time; keep the display powered while it blinks. Green: running the new image. Red: failed (see /tmp/fpga-flash.log); run it again.",
       "icon_type": "task",
       "icons": {
-        "default": "14-6-dd-fpga-flash.png"
+        "default": "14-6-dd-fpga-flash.png",
+        "confirm": "fpga-golden-confirm.png"
       },
       "notification_id": "fpga.flash_14_6_dd",
       "task": {
         "blink_interval_sec": 0.5,
         "border_width": 6,
+        "hold_sec": 1.5,
         "colors": {
+          "confirm": "#FF8C00",
           "running": "#00FF00",
           "success": "#00FF00",
           "failure": "#FF0000"
@@ -997,9 +1006,9 @@
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-fpga.sh --id=fpga.flash_14_6_dd --label=14.6-DD --file=14-6-fhd-new --fpga-type=xilinx",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/flash-fpga-ab.sh --id=fpga.flash_14_6_dd --label=14.6-DD --golden=14-6-fhd-new.bin --update=14-6-fhd-new_ota.bin",
           "async": true,
-          "timeout_sec": 600
+          "timeout_sec": 1800
         }
       }
     },
