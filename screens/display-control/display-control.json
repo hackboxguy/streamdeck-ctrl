@@ -1731,7 +1731,7 @@
     {
       "position": [16, 0],
       "label": "Privacy Level",
-      "description": "Shows the privacy light level, 0-100 % (\"--\" on a display without one). It starts at 0 % whenever the display's controller restarts. Display only: pressing it does nothing.",
+      "description": "Shows the privacy light level, 0-100 % (\"--\" on a display without one). The film and the level are remembered across reboots. Display only: pressing it does nothing.",
       "icon_type": "live_value",
       "icons": {
         "base": "privacy-level-value.png"

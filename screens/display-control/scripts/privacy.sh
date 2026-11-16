@@ -14,134 +14,78 @@
 #                                   on a display without a privacy light
 #   privacy.sh level --notify       push the level to the key now
 #
-# Film: `disptool --device=fpganew --command=privacy [--value=on|off]`, the
-# FPGA's register 0x34 bit 0 (film drive on pixelpipe v0x8B+), read back.
-# Light: `disptool --device=ioc --command=privlevel [--value=0-100]`, the display
-# IOC's (0x66) 0x0202/0x0203 (S4 display_manager v01.12+). The level lives in
-# the MCU's RAM: 0 after every MCU reset.
-#
-# Only a display whose IOC runs display_manager (any variant, e.g.
-# display_mgr_s4) and answers the privacy-light read is touched; anything else
-# reads "--" and refuses. Nothing is sent while a flash script holds
-# /tmp/target-flash.lock (the MCU may be in its bootloader or an FPGA flash).
-DISPTOOL="${MICROPANEL_HOME:-/home/pi/micropanel}/bin/disptool"
+# als-dimmer owns both settings: it saves them (/data/als-dimmer/state.json),
+# restores them after a reboot or an FPGA/IOC restart, and every 5 s writes
+# the saved value back over anything else in the hardware. So everything goes
+# through als-dimmer-client (--privacy, --privacy-level), never disptool:
+# a direct write would be undone within seconds. als-dimmer decides whether
+# the display has the film / the light and answers "--" when not. Changes made
+# elsewhere (Display Settings, als-dimmer's startup) reach the keys through
+# als-dimmer-notify.sh (privacy_changed, privacy_level_changed).
 SOCK="${NOTIFY_SOCK:-/run/streamdeck-ctrl/notify.sock}"
-FLASH_LOCK="/tmp/target-flash.lock"
 FILM_ID="display.privacy"
 LEVEL_ID="display.privacy_level"
 STEP=10
 
-strip_ansi() { sed 's/\x1b\[[0-9;]*m//g'; }
-flash_running() { [ -e "$FLASH_LOCK" ] && ! flock -n "$FLASH_LOCK" true 2>/dev/null; }
+for c in /home/pi/als-dimmer/bin/als-dimmer-client /usr/bin/als-dimmer-client; do
+    [ -x "$c" ] && CLIENT="$c" && break
+done
+
 notify() {   # notify ID state|value VALUE
     [ -S "$SOCK" ] || return 0
     echo "{\"id\":\"$1\",\"$2\":\"$3\"}" | socat -t 1 - UNIX-CONNECT:"$SOCK" >/dev/null 2>&1 || true
 }
-
-# The IOC's register reads are not atomic (address write, then a separate
-# read): now and then the MCU answers 0xFF / half a value, more often while
-# als-dimmer polls it too. disptool then reports "not supported" or a garbled
-# string, so every read is tried up to READ_TRIES times.
-READ_TRIES=3
-retry() {   # retry CMD...: CMD's first non-empty output
-    local i out
-    for ((i = 0; i < READ_TRIES; i++)); do
-        out=$("$@")
-        [ -n "$out" ] && { echo "$out"; return 0; }
-        sleep 0.05
-    done
-    return 1
+# als-dimmer-client ARG: its one-line answer; bounded, as the key polls must
+# not hang on a daemon that accepts but never answers. An als-dimmer without
+# privacy support (older image) prints its usage and fails: nothing.
+client() {
+    [ -n "$CLIENT" ] || return 1
+    local out
+    out=$(timeout 3 "$CLIENT" "$1" 2>/dev/null) || return 1
+    echo "$out" | head -n 1 | tr -d '[:space:]'
 }
-# The level in %, or nothing when there is no privacy light to read.
-read_level_once() {
-    timeout 2 "$DISPTOOL" --device=ioc --command=privlevel "$@" 2>/dev/null | strip_ansi \
-        | sed -n 's/^Privacy level *: *\([0-9][0-9]*\) *%.*/\1/p'
-}
-read_level() { retry read_level_once; }
-read_film_once() {
-    timeout 2 "$DISPTOOL" --device=fpganew --command=privacy "$@" 2>/dev/null | strip_ansi \
-        | sed -n 's/^Privacy *: *\(on\|off\)\b.*/\1/p'
-}
-read_film() { retry read_film_once; }
-app_once() {
-    timeout 2 "$DISPTOOL" --device=ioc --command=iocversion 2>/dev/null | strip_ansi \
-        | sed -n 's/^App Name *: *//p' | tr -d '[:space:]' \
-        | grep -E '^(display_manager|display_mgr_[A-Za-z0-9_]+)$'
-}
-# A display_manager IOC (any variant) with a privacy light. The firmware name
-# is cached for APP_CACHE_SEC (a new one needs an MCU flash, which holds the
-# flash lock); the privacy light is read every time.
-APP_CACHE="/tmp/streamdeck-privacy-app.cache"
-APP_CACHE_SEC=60
-supported() {
-    [ -x "$DISPTOOL" ] || return 1
-    flash_running && return 1
-    local age
-    age=$(( $(date +%s) - $(stat -c %Y "$APP_CACHE" 2>/dev/null || echo 0) ))
-    if [ ! -s "$APP_CACHE" ] || [ "$age" -ge "$APP_CACHE_SEC" ] || [ "$age" -lt 0 ]; then
-        retry app_once > "$APP_CACHE" || { rm -f "$APP_CACHE"; return 1; }
-    fi
-    [ -n "$(read_level)" ]
-}
+film() { client --privacy${1:+=$1} | grep -xE 'on|off'; }
+level() { client --privacy-level${1:+=$1} | grep -xE '[0-9]{1,3}'; }
 
 case "${1:-}" in
     film-state)
-        supported || exit 1
-        s=$(read_film)
-        [ -n "$s" ] || exit 1
-        echo "$s"
+        film || exit 1
         ;;
     film)
         want="${2:-}"
-        if ! supported; then
-            echo "privacy: no privacy display (display_manager IOC with a privacy light) found" >&2
-            [ "$want" = on ] && notify "$FILM_ID" state off
-            [ "$want" = off ] && notify "$FILM_ID" state on
-            exit 1
-        fi
-        now=$(read_film)
         case "$want" in
-            toggle) [ "$now" = on ] && want=off || want=on ;;
-            on|off) ;;
+            on|off|toggle) ;;
             *) echo "privacy: film expects on, off or toggle" >&2; exit 2 ;;
         esac
-        got=$(read_film_once --value="$want")
-        [ "$got" = "$want" ] || got=$(read_film)
-        if [ "$got" != "$want" ]; then
-            echo "privacy: film $want failed, reads '${got:-nothing}'" >&2
-            notify "$FILM_ID" state "${now:-off}"
+        if ! got=$(film "$want"); then
+            echo "privacy: als-dimmer did not switch the privacy film (no film on this display?)" >&2
+            # put the key back to what the display holds
+            now=$(film) || now=$([ "$want" = on ] && echo off || echo on)
+            notify "$FILM_ID" state "$now"
             exit 1
         fi
-        notify "$FILM_ID" state "$want"
-        echo "privacy: film $want"
+        notify "$FILM_ID" state "$got"
+        echo "privacy: film $got"
         ;;
     level)
         arg="${2:-}"
         if [ -z "$arg" ] || [ "$arg" = --notify ]; then
-            v=--
-            supported && v="$(read_level)%"
-            [ "$v" = "%" ] && v=--
+            v=$(level) && v="$v%" || v=--
             if [ "$arg" = --notify ]; then notify "$LEVEL_ID" value "$v"; else echo "$v"; fi
             exit 0
         fi
-        supported || { echo "privacy: no privacy light found" >&2; exit 1; }
-        cur=$(read_level) || { echo "privacy: cannot read the privacy light level" >&2; exit 1; }
         case "$arg" in
-            up) new=$(( cur + STEP )) ;;
-            down) new=$(( cur - STEP )) ;;
+            up) req="+$STEP" ;;
+            down) req="-$STEP" ;;
             *[!0-9]*) echo "privacy: level expects up, down or 0-100" >&2; exit 2 ;;
-            *) new=$arg ;;
+            *) req="$arg" ;;
         esac
-        [ "$new" -gt 100 ] && new=100
-        [ "$new" -lt 0 ] && new=0
-        got=$(read_level_once --value="$new")
-        [ "$got" = "$new" ] || got=$(read_level)
-        notify "$LEVEL_ID" value "${got:---}${got:+%}"
-        if [ "$got" != "$new" ]; then
-            echo "privacy: level $new failed, reads '${got:-nothing}'" >&2
+        if ! got=$(level "$req"); then
+            echo "privacy: als-dimmer did not set the privacy light (no light on this display?)" >&2
             exit 1
         fi
-        echo "privacy: level $new%"
+        notify "$LEVEL_ID" value "$got%"
+        echo "privacy: level $got%"
         ;;
     *)
         echo "usage: privacy.sh film on|off|toggle | film-state | level [up|down|N|--notify]" >&2

@@ -24,6 +24,18 @@ case "$1" in
         echo "{\"id\":\"display.brightness\",\"value\":\"$2%${TEMP:+ $TEMP}\"}" \
             | socat - UNIX-CONNECT:"$SOCK" 2>/dev/null
         ;;
+    privacy_changed)
+        # The Privacy key (toggle, display.privacy): on / off / unavailable
+        STATE=$([ "$2" = on ] && echo on || echo off)
+        echo "{\"id\":\"display.privacy\",\"state\":\"$STATE\"}" \
+            | socat - UNIX-CONNECT:"$SOCK" 2>/dev/null
+        ;;
+    privacy_level_changed)
+        # The Privacy Level key (live_value, display.privacy_level): 0..100 / unavailable
+        V=$([ "$2" = unavailable ] && echo "--" || echo "$2%")
+        echo "{\"id\":\"display.privacy_level\",\"value\":\"$V\"}" \
+            | socat - UNIX-CONNECT:"$SOCK" 2>/dev/null
+        ;;
     # Uncomment below when a matching live_value/multistate key is added to display-control.json:
     # zone_changed)
     #     echo "{\"id\":\"sensor.zone\",\"state\":\"$2\"}" \

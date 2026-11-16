@@ -584,21 +584,19 @@ Mute (`audio.mute`) is a toggle whose `state_watch` follows the player; the Volu
 `images/make-volume-icons.py`, after the brightness keys.
 
 **Privacy keys** (12.3" NQ5 privacy display) — Privacy, a toggle (`display.privacy`,
-`privacy-on/off.png`), switches the privacy film in the FOG: `scripts/privacy.sh film
-on|off|toggle` drives `disptool --device=fpganew --command=privacy` (FPGA register 0x34
-bit 0) and confirms it from the read-back; its `state_watch` runs `privacy.sh film-state`
-every 2 s. Privacy Level Down / Up (±10 %, clamped) and Privacy Level (a `live_value` key,
-`display.privacy_level`: "40%", or "--" without a privacy light) set and show the privacy
-light, the 33-LED bar feeding the side light guide that hides what the film still leaks
-toward the driver: `privacy.sh level up|down|N` and `privacy.sh level`, through `disptool
---device=ioc --command=privlevel` (0x66 0x0202/0x0203, S4 display_manager v01.12+). The
-level lives in the MCU's RAM: 0 after every MCU reset. Only a display whose IOC runs
-display_manager (any variant, e.g. `display_mgr_s4`) and answers the privacy-light read is
-touched; nothing is sent while a flash holds `/tmp/target-flash.lock`. The IOC's register
-reads are not atomic (address write, then a separate read) and on display_mgr_s4 v01.12 now
-and then return 0xFF or a garbled value, more often while als-dimmer polls the MCU, so
-`privacy.sh` tries every read up to three times. Icons from `images/make-privacy-icons.py`,
-after the volume keys. Not on the Mini.
+`privacy-on/off.png`), switches the privacy film in the FOG; Privacy Level Down / Up
+(±10 %, clamped) and Privacy Level (a `live_value` key, `display.privacy_level`: "40%", or
+"--" without a privacy light) set and show the privacy light, the 33-LED bar feeding the
+side light guide that hides what the film still leaks toward the driver. als-dimmer owns
+both: it saves them, restores them after a reboot or an FPGA/IOC restart, and every 5 s
+writes the saved value back over anything else in the hardware. So `scripts/privacy.sh`
+(`film on|off|toggle`, `film-state`, `level up|down|N`, `level`) only talks to
+`als-dimmer-client --privacy[=on|off|toggle]` / `--privacy-level[=N|+N|-N]` (als-dimmer
+756f27c+), never to disptool, and als-dimmer decides whether the display has the film or
+the light ("--" when not). Changes made elsewhere (Display Settings, als-dimmer's startup)
+reach the keys through `als-dimmer-notify.sh` (`privacy_changed`, `privacy_level_changed`).
+With an older als-dimmer the keys show "--" and do nothing. Icons from
+`images/make-privacy-icons.py`, after the volume keys. Not on the Mini.
 
 **Dual Video** — a `task` key (`app.dual_video`, `dual-video.png` from
 `images/make-dual-video-icon.py`) that plays `dual-player-video-1.mp4` / `-2.mp4` from the
