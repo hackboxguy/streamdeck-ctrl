@@ -25,7 +25,7 @@
 SOCK="${NOTIFY_SOCK:-/run/streamdeck-ctrl/notify.sock}"
 FILM_ID="display.privacy"
 LEVEL_ID="display.privacy_level"
-STEP=10
+STEP=1
 
 for c in /home/pi/als-dimmer/bin/als-dimmer-client /usr/bin/als-dimmer-client; do
     [ -x "$c" ] && CLIENT="$c" && break

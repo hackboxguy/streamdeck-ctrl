@@ -1715,7 +1715,7 @@
     {
       "position": [15, 4],
       "label": "Privacy Level Down",
-      "description": "Dims the privacy light (the LED bar in the privacy display's side light guide), 10 % per press.",
+      "description": "Dims the privacy light (the LED bar in the privacy display's side light guide), 1 % per press.",
       "icon_type": "static",
       "icons": {
         "default": "privacy-level-down.png"
@@ -1751,7 +1751,7 @@
     {
       "position": [16, 1],
       "label": "Privacy Level Up",
-      "description": "Brightens the privacy light (the LED bar in the privacy display's side light guide), 10 % per press: hides more of what the privacy film still leaks toward the driver.",
+      "description": "Brightens the privacy light (the LED bar in the privacy display's side light guide), 1 % per press: hides more of what the privacy film still leaks toward the driver.",
       "icon_type": "static",
       "icons": {
         "default": "privacy-level-up.png"

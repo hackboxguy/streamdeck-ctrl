@@ -585,7 +585,7 @@ Mute (`audio.mute`) is a toggle whose `state_watch` follows the player; the Volu
 
 **Privacy keys** (12.3" NQ5 privacy display) — Privacy, a toggle (`display.privacy`,
 `privacy-on/off.png`), switches the privacy film in the FOG; Privacy Level Down / Up
-(±10 %, clamped) and Privacy Level (a `live_value` key, `display.privacy_level`: "40%", or
+(±1 %, clamped) and Privacy Level (a `live_value` key, `display.privacy_level`: "40%", or
 "--" without a privacy light) set and show the privacy light, the 33-LED bar feeding the
 side light guide that hides what the film still leaks toward the driver. als-dimmer owns
 both: it saves them, restores them after a reboot or an FPGA/IOC restart, and every 5 s
