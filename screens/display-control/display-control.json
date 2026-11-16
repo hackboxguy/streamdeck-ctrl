@@ -1687,6 +1687,82 @@
           "async": true
         }
       }
+    },
+    {
+      "position": [15, 3],
+      "label": "Privacy",
+      "description": "Privacy film on or off (12.3\" NQ5 privacy display): narrows the viewing angle so the picture cannot be seen from the side. Lit while on. Privacy Level adds the privacy light for what the film still leaks.",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "privacy-on.png",
+        "off": "privacy-off.png"
+      },
+      "initial_state": "off",
+      "notification_id": "display.privacy",
+      "state_watch": {
+        "command": "{INSTALL_DIR}/screens/display-control/scripts/privacy.sh film-state",
+        "text_map": {"on": "on", "off": "off"},
+        "poll_interval_sec": 2
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/privacy.sh film {state}",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [15, 4],
+      "label": "Privacy Level Down",
+      "description": "Dims the privacy light (the LED bar in the privacy display's side light guide), 10 % per press.",
+      "icon_type": "static",
+      "icons": {
+        "default": "privacy-level-down.png"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/privacy.sh level down",
+          "async": false
+        }
+      }
+    },
+    {
+      "position": [16, 0],
+      "label": "Privacy Level",
+      "description": "Shows the privacy light level, 0-100 % (\"--\" on a display without one). It starts at 0 % whenever the display's controller restarts. Display only: pressing it does nothing.",
+      "icon_type": "live_value",
+      "icons": {
+        "base": "privacy-level-value.png"
+      },
+      "notification_id": "display.privacy_level",
+      "live": {
+        "source": "poll+notify",
+        "poll_command": "{INSTALL_DIR}/screens/display-control/scripts/privacy.sh level",
+        "poll_interval_sec": 2,
+        "format": "{value}",
+        "text_anchor": "bottom",
+        "text_color": "#FFFFFF",
+        "font_size": 16
+      },
+      "action": null
+    },
+    {
+      "position": [16, 1],
+      "label": "Privacy Level Up",
+      "description": "Brightens the privacy light (the LED bar in the privacy display's side light guide), 10 % per press: hides more of what the privacy film still leaks toward the driver.",
+      "icon_type": "static",
+      "icons": {
+        "default": "privacy-level-up.png"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/privacy.sh level up",
+          "async": false
+        }
+      }
     }
   ]
 }

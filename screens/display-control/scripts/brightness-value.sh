@@ -16,7 +16,7 @@
 # --command=bltemp` (one atomic I2C write+read, as als-dimmer polls the same
 # MCU). On QVUE_9090 display_manager v01.04+ it is the backlight unit's
 # thermistor, the main-PCB NTC before that. Shown only when the IOC runs
-# display_manager (OTS-OLED, LAT45, S7, 3x QVue): a board with no answer on
+# display_manager or a variant (OTS-OLED, LAT45, S7, 3x QVue; display_mgr_s4): a board with no answer on
 # 0x66 (HDMI monitor, stock QVue firmware), qvue_legacy, an uncalibrated
 # sensor (0x8000) or an implausible value shows brightness only. Only 0x66 is
 # ever read: a read of 0x32 hangs the stock QVue firmware.
@@ -46,7 +46,7 @@ read_bltemp() {
     local app t
     app=$(timeout 2 "$DISPTOOL" --device=ioc --command=iocversion 2>/dev/null \
           | strip_ansi | sed -n 's/^App Name *: *//p' | tr -d '[:space:]')
-    [ "$app" = display_manager ] || return 0
+    case "$app" in display_manager|display_mgr_*) ;; *) return 0 ;; esac
     t=$(timeout 2 "$DISPTOOL" --device=ioc --command=bltemp 2>/dev/null \
         | strip_ansi | sed -n 's/^Temperature: *\(-\{0,1\}[0-9][0-9]*\.[0-9]\) C.*/\1/p')
     [ -n "$t" ] || return 0   # no answer, or "uncalibrated on this board"

@@ -385,9 +385,9 @@ The included `screens/display-control/` is micropanel's screen, six pages on a 1
 | 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Stop; DMS Link |
 | 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice) on the top row, the four IOC flash tasks and the OLED-IB touch flash task below them, and the Qvue-Legacy / Qvue-New IOC flash and Qvue-New FPGA flash tasks on the bottom row (after ←) |
 | 5 | the SDR/HDR10+ demo clip keys, the Player keys (Stop, -10s, Pause, +10s, Loop), Dual Video, Mute, and Volume Down / Volume / Volume Up on the bottom row (in the places of the former Blank 8-13) |
-| 6 | Qvue-Legacy/FPGA-Flash, OTA-IOC, OTA-983, OTA-FPGA, OTA-System; Sync Video (row 2, column 1) |
+| 6 | Qvue-Legacy/FPGA-Flash, OTA-IOC, OTA-983, OTA-FPGA, OTA-System; Sync Video, Privacy (film on/off), Privacy Level Down (row 2); Privacy Level, Privacy Level Up (row 3, after ←) |
 
-The paginator has no page break: a last page holds up to 14 keys (13 + ←), so page 6 exists only while more than 14 keys follow page 4. Blank 8-13 fill page 5 to a full middle page and Blank 14 after the Qvue-Legacy FPGA key keeps the count above 14. Page 6's top row is full (the OTA keys took Blank 14-17's places), so Sync Video sits at row 2, column 1; a new page-6 key goes after Sync Video; a new page-5 key replaces one of Blank 8-13.
+The paginator has no page break: a last page holds up to 14 keys (13 + ←), so page 6 exists only while more than 14 keys follow page 4. Blank 8-13 fill page 5 to a full middle page and Blank 14 after the Qvue-Legacy FPGA key keeps the count above 14. Page 6's top row is full (the OTA keys took Blank 14-17's places), so Sync Video sits at row 2, column 1; a new page-6 key goes after Privacy Level Up (room for 4 more); a new page-5 key replaces one of Blank 8-13.
 
 The arrows take one slot on each page (→ bottom right on all but the last, ← bottom left on
 all but the first), so page 1 holds 14 keys, the middle pages 13 and the last up to 14; the
@@ -582,6 +582,23 @@ shoot-out sync and dual-video-player have none (dual-video-player plays video on
 Mute (`audio.mute`) is a toggle whose `state_watch` follows the player; the Volume key
 (`audio.volume`) is polled every 2 s and set at once after each press. Icons from
 `images/make-volume-icons.py`, after the brightness keys.
+
+**Privacy keys** (12.3" NQ5 privacy display) — Privacy, a toggle (`display.privacy`,
+`privacy-on/off.png`), switches the privacy film in the FOG: `scripts/privacy.sh film
+on|off|toggle` drives `disptool --device=fpganew --command=privacy` (FPGA register 0x34
+bit 0) and confirms it from the read-back; its `state_watch` runs `privacy.sh film-state`
+every 2 s. Privacy Level Down / Up (±10 %, clamped) and Privacy Level (a `live_value` key,
+`display.privacy_level`: "40%", or "--" without a privacy light) set and show the privacy
+light, the 33-LED bar feeding the side light guide that hides what the film still leaks
+toward the driver: `privacy.sh level up|down|N` and `privacy.sh level`, through `disptool
+--device=ioc --command=privlevel` (0x66 0x0202/0x0203, S4 display_manager v01.12+). The
+level lives in the MCU's RAM: 0 after every MCU reset. Only a display whose IOC runs
+display_manager (any variant, e.g. `display_mgr_s4`) and answers the privacy-light read is
+touched; nothing is sent while a flash holds `/tmp/target-flash.lock`. The IOC's register
+reads are not atomic (address write, then a separate read) and on display_mgr_s4 v01.12 now
+and then return 0xFF or a garbled value, more often while als-dimmer polls the MCU, so
+`privacy.sh` tries every read up to three times. Icons from `images/make-privacy-icons.py`,
+after the volume keys. Not on the Mini.
 
 **Dual Video** — a `task` key (`app.dual_video`, `dual-video.png` from
 `images/make-dual-video-icon.py`) that plays `dual-player-video-1.mp4` / `-2.mp4` from the

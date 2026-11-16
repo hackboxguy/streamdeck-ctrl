@@ -37,14 +37,15 @@ read_state() {
         | sed -n 's/^Display Power: *\(ON\|OFF\).*/\1/p' | tr '[:upper:]' '[:lower:]'
 }
 
-# display_manager by name. Firmware older than the App Name field (v01.14
-# answers "not served by this firmware") counts when DISP_POWER reads back.
+# display_manager by name (any variant: display_mgr_s4 on the 12.3" NQ5
+# privacy display). Firmware older than the App Name field (v01.14 answers
+# "not served by this firmware") counts when DISP_POWER reads back.
 is_display_manager() {
     local app
     app=$(timeout 2 "$DISPTOOL" --device=ioc --command=iocversion 2>/dev/null \
           | strip_ansi | sed -n 's/^App Name *: *//p' | tr -d '[:space:]')
     case "$app" in
-        display_manager) return 0 ;;
+        display_manager|display_mgr_*) return 0 ;;
         notservedbythisfirmware) [ -n "$(read_state)" ] ;;
         *) return 1 ;;
     esac
