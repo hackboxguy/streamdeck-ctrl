@@ -371,8 +371,17 @@ page shows it when a button is pointed at, in its tooltip and an info box, and t
 generator warns about a key without one); the page picks keys by label. Keys that
 do nothing (no action, no state: the superset's "Blank N" padding) are not offered - an
 empty key is just an empty slot there. The
-downloaded file carries a `_layout_builder` note (superset name and hash, deck size) that
-the daemon ignores.
+downloaded file carries a `_layout_builder` note (builder version, superset name and
+hash, deck size) that the daemon only logs.
+
+**Which version is this page?** The generator stamps the streamdeck-ctrl commit it ran
+from (`git describe --always --dirty`, e.g. `f9f0b95`, with `-dirty` for uncommitted
+changes): the page's header shows "version f9f0b95 (2026-11-16)", a
+`<meta name="generator" content="streamdeck-layout-builder f9f0b95">` tag carries it for
+`grep generator streamdeck-layout-builder.html`, every downloaded `streamdeck-buttons.json`
+has it as `_layout_builder.version`, and the daemon logs it ("USB override: using … (15
+keys, made with layout builder f9f0b95)"). To hand out a new page, build it from a
+committed tree, so the version names a commit anyone can check out.
 
 ## Real-World Example: Display Control
 

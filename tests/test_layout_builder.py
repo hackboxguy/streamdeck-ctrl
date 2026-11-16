@@ -50,6 +50,26 @@ def test_page_is_self_contained(builder, tmp_path, monkeypatch):
     # no external resources: nothing loaded by src= / href= from the network
     assert 'src="http' not in page and 'href="http' not in page
     assert '"superset":"display-control.json"' in page
+    # the version stamp: in the page's data and a <meta> tag a text search finds
+    version, _ = builder.builder_version()
+    assert "<!--__BUILDER_VERSION__-->" not in page
+    assert f'<meta name="generator" content="streamdeck-layout-builder {version}">' in page
+    assert f'"version":"{version}"' in page
+
+
+def test_version_is_the_commit(builder):
+    version, day = builder.builder_version()
+    # this checkout: a short hash, maybe -dirty, and its commit date
+    head = version.split("-")[0]
+    assert len(head) >= 7 and all(c in "0123456789abcdef" for c in head)
+    assert len(day) == 10 and day[4] == "-"
+
+
+def test_version_outside_git(builder, monkeypatch):
+    def no_git(*a, **k):
+        raise FileNotFoundError("git")
+    monkeypatch.setattr(builder.subprocess, "run", no_git)
+    assert builder.builder_version() == ("unknown", "")
 
 
 @pytest.mark.parametrize("name", ["display-control.json", "display-control-3x2.json"])

@@ -11,6 +11,7 @@ from streamdeck_ctrl import usb_override
 from streamdeck_ctrl.daemon import StreamDeckDaemon
 from streamdeck_ctrl.usb_override import (
     OverrideError,
+    _builder_note,
     _usb_partitions,
     build_override,
     find_override,
@@ -244,6 +245,17 @@ def _write_base(tmp_path):
 def _stick(monkeypatch, text):
     monkeypatch.setattr(usb_override, "read_usb_file",
                         lambda **k: None if text is None else ("/media/x/f.json", text))
+
+
+class TestBuilderNote:
+    def test_version_from_the_note(self):
+        assert _builder_note('{"keys": [], "_layout_builder": {"version": "f9f0b95"}}') \
+            == ", made with layout builder f9f0b95"
+
+    @pytest.mark.parametrize("text", ['{"keys": []}', '{"_layout_builder": {}}', "[1]",
+                                      "{bad", '{"_layout_builder": "x"}'])
+    def test_no_or_odd_note_says_nothing(self, text):
+        assert _builder_note(text) == ""
 
 
 class TestFindOverride:

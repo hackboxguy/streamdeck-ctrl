@@ -19,6 +19,7 @@ import hashlib
 import io
 import json
 import os
+import subprocess
 import sys
 from datetime import date
 
@@ -78,6 +79,19 @@ def inert(key):
         and "state_watch" not in key
 
 
+def builder_version():
+    """The streamdeck-ctrl commit this page is built from: ("f9f0b95", "2026-11-16"),
+    "-dirty" appended when the tree has uncommitted changes; ("unknown", "") outside
+    a git checkout. Shown on the page and written into every downloaded file."""
+    def git(*args):
+        return subprocess.run(["git", "-C", HERE, *args], capture_output=True, text=True,
+                              timeout=10, check=True).stdout.strip()
+    try:
+        return git("describe", "--always", "--dirty", "--abbrev=7"), git("log", "-1", "--format=%cs")
+    except (OSError, subprocess.SubprocessError):
+        return "unknown", ""
+
+
 def build_data(config_path):
     config_dir = os.path.dirname(os.path.abspath(config_path))
     with open(config_path) as f:
@@ -89,6 +103,7 @@ def build_data(config_path):
     if len(set(labels)) != len(labels):
         sys.exit("error: labels in the superset are not unique; the builder picks keys by label")
 
+    version, version_date = builder_version()
     cache = {}
     out_keys = []
     for k in keys:
@@ -127,6 +142,8 @@ def build_data(config_path):
         "superset": os.path.basename(config_path),
         "superset_sha": hashlib.sha256(raw.encode()).hexdigest()[:12],
         "generated": date.today().isoformat(),
+        "version": version,
+        "version_date": version_date,
         "default_layout": cfg.get("device", {}).get("layout", [3, 5]),
         "keys": out_keys,
         "presets": presets,
@@ -147,10 +164,13 @@ def main():
     if "/*__BUILDER_DATA__*/null" not in page:
         sys.exit("error: template has no /*__BUILDER_DATA__*/null placeholder")
     page = page.replace("/*__BUILDER_DATA__*/null", blob)
+    # the version where a text search finds it, without opening the page
+    page = page.replace("<!--__BUILDER_VERSION__-->",
+                        f'<meta name="generator" content="streamdeck-layout-builder {data["version"]}">')
     with open(opts.output, "w") as f:
         f.write(page)
     missing = sum(1 for k in data["keys"] if not k["icon"])
-    print(f"{opts.output}: {len(data['keys'])} keys, {len(data['presets'])} presets, "
+    print(f"{opts.output}: version {data['version']}, {len(data['keys'])} keys, {len(data['presets'])} presets, "
           f"{os.path.getsize(opts.output) // 1024} KiB"
           + (f", {missing} without icon" if missing else ""))
 

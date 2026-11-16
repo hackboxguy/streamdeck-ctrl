@@ -271,6 +271,17 @@ def load_override_config(base_path, usb_text, source="USB file"):
     return load_config(base_path, data=raw)
 
 
+def _builder_note(text):
+    """", made with layout builder f9f0b95" from the file's _layout_builder note
+    (informational only: which page version made the file), or ""."""
+    try:
+        note = json.loads(text).get("_layout_builder") or {}
+        version = note.get("version")
+    except (ValueError, AttributeError):
+        return ""
+    return f", made with layout builder {version}" if isinstance(version, str) and version else ""
+
+
 def find_override(base_path, **kwargs):
     """The loaded override config from a USB stick, or None to use the default.
 
@@ -293,5 +304,6 @@ def find_override(base_path, **kwargs):
         logger.warning("USB override: %s rejected (%s); using %s", source, e,
                        os.path.basename(base_path))
         return None
-    logger.info("USB override: using %s (%d keys)", source, len(cfg["keys"]))
+    logger.info("USB override: using %s (%d keys%s)", source, len(cfg["keys"]),
+                _builder_note(text))
     return cfg
