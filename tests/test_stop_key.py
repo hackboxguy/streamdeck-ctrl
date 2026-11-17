@@ -44,6 +44,7 @@ def rig(tmp_path):
                        NOTIFY_SOCK=str(tmp_path / "no.sock"))
             out = subprocess.run([str(tmp_path / "stop.sh"), *args], env=env,
                                  capture_output=True, text=True, timeout=10)
+            self.returncode = out.returncode
             return out.stdout.strip()
 
         def actions(self):
@@ -73,8 +74,16 @@ def test_with_nothing_playing_it_goes_home(rig):
     ("sdr-hdr-sync", "none", "on"),             # a player the launcher did not start
     ("none", "kodi", "on"),
     ("none", "none", "off"),
-    ("none", "", "off"),                        # launcher not answering
 ])
 def test_lit_while_there_is_something_to_stop(rig, player, app, lit):
     rig.set(player=player, app=app)
     assert rig.run("state") == lit
+
+
+@pytest.mark.parametrize("answer", ["", "Error: Failed to receive response: Connection reset by peer"])
+def test_no_answer_from_the_launcher_keeps_the_key(rig, answer):
+    # the daemon keeps the key as it is when state_watch fails; reporting
+    # "off" would flicker the key grey while an app runs
+    rig.set(player="none", app=answer)
+    assert rig.run("state") == ""
+    assert rig.returncode != 0
