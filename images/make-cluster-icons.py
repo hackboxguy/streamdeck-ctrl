@@ -63,16 +63,11 @@ def dms_link(d, c):     # a cable between two boxes: the Pi and the Xavier
     d.ellipse((32, 20, 40, 28), fill=c)
 
 
-def stop(d, c):         # back to the launcher's home
-    d.rounded_rectangle((24, 12, 48, 36), radius=4, fill=c)
-
-
 def main(out_dir):
     for name, label, glyph in (("atelier", "ATELIER", atelier), ("neo", "NEO", neo),
                                ("auto", "AUTO", auto), ("dms", "DMS", dms)):
         for state in ("on", "off"):
             key(label, state, glyph).save(os.path.join(out_dir, f"cluster-{name}-{state}.bmp"))
-    key("STOP", "off", stop).save(os.path.join(out_dir, "cluster-stop.bmp"))
     # a task key: one picture, the daemon draws the green/red state border
     key("DMS LINK", "off", dms_link).save(os.path.join(out_dir, "cluster-dms-link.bmp"))
 

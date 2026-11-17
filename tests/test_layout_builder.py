@@ -85,3 +85,10 @@ def test_descriptions_reach_the_page(builder):
     data = builder.build_data(CONFIG)
     home = next(k for k in data["keys"] if k["label"] == "Home")
     assert "home screen" in home["description"]
+
+
+def test_retired_labels_map_to_their_successor(builder):
+    # older USB files and saved layouts name Player Stop / Cluster Stop
+    data = builder.build_data(CONFIG)
+    assert data["aliases"] == {"Player Stop": "Stop", "Cluster Stop": "Stop"}
+    assert not {"Player Stop", "Cluster Stop"} & {k["label"] for k in data["keys"]}

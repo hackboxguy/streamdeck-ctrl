@@ -340,6 +340,10 @@ installed path count as the same), or `null` for an empty key (black, does nothi
   Compensation* without *Local Dimming*). `device` and `notification` come from the
   superset, except `device.nav_position` (`"bottom"` or `"top"`, the row of the page
   arrows), which the file may set.
+- A retired key's label still works: the key that replaced it lists it in `"aliases"`
+  (Stop lists Player Stop and Cluster Stop) and takes its place; a second alias of a key
+  already listed becomes an empty key. The log says so ("'Player Stop' is now 'Stop'"),
+  and the layout builder maps them the same way when it imports a file.
 - An unmounted stick is mounted read-only through udisks2 just to read the file; one
   already mounted (e.g. `/media/pi/<LABEL>`) is read in place. The stick is only read at
   start-up (boot, deck replug, `systemctl restart streamdeck-ctrl`).
@@ -391,9 +395,9 @@ The included `screens/display-control/` is micropanel's screen, six pages on a 1
 |---|---|
 | 1 | Home, Media Player, Slideshow, Default Ref Video, Display Settings, Brightness Up/Down, ALS Adaptive, Cluster Demo (the modern cluster: Legacy theme, DMS panel off, map on), IP Address, Display Power (on/off), Local Dimming, Pixel Compensation |
 | 2 | the thirteen HDMI timing radios (12.3 NQ1, 15.6 2K5, 14.6 FHD DD, EDID, 12.3 NQ5, 14.6 2K5, 17.3 3K, 17.3 OTS-OLED, 3×QVue, 12.3 NQ1v1.1, 27", 14.6 FHD EJ, 17" IB-OLED) |
-| 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Stop; DMS Link |
+| 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Blank 15 (Cluster Stop's former place); DMS Link |
 | 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice) on the top row, the four IOC flash tasks and the OLED-IB touch flash task below them, and the Qvue-Legacy / Qvue-New IOC flash and Qvue-New FPGA flash tasks on the bottom row (after ←) |
-| 5 | the SDR/HDR10+ demo clip keys, the Player keys (Stop, -10s, Pause, +10s, Loop), Dual Video, Mute, and Volume Down / Volume / Volume Up on the bottom row (in the places of the former Blank 8-13) |
+| 5 | the SDR/HDR10+ demo clip keys, Stop and the Player keys (-10s, Pause, +10s, Loop), Dual Video, Mute, and Volume Down / Volume / Volume Up on the bottom row (in the places of the former Blank 8-13) |
 | 6 | Qvue-Legacy/FPGA-Flash, OTA-IOC, OTA-983, OTA-FPGA, OTA-System; Sync Video, Privacy (film on/off), Privacy Level Down (row 2); Privacy Level, Privacy Level Up (row 3, after ←) |
 
 The paginator has no page break: a last page holds up to 14 keys (13 + ←), so page 6 exists only while more than 14 keys follow page 4. Blank 8-13 fill page 5 to a full middle page and Blank 14 after the Qvue-Legacy FPGA key keeps the count above 14. Page 6's top row is full (the OTA keys took Blank 14-17's places), so Sync Video sits at row 2, column 1; a new page-6 key goes after Privacy Level Up (room for 4 more); a new page-5 key replaces one of Blank 8-13.
@@ -433,7 +437,9 @@ not through a systemd unit (that is the stand-alone board's `screens/qt-cluster-
   follows its files at once; a stopped one starts that way. The keys light from the same
   files, so the cluster's own MAP and DMS buttons show on the deck too. On an image without
   `/data/cluster` (the single-slot image) the keys do nothing and say so in the log;
-- **Stop** ends the running app (the launcher's home), as Home on page 1.
+- the former **Cluster Stop** key is now the one **Stop** key (page 5; its label still works
+  in USB layout files). With the cluster running nothing plays, so Stop goes straight to the
+  launcher's home, as Home does.
 
 **Cluster Demo (page 1)** is the same modern cluster, set up as the old cluster looked
 (`scripts/launch-cluster-demo.sh`): DMS off and Map on through `cluster-state.sh`, then the
@@ -556,8 +562,8 @@ Peru, HDR10+ Test and Harman start that clip on both players in sync (`radio` ke
 `demo.<clip>`, lit by the demo's control script; each runs `scripts/sdr-hdr-demo.sh <clip>`,
 a wrapper for the demo's `demo-ctl.sh`).
 
-**Player keys** — Player Stop, Player -10s, Player Pause, Player +10s and Player Loop drive
-whatever is playing, through `scripts/player-ctl.sh stop|seek -10|toggle|seek +10|loop toggle`. It asks the players
+**Player keys** — Player -10s, Player Pause, Player +10s and Player Loop drive
+whatever is playing, through `scripts/player-ctl.sh seek -10|toggle|seek +10|loop toggle`. It asks the players
 in `scripts/players.d/` in name order and drives the first that is active:
 
 | File | Player | How |
@@ -565,7 +571,7 @@ in `scripts/players.d/` in name order and drives the first that is active:
 | `10-sdr-hdr-sync.sh` | the SDR/HDR shoot-out (its `sdr-hdr-sync` unit runs) | `demo-ctl.sh pause` / `rew` / `fwd` / `stop`: synchronized freeze and 10 s seeks of Kodi and the Zidoo; first, so Kodi is never driven behind the sync's back |
 | `20-dual-video-player.sh` | dual-video-player (USB Media, Dual Video) | its control socket `/tmp/dual-video-player.sock` (br-wrapper `micropanel-media-player`) |
 | `30-mpv.sh` | mpv-based players (qt-mpv-wrapper) | mpv JSON IPC on `/tmp/mpv-socket` or any `/tmp/mpv-*.sock` with a file open |
-| `40-kodi.sh` | Kodi (Media Player) | JSON-RPC on :8080; Stop ends playback, Kodi stays open |
+| `40-kodi.sh` | Kodi (Media Player) | JSON-RPC on :8080; stop ends playback and shows Kodi's home screen, Kodi stays open |
 
 Each file is an executable answering `active`, `status`, `pause`, `resume`, `toggle`,
 `seek [+-]S`, `stop`, `loop on|off|toggle` and `loop-status`; a new player is a new file (an mpv-based one with its IPC socket
@@ -578,7 +584,7 @@ it repeats the video on screen - Kodi's repeat one, mpv's `loop-file`, dual-vide
 by default, off = play to the end) - and is always lit for the shoot-out, which always loops. The
 shoot-out's sync reports its frozen state on the same key. `player-ctl.sh status` /
 `which` / `stop-all` help from a shell. On a 6-key Mini, `display-control-3x2.json` spreads
-the same keys over two pages (with IP Address in place of Home): the clips, Player Stop and
+the same keys over two pages (with IP Address in place of Home): the clips, Stop and
 IP with a -> key, then Player -10s, Player Pause, Player +10s, the <- key and Player Loop — see
 [Per-deck layouts](#per-deck-layouts).
 
@@ -621,7 +627,21 @@ Mini (its pages are full); the layout builder can put it on any deck.
 
 **Home** — `scripts/launch-home.sh`: `player-ctl.sh stop-all` stops every active player
 (also ones the launcher did not start, such as the shoot-out's sync), then the launcher's
-`stop-app` brings back its home screen.
+`stop-app` brings back its home screen. In Kodi that closes Kodi.
+
+**Stop** — `scripts/stop.sh`, one key for "stop what is on screen", in two steps:
+
+1. a video plays (`player-ctl.sh which` names a player): `player-ctl.sh stop`. Kodi then
+   shows its own home screen and stays open, to pick the next video; Dual Video and USB
+   Media close, which already brings back the launcher's home.
+2. nothing plays, but an app runs (Kodi at its menu, the cluster demo, ...): `launch-home.sh`,
+   as Home.
+
+A `radio` key (`app.stop`, `stop-on.png` / `stop-off.png` from `images/make-stop-icons.py`)
+whose `state_watch` runs `stop.sh state` every 2 s: lit red while something plays or an app
+runs, grey at the launcher's home screen. It replaces the former Player Stop and Cluster
+Stop keys, which it lists as `"aliases"`: a USB layout file or a saved builder layout
+naming either still loads, with Stop in its place (a second of them becomes an empty key).
 
 **ALS Adaptive** — toggles between auto and manual mode:
 

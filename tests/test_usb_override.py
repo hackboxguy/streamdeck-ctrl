@@ -137,6 +137,42 @@ class TestBuildOverride:
             build_override({"device": {"nav_position": "left"}, "keys": ["Home"]}, _base(), "/x")
 
 
+class TestAliases:
+    """A retired key's label picks the key that replaced it."""
+
+    @staticmethod
+    def _base():
+        base = _base()
+        base["keys"][0]["aliases"] = ["Old Home", "Older Home"]
+        return base
+
+    def test_alias_picks_the_successor(self):
+        cfg = build_override({"keys": ["Blue", "Old Home"]}, self._base(), "/opt/sd")
+        assert [k["label"] for k in cfg["keys"]] == ["Blue", "Home"]
+        assert cfg["keys"][1]["action"]["on_press"]["command"] == "/opt/sd/scripts/home.sh"
+
+    def test_retired_key_object_picks_the_successor(self):
+        old = {"position": [3, 3], "label": "Old Home", "icon_type": "static",
+               "icons": {"default": "old.bmp"},
+               "action": {"on_press": {"type": "script", "command": "/elsewhere/x.sh"}}}
+        cfg = build_override({"keys": [old]}, self._base(), "/opt/sd")
+        assert cfg["keys"][0]["action"]["on_press"]["command"] == "/opt/sd/scripts/home.sh"
+
+    def test_second_alias_becomes_a_gap(self):
+        # an old file with both Player Stop and Cluster Stop: one Stop, one gap
+        cfg = build_override({"keys": ["Old Home", "Blue", "Older Home"]}, self._base(), "/x")
+        assert [k["label"] for k in cfg["keys"]] == ["Home", "Blue", "(empty 3)"]
+        cfg = build_override({"keys": ["Home", "Old Home"]}, self._base(), "/x")
+        assert [k["label"] for k in cfg["keys"]] == ["Home", "(empty 2)"]
+
+    def test_real_superset_maps_the_old_stop_keys(self):
+        with open(DISPLAY_CONTROL) as f:
+            base = json.load(f)
+        cfg = build_override({"keys": ["Player -10s", "Player Pause", "Player +10s",
+                                       "Dual Video", "Player Stop", "Cluster Stop"]}, base)
+        assert [k["label"] for k in cfg["keys"]][4:] == ["Stop", "(empty 6)"]
+
+
 class TestRealSuperset:
     def test_mini_config_is_a_subset_of_display_control(self):
         with open(DISPLAY_CONTROL) as f:

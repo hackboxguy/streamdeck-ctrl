@@ -70,16 +70,25 @@
     },
     {
       "position": [1, 0],
-      "label": "Player Stop",
-      "description": "Stops the video that is playing: Kodi, Dual Video or a USB Media playlist, or the SDR/HDR stand.",
-      "icon_type": "static",
+      "label": "Stop",
+      "aliases": ["Player Stop", "Cluster Stop"],
+      "description": "Stops what is on screen, in two steps. A video playing (Kodi, Dual Video, a USB Media playlist, the SDR/HDR stand) stops first; Kodi then shows its own home screen, to pick the next video. Pressed again, or when nothing plays (the cluster demo, an app), it returns to the launcher's home screen like Home. Lit while there is something to stop.",
+      "icon_type": "radio",
       "icons": {
-        "default": "demo-stop.png"
+        "on": "stop-on.png",
+        "off": "stop-off.png"
+      },
+      "initial_state": "off",
+      "notification_id": "app.stop",
+      "state_watch": {
+        "command": "{INSTALL_DIR}/screens/display-control/scripts/stop.sh state",
+        "text_map": {"on": "on", "off": "off"},
+        "poll_interval_sec": 2
       },
       "action": {
         "on_press": {
           "type": "script",
-          "command": "{INSTALL_DIR}/screens/display-control/scripts/player-ctl.sh stop",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/stop.sh",
           "async": true
         }
       }

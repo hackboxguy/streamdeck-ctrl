@@ -1,7 +1,8 @@
 #!/bin/bash
-# Kodi (the launcher's Media Player): JSON-RPC on :8080. Stop ends playback;
-# Kodi itself stays open (Home closes it). Volume and mute are Kodi's own
-# (application level): they work whenever Kodi runs, playing or not.
+# Kodi (the launcher's Media Player): JSON-RPC on :8080. Stop ends playback and
+# shows Kodi's home screen; Kodi itself stays open (Home closes it). Volume and
+# mute are Kodi's own (application level): they work whenever Kodi runs,
+# playing or not.
 KODI="${KODI_URL:-http://127.0.0.1:8080/jsonrpc}"
 STEP=5
 rpc() {   # rpc METHOD PARAMS-JSON -> the reply
@@ -51,7 +52,9 @@ case "${1:-}" in
     resume)  rpc Player.PlayPause "{\"playerid\":$PID,\"play\":true}" | ok ;;
     toggle)  rpc Player.PlayPause "{\"playerid\":$PID,\"play\":\"toggle\"}" | ok ;;
     seek)    rpc Player.Seek "{\"playerid\":$PID,\"value\":{\"seconds\":${2#+}}}" | ok ;;
-    stop)    rpc Player.Stop "{\"playerid\":$PID}" | ok ;;
+    stop)    # back to Kodi's home screen, not the list the video came from
+             rpc Player.Stop "{\"playerid\":$PID}" | ok || exit 1
+             rpc GUI.ActivateWindow '{"window":"home"}' >/dev/null; exit 0 ;;
     loop-status) case "$(rpc Player.GetProperties "{\"playerid\":$PID,\"properties\":[\"repeat\"]}")" in
                  *'"repeat":"off"'*) echo off ;; *'"repeat":'*) echo on ;; *) echo unknown ;; esac ;;
     loop)    case "$2" in

@@ -350,8 +350,9 @@ class TestTaskConfig:
         assert pages.get_physical_pos(by_label["HDMI 27"]["position"]) == (2, 1)
 
         pages.switch_page("right")
-        # Page 3: DMS Link between Stop and the next-page arrow
-        assert pages.get_physical_pos(by_label["Cluster Stop"]["position"]) == (2, 2)
+        # Page 3: DMS Link after Blank 15 (Cluster Stop's place: it became
+        # an alias of Stop, 2026-11-17) and before the next-page arrow
+        assert pages.get_physical_pos(by_label["Blank 15"]["position"]) == (2, 2)
         assert pages.get_physical_pos(by_label["DMS Link"]["position"]) == (2, 3)
         assert pages.is_nav_key((2, 4)) == "right"
         pages.switch_page("right")
@@ -362,7 +363,8 @@ class TestTaskConfig:
         # the shoot-out's clip keys and the Player transport keys
         demo = [k for k in cfg["keys"] if k.get("notification_id", "").startswith("demo.")
                 or k["label"].startswith(("SDR/HDR", "Player "))]
-        assert len(demo) == 8   # 3 clips + Player Stop, -10s, Pause, +10s, Loop
+        demo.append(by_label["Stop"])
+        assert len(demo) == 8   # 3 clips + Stop, Player -10s, Pause, +10s, Loop
         assert all(pages.get_physical_pos(k["position"]) is not None for k in demo)
         assert pages.is_nav_key((2, 4)) == "right"
         pages.switch_page("right")

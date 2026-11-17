@@ -118,7 +118,7 @@ class TestShippedDisplayControlConfigs:
                     for pos, e in pm.get_physical_layout(page).items()}
 
         assert labels(0) == {(0, 0): "SDR/HDR Peru", (0, 1): "SDR/HDR HDR10+ Test",
-                             (0, 2): "SDR/HDR Harman", (1, 0): "Player Stop",
+                             (0, 2): "SDR/HDR Harman", (1, 0): "Stop",
                              (1, 1): "IP Address", (1, 2): "right"}
         assert labels(1) == {(0, 0): "Player -10s", (0, 1): "Player Pause",
                              (0, 2): "Player +10s", (1, 0): "left", (1, 1): "Player Loop"}

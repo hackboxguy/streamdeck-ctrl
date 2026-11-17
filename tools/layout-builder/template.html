@@ -266,6 +266,8 @@ const DATA = /*__BUILDER_DATA__*/null;
 
 const KEYS = DATA.keys;
 const BY_LABEL = new Map(KEYS.map(k => [k.label, k]));
+// a retired key's label -> the key that replaced it ("Player Stop" -> "Stop")
+const renamed = l => (l && !BY_LABEL.has(l) && (DATA.aliases || {})[l]) || l;
 const STORE = "sd-layout-builder:v2:" + DATA.superset;
 const TYPE_NAMES = { static: "Action", toggle: "Toggle", radio: "Selector", task: "Task", live_value: "Live value", multistate: "Multi-state" };
 
@@ -340,7 +342,7 @@ function restore() {
 // ---------------------------------------------------------------- edits
 function load(slots, pages = 1) {               // keeps positions; unknown or repeated labels become gaps
   const seen = new Set();
-  state.slots = slots.map(l => (l && BY_LABEL.has(l) && !seen.has(l) && seen.add(l)) ? l : null);
+  state.slots = slots.map(renamed).map(l => (l && BY_LABEL.has(l) && !seen.has(l) && seen.add(l)) ? l : null);
   state.pages = pages;
   normalize();
 }
@@ -732,7 +734,7 @@ $("importFile").addEventListener("change", async e => {
   try { cfg = JSON.parse(await f.text()); } catch (err) { toast(`${f.name} is not valid JSON`); return; }
   if (!cfg || !Array.isArray(cfg.keys)) { toast(`${f.name} has no "keys" array`); return; }
   const labels = cfg.keys.map(k => typeof k === "string" ? k : (k && k.label) || null);
-  const unknown = labels.filter(l => l && !BY_LABEL.has(l));
+  const unknown = labels.map(renamed).filter(l => l && !BY_LABEL.has(l));
   const nav = cfg.device && cfg.device.nav_position;
   if (nav === "top" || nav === "bottom") { state.nav = nav; $("navPos").value = nav; }
   const lay = cfg._layout_builder && cfg._layout_builder.deck;

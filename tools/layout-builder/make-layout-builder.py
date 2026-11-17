@@ -103,6 +103,10 @@ def build_data(config_path):
     if len(set(labels)) != len(labels):
         sys.exit("error: labels in the superset are not unique; the builder picks keys by label")
 
+    # retired labels -> the key that replaced them (USB files and saved
+    # layouts naming them still load)
+    aliases = {a: k["label"] for k in keys for a in k.get("aliases", []) if a not in labels}
+
     version, version_date = builder_version()
     cache = {}
     out_keys = []
@@ -146,6 +150,7 @@ def build_data(config_path):
         "version_date": version_date,
         "default_layout": cfg.get("device", {}).get("layout", [3, 5]),
         "keys": out_keys,
+        "aliases": aliases,
         "presets": presets,
     }
 

@@ -15,6 +15,10 @@ already have. Each entry of its ``keys`` array is either
   * ``null``: an empty key (black, does nothing) - a gap, so that the keys after
     it land where the layout builder put them.
 
+A label a default key lists in its ``aliases`` (a retired key it replaced, e.g.
+"Player Stop" for "Stop") picks that key; a second alias of an already chosen
+key becomes a gap.
+
 Keys are laid out in the file's order (and renumbered in it), paginated for
 whatever deck is attached.
 Every key a chosen key depends on (``enabled_when``) must be chosen too.
@@ -80,6 +84,10 @@ def build_override(usb_cfg, base_cfg, install_dir=INSTALL_DIR):
 
     base_cfg = _expand(base_cfg, install_dir)
     by_label = {k.get("label"): k for k in base_cfg.get("keys", [])}
+    # Labels of retired keys, kept as "aliases" by the key that replaced them
+    # (Player Stop and Cluster Stop -> Stop), so older files still load
+    renamed = {alias: k for k in base_cfg.get("keys", [])
+               for alias in k.get("aliases", []) if alias not in by_label}
 
     if len(usb_cfg["keys"]) > MAX_ENTRIES:
         raise OverrideError(f"more than {MAX_ENTRIES} entries in \"keys\"")
@@ -97,6 +105,18 @@ def build_override(usb_cfg, base_cfg, install_dir=INSTALL_DIR):
         else:
             raise OverrideError(f"keys[{i}] is neither a label nor a key object")
         base_key = by_label.get(label)
+        if base_key is None and label in renamed:
+            # a retired key: its successor takes the slot (the old key object
+            # is not compared: the successor is the default config's own)
+            base_key = renamed[label]
+            if base_key["label"] in seen:
+                logger.info("USB override: '%s' is now '%s', already listed: left empty",
+                            label, base_key["label"])
+                chosen.append(None)
+                continue
+            logger.info("USB override: '%s' is now '%s'", label, base_key["label"])
+            label = base_key["label"]
+            entry = label
         if base_key is None:
             raise OverrideError(f"keys[{i}]: '{label}' is not a key of the default config")
         if isinstance(entry, dict):
