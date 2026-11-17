@@ -404,6 +404,42 @@ class TestPagedRedraws:
         assert daemon._render_job_current({"position": (0, 1), "icon_type": "__blank__"})
 
 
+class TestSinglePageOnSmallerDeck:
+    """A USB override numbers its keys for 5 columns; on a 3x2 Mini all five
+    fit on one page, and a press must reach the key drawn in that slot."""
+
+    @staticmethod
+    def _mini(tmpdir):
+        keys = [{"position": [0, i], "label": f"K{i}", "icon_type": "toggle",
+                 "icons": {"on": "icons/green.png", "off": "icons/red.png"},
+                 "initial_state": "off", "notification_id": f"test.k{i}"} for i in range(5)]
+        daemon = StreamDeckDaemon(config_path=_write_test_config(tmpdir, extra_keys=keys),
+                                  simulate=True, simulate_layout=(2, 3))
+        from streamdeck_ctrl.page_manager import PageManager
+        daemon._page_manager = PageManager(keys, (2, 3))
+        daemon._layout = (2, 3)
+        daemon._deck_cols = 3
+        daemon._key_manager = type("NoHolds", (), {"get_key": lambda self, pos: None})()
+        return daemon
+
+    def test_bottom_row_press_reaches_the_drawn_key(self, tmpdir):
+        daemon = self._mini(tmpdir)
+        pressed = []
+        daemon._do_press = pressed.append
+        for index in range(6):
+            daemon._key_callback(None, index, True)
+        # slots 0-4 hold K0-K4 (logical (0, 0)..(0, 4)); slot 5 is empty
+        assert pressed == [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)]
+
+    def test_redraw_goes_to_the_slot(self, tmpdir):
+        daemon = self._mini(tmpdir)
+        from streamdeck_ctrl.daemon import _PageRenderQueue
+        _PageRenderQueue(daemon).put_nowait({"position": (0, 4), "icon_type": "toggle",
+                                             "icon_path": "x"})
+        job = daemon._render_queue.get_nowait()
+        assert job["position"] == (1, 1) and job["logical"] == (0, 4)
+
+
 # ---------------------------------------------------------------------------
 # Dry run
 # ---------------------------------------------------------------------------

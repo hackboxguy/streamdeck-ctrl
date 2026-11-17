@@ -114,6 +114,22 @@ class PageManager:
     def needs_pagination(self):
         return len(self._pages) > 1
 
+    @property
+    def remaps(self):
+        """Keys are pressed at page slots, not at their own positions.
+
+        Keys are always drawn at their slots on the page (see
+        get_physical_layout); a press must be mapped the same way whenever a
+        slot differs from the key's own position. That is so with pagination,
+        and on a single page too when positions do not match the deck: a USB
+        override numbers its keys for the superset's 5 columns, so on a
+        3-column Mini key (0, 3) is drawn in slot (1, 0).
+        """
+        if self.needs_pagination:
+            return True
+        return any(tuple(cfg.get("position", pos)) != pos
+                   for pos, cfg in self.get_physical_layout(0).items())
+
     def get_physical_layout(self, page=None):
         """Get the physical key layout for a page.
 

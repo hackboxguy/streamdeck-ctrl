@@ -222,3 +222,19 @@ class TestNavOnTop:
     def test_default_is_bottom(self):
         pm = PageManager(_make_keys(20), [3, 5])
         assert pm.get_physical_layout(0)[(2, 4)]["icon_type"] == "__nav__"
+
+
+class TestRemaps:
+    def test_keys_at_their_own_slots_are_not_remapped(self):
+        assert not PageManager(_make_keys(15), [3, 5]).remaps
+        assert not PageManager(_make_keys(4), [3, 5]).remaps
+
+    def test_paginated_keys_are_remapped(self):
+        assert PageManager(_make_keys(16), [3, 5]).remaps
+
+    def test_five_column_keys_on_a_mini_are_remapped(self):
+        # one page on a 3x2 deck, but (0, 3) and (0, 4) are drawn at (1, 0), (1, 1)
+        pm = PageManager(_make_keys(5), [2, 3])
+        assert not pm.needs_pagination
+        assert pm.remaps
+        assert pm.get_key_config_at((1, 0))["label"] == "Key3"

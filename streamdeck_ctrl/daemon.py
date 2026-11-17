@@ -94,7 +94,7 @@ class _PageRenderQueue:
     def put_nowait(self, info):
         daemon = self._daemon
         pm = daemon._page_manager
-        if pm and pm.needs_pagination:
+        if pm and pm.remaps:
             physical = pm.get_physical_pos(info["position"])
             if physical is None:
                 return
@@ -415,7 +415,7 @@ class StreamDeckDaemon:
         physical_pos = (row, col)
 
         # Check if this is a navigation key (page switch)
-        if self._page_manager and self._page_manager.needs_pagination:
+        if self._page_manager and self._page_manager.remaps:
             nav_dir = self._page_manager.is_nav_key(physical_pos)
             if nav_dir:
                 if self._page_manager.switch_page(nav_dir):
@@ -423,7 +423,7 @@ class StreamDeckDaemon:
                 return
 
         # Map physical position to logical key via page manager
-        if self._page_manager and self._page_manager.needs_pagination:
+        if self._page_manager and self._page_manager.remaps:
             key_cfg = self._page_manager.get_key_config_at(physical_pos)
             if key_cfg is None:
                 return
@@ -455,7 +455,7 @@ class StreamDeckDaemon:
                 logger.info("Key '%s' released before %.1f s: not pressed", ks.label, ks.hold_sec)
                 self._enqueue_key_render(ks)
                 return
-            if self._page_manager and self._page_manager.needs_pagination and \
+            if self._page_manager and self._page_manager.remaps and \
                     self._page_manager.get_physical_pos(ks.position) != physical_pos:
                 return      # the page changed under the finger
             self._enqueue_key_render(ks, progress=i / steps, progress_color=self._HOLD_COLOR)
@@ -474,7 +474,7 @@ class StreamDeckDaemon:
         # KeyState.press() enqueues a redraw at the key's *logical* position,
         # which the render loop discards while pagination is active. Redraw it
         # here at the slot it actually occupies, so the key reacts at once.
-        if self._page_manager and self._page_manager.needs_pagination:
+        if self._page_manager and self._page_manager.remaps:
             self._enqueue_key_render(ks)
         elif ks.hold_sec > 0:
             self._enqueue_key_render(ks)   # replace the full hold bar
@@ -571,7 +571,7 @@ class StreamDeckDaemon:
 
         info = key_state.get_render_info()
         info.update(overrides)
-        if self._page_manager and self._page_manager.needs_pagination:
+        if self._page_manager and self._page_manager.remaps:
             physical_pos = self._page_manager.get_physical_pos(key_state.position)
             if physical_pos is None:
                 return False
@@ -633,7 +633,7 @@ class StreamDeckDaemon:
         switch, or one at a key's logical position, would otherwise draw a
         key into another key's slot. Page-driven blanks and arrows always do.
         """
-        if not (self._page_manager and self._page_manager.needs_pagination):
+        if not (self._page_manager and self._page_manager.remaps):
             return True
         if info.get("icon_type") in ("__nav__", "__blank__"):
             return True
