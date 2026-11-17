@@ -1766,6 +1766,34 @@
           "async": false
         }
       }
+    },
+    {
+      "position": [16, 2],
+      "label": "Quick Video",
+      "description": "Plays a video from the USB stick at once (about half a second), without Kodi: the first playable video in its Videos folder, else its top folder, on every HDMI output, looping. Press again while it plays for the next video on the stick. Picture only, no sound (Default Ref Video plays it with sound, through Kodi). Greyed out without a video on the stick; green while playing.",
+      "icon_type": "task",
+      "icons": {
+        "default": "quick-video.png"
+      },
+      "notification_id": "app.quick_video",
+      "state_watch": {
+        "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-quick-video.sh state",
+        "text_map": {"missing": "idle", "ready": "available", "playing": "success"},
+        "poll_interval_sec": 3,
+        "timeout_sec": 10
+      },
+      "task": {
+        "press_states": ["available", "success", "failure"],
+        "grey_states": ["idle"]
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/launch-quick-video.sh",
+          "async": true,
+          "timeout_sec": 30
+        }
+      }
     }
   ]
 }

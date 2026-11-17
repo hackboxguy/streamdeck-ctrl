@@ -56,27 +56,33 @@ else
     # Kodi not running — transition through Home first
     [ "$RUNNING" != "none" ] && "$LAUNCHER" --srv="$SRV" --command=stop-app && sleep 0.5
     "$LAUNCHER" --srv="$SRV" --command=start-app --command-arg=media-player
-    # Wait for Kodi JSON-RPC to become available
-    for i in $(seq 1 15); do
+    # Wait (up to 15 s) for Kodi's JSON-RPC, checking every 0.25 s
+    for i in $(seq 1 60); do
         curl -s "$KODI" -H "Content-Type: application/json" \
             -d '{"jsonrpc":"2.0","method":"JSONRPC.Ping","id":1}' \
-            --connect-timeout 1 > /dev/null 2>&1 && break
-        sleep 1
+            --connect-timeout 1 -m 1 2>/dev/null | grep -q pong && break
+        sleep 0.25
     done
-    # Give Kodi extra time to finish initializing after JSON-RPC ping
-    # responds — its HTTP server can answer before the player is ready
-    # and any autoresume of the last-played item has settled.
-    sleep 3
-    # Cancel any autoresume that Kodi may have started during boot
-    curl -s "$KODI" -H "Content-Type: application/json" \
-        -d '{"jsonrpc":"2.0","method":"Player.Stop","params":{"playerid":1},"id":1}' \
-        --connect-timeout 2 > /dev/null 2>&1
-    curl -s "$KODI" -H "Content-Type: application/json" \
-        -d '{"jsonrpc":"2.0","method":"Player.Stop","params":{"playerid":2},"id":1}' \
-        --connect-timeout 2 > /dev/null 2>&1
 fi
 
-# Play the chosen reference video
-curl -s "$KODI" -H "Content-Type: application/json" \
-    -d "{\"jsonrpc\":\"2.0\",\"method\":\"Player.Open\",\"params\":{\"item\":{\"file\":\"$VIDEO\"}},\"id\":1}" \
-    --connect-timeout 2 > /dev/null 2>&1
+# Play the chosen reference video. Kodi's JSON-RPC can answer before its
+# player is ready (an Open then gets lost, or something Kodi resumes replaces
+# it), so open it at once and check: open again until the chosen video plays,
+# instead of a fixed wait (it was 3 s, now ~0.5 s on a Pi 4).
+playing_it() {
+    curl -s "$KODI" -H "Content-Type: application/json" \
+        -d '{"jsonrpc":"2.0","method":"Player.GetItem","params":{"playerid":1,"properties":["file"]},"id":1}' \
+        --connect-timeout 1 -m 2 2>/dev/null | grep -qF "$VIDEO_NAME"
+}
+for attempt in 1 2 3 4 5; do
+    curl -s "$KODI" -H "Content-Type: application/json" \
+        -d "{\"jsonrpc\":\"2.0\",\"method\":\"Player.Open\",\"params\":{\"item\":{\"file\":\"$VIDEO\"}},\"id\":1}" \
+        --connect-timeout 2 > /dev/null 2>&1
+    for _ in 1 2 3 4 5 6 7 8; do
+        playing_it && exit 0
+        sleep 0.25
+    done
+    echo "default-ref-video: not playing yet, opening again ($attempt)" >&2
+done
+echo "default-ref-video: Kodi did not play $VIDEO" >&2
+exit 1

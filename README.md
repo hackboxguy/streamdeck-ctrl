@@ -398,9 +398,9 @@ The included `screens/display-control/` is micropanel's screen, six pages on a 1
 | 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Blank 15 (Cluster Stop's former place); DMS Link |
 | 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice) on the top row, the four IOC flash tasks and the OLED-IB touch flash task below them, and the Qvue-Legacy / Qvue-New IOC flash and Qvue-New FPGA flash tasks on the bottom row (after ←) |
 | 5 | the SDR/HDR10+ demo clip keys, Stop and the Player keys (-10s, Pause, +10s, Loop), Dual Video, Mute, and Volume Down / Volume / Volume Up on the bottom row (in the places of the former Blank 8-13) |
-| 6 | Qvue-Legacy/FPGA-Flash, OTA-IOC, OTA-983, OTA-FPGA, OTA-System; Sync Video, Privacy (film on/off), Privacy Level Down (row 2); Privacy Level, Privacy Level Up (row 3, after ←) |
+| 6 | Qvue-Legacy/FPGA-Flash, OTA-IOC, OTA-983, OTA-FPGA, OTA-System; Sync Video, Privacy (film on/off), Privacy Level Down (row 2); Privacy Level, Privacy Level Up (row 2); Quick Video (row 3, after ←) |
 
-The paginator has no page break: a last page holds up to 14 keys (13 + ←), so page 6 exists only while more than 14 keys follow page 4. Blank 8-13 fill page 5 to a full middle page and Blank 14 after the Qvue-Legacy FPGA key keeps the count above 14. Page 6's top row is full (the OTA keys took Blank 14-17's places), so Sync Video sits at row 2, column 1; a new page-6 key goes after Privacy Level Up (room for 4 more); a new page-5 key replaces one of Blank 8-13.
+The paginator has no page break: a last page holds up to 14 keys (13 + ←), so page 6 exists only while more than 14 keys follow page 4. Blank 8-13 fill page 5 to a full middle page and Blank 14 after the Qvue-Legacy FPGA key keeps the count above 14. Page 6's top row is full (the OTA keys took Blank 14-17's places), so Sync Video sits at row 2, column 1; a new page-6 key goes after Quick Video (room for 3 more); a new page-5 key replaces one of Blank 8-13.
 
 The arrows take one slot on each page (→ bottom right on all but the last, ← bottom left on
 all but the first), so page 1 holds 14 keys, the middle pages 13 and the last up to 14; the
@@ -612,6 +612,26 @@ the light ("--" when not). Changes made elsewhere (Display Settings, als-dimmer'
 reach the keys through `als-dimmer-notify.sh` (`privacy_changed`, `privacy_level_changed`).
 With an older als-dimmer the keys show "--" and do nothing. Icons from
 `images/make-privacy-icons.py`, after the volume keys. Not on the Mini.
+
+**Quick Video** — a `task` key (`app.quick_video`, `quick-video.png` from
+`images/make-quick-video-icon.py`) for a video at once, without Kodi: the launcher's hidden
+`quick-video` entry (br-wrapper `qt-demo-launcher/src/quick-video.sh`) plays the first
+playable video in the stick's `Videos/` folder, else its top folder (sorted by name; the Dual
+Video pair left out; dual-video-player's probe decides what plays: H.264/H.265 up to
+2560x1600) in dual-video-player, on every HDMI output, looping. It plays about 0.5-1 s after
+the press; Default Ref Video's Kodi takes about 3.5 s. A press while it plays starts the next
+video on the stick (wrapping around): `scripts/launch-quick-video.sh` writes N+1 to
+`/tmp/quick-video.next` and starts the entry again. Picture only, no sound; the Pi's
+built-in `ref-video.mp4` (3840x1440) is too large for this player, so without a stick it is
+greyed out. States as Dual Video below, except that a press while it plays (`success`) counts.
+Stop, Home and the Player keys work on it (`20-dual-video-player.sh`). Reasons for a failed
+start: `journalctl -t quick-video-key`. On page 6 of the 15-key deck, not on the Mini; the
+layout builder can put it anywhere. Needs an image with br-wrapper's `quick-video` entry.
+
+**Default Ref Video** (`scripts/launch-default-ref-video.sh`) — Kodi with the first video on
+the stick, else the image's `ref-video.mp4`. It opens the video as soon as Kodi's JSON-RPC
+answers and opens it again until Kodi plays it (no fixed wait): about 3.5 s from the press
+with Kodi closed (7-8 s before).
 
 **Dual Video** — a `task` key (`app.dual_video`, `dual-video.png` from
 `images/make-dual-video-icon.py`) that plays `dual-player-video-1.mp4` / `-2.mp4` from the
