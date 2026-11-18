@@ -8,8 +8,8 @@
 # The USB rule is the launcher's own helper (kodi-usb-common.sh); without it
 # (an older image) the key skips step 1. Skips if the chosen video is
 # already playing.
-LAUNCHER="/home/pi/micropanel/usr/bin/launcher-client"
-SRV="127.0.0.1:8081"
+DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+. "$DIR/launcher-lib.sh"
 KODI="http://127.0.0.1:8080/jsonrpc"
 VIDEO_DIR="/home/pi/micropanel/usr/share/micropanel/media/videos"
 REF_VIDEO="/home/pi/micropanel/share/sp6bins/config/ref-video.mp4"
@@ -33,19 +33,7 @@ echo "default-ref-video: $VIDEO"
 VIDEO_NAME=$(basename "$VIDEO")
 
 # Check if Kodi is running
-for _ in 1 2 3; do
-    RUNNING=$("$LAUNCHER" --srv="$SRV" --command=get-running-app 2>/dev/null | head -n 1)
-    case "$RUNNING" in ""|*[!a-z0-9_.-]*) sleep 0.2 ;; *) break ;; esac
-done
-launcher() {   # launcher COMMAND [APP], once more if the answer is lost
-    local out
-    for _ in 1 2 3; do
-        out=$("$LAUNCHER" --srv="$SRV" --command="$1" ${2:+--command-arg="$2"} 2>&1)
-        case "$out" in OK*|ERROR:*) return 0 ;; esac
-        sleep 0.3
-    done
-    echo "default-ref-video: launcher $1 $2: ${out:-no answer}" >&2
-}
+RUNNING=$(launcher_app)
 
 if [ "$RUNNING" = "media-player" ]; then
     # Kodi is running — check what's currently playing
@@ -65,16 +53,9 @@ if [ "$RUNNING" = "media-player" ]; then
         -d '{"jsonrpc":"2.0","method":"Player.Stop","params":{"playerid":2},"id":1}' \
         --connect-timeout 2 > /dev/null 2>&1
 else
-    # Kodi not running: end the running app first. The launcher now and then
-    # resets a connection while it stops an app, so each command is retried
-    if [ "$RUNNING" != "none" ]; then
-        launcher stop-app
-        for _ in $(seq 1 20); do
-            [ "$("$LAUNCHER" --srv="$SRV" --command=get-running-app 2>/dev/null)" = none ] && break
-            sleep 0.1
-        done
-    fi
-    launcher start-app media-player
+    # Kodi not running: end the running app first
+    [ "$RUNNING" != none ] && launcher_stop_app
+    launcher_cmd start-app media-player >/dev/null
     # Wait (up to 15 s) for Kodi's JSON-RPC, checking every 0.25 s
     for _ in $(seq 1 60); do
         curl -s "$KODI" -H "Content-Type: application/json" \

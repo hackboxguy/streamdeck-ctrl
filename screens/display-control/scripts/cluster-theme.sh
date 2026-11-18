@@ -7,26 +7,22 @@
 # direct app-to-app switch can leave the display undefined. The theme keys
 # light from the launcher's running app (state_watch), so nothing is
 # notified here.
-LAUNCHER="${LAUNCHER_CLIENT:-/home/pi/micropanel/usr/bin/launcher-client}"
-SRV="127.0.0.1:8081"
+DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+. "$DIR/launcher-lib.sh"
 
 case "${1:-}" in
     analog|ev|harman|fable1|tiles|atelier|neo|auto) TILE="cluster-v2-$1" ;;
     *) echo "cluster-theme: unknown theme '${1:-}'" >&2; exit 2 ;;
 esac
 
-running() { "$LAUNCHER" --srv="$SRV" --command=get-running-app 2>/dev/null; }
-
-RUNNING=$(running)
+RUNNING=$(launcher_app)
 [ "$RUNNING" = "$TILE" ] && exit 0
-if [ -n "$RUNNING" ] && [ "$RUNNING" != none ]; then
-    "$LAUNCHER" --srv="$SRV" --command=stop-app
-    for _ in $(seq 1 40); do                 # up to 10 s for the app to end
-        [ "$(running)" = none ] && break
-        sleep 0.25
-    done
-    [ "$(running)" = none ] || { echo "cluster-theme: $RUNNING did not stop" >&2; exit 1; }
+if [ "$RUNNING" != none ]; then
+    launcher_stop_app || { echo "cluster-theme: ${RUNNING:-the running app} did not stop" >&2; exit 1; }
     sleep 0.5
 fi
-"$LAUNCHER" --srv="$SRV" --command=start-app --command-arg="$TILE"
-echo "cluster-theme: $TILE"
+out=$(launcher_cmd start-app "$TILE")
+case "$out" in
+    OK*) echo "cluster-theme: $TILE" ;;
+    *) echo "cluster-theme: the launcher did not start $TILE: $out" >&2; exit 1 ;;
+esac
