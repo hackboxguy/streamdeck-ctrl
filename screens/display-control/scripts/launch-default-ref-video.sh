@@ -33,7 +33,19 @@ echo "default-ref-video: $VIDEO"
 VIDEO_NAME=$(basename "$VIDEO")
 
 # Check if Kodi is running
-RUNNING=$("$LAUNCHER" --srv="$SRV" --command=get-running-app 2>/dev/null)
+for _ in 1 2 3; do
+    RUNNING=$("$LAUNCHER" --srv="$SRV" --command=get-running-app 2>/dev/null | head -n 1)
+    case "$RUNNING" in ""|*[!a-z0-9_.-]*) sleep 0.2 ;; *) break ;; esac
+done
+launcher() {   # launcher COMMAND [APP], once more if the answer is lost
+    local out
+    for _ in 1 2 3; do
+        out=$("$LAUNCHER" --srv="$SRV" --command="$1" ${2:+--command-arg="$2"} 2>&1)
+        case "$out" in OK*|ERROR:*) return 0 ;; esac
+        sleep 0.3
+    done
+    echo "default-ref-video: launcher $1 $2: ${out:-no answer}" >&2
+}
 
 if [ "$RUNNING" = "media-player" ]; then
     # Kodi is running — check what's currently playing
@@ -53,11 +65,18 @@ if [ "$RUNNING" = "media-player" ]; then
         -d '{"jsonrpc":"2.0","method":"Player.Stop","params":{"playerid":2},"id":1}' \
         --connect-timeout 2 > /dev/null 2>&1
 else
-    # Kodi not running — transition through Home first
-    [ "$RUNNING" != "none" ] && "$LAUNCHER" --srv="$SRV" --command=stop-app && sleep 0.5
-    "$LAUNCHER" --srv="$SRV" --command=start-app --command-arg=media-player
+    # Kodi not running: end the running app first. The launcher now and then
+    # resets a connection while it stops an app, so each command is retried
+    if [ "$RUNNING" != "none" ]; then
+        launcher stop-app
+        for _ in $(seq 1 20); do
+            [ "$("$LAUNCHER" --srv="$SRV" --command=get-running-app 2>/dev/null)" = none ] && break
+            sleep 0.1
+        done
+    fi
+    launcher start-app media-player
     # Wait (up to 15 s) for Kodi's JSON-RPC, checking every 0.25 s
-    for i in $(seq 1 60); do
+    for _ in $(seq 1 60); do
         curl -s "$KODI" -H "Content-Type: application/json" \
             -d '{"jsonrpc":"2.0","method":"JSONRPC.Ping","id":1}' \
             --connect-timeout 1 -m 1 2>/dev/null | grep -q pong && break

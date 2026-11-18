@@ -92,6 +92,13 @@ if [ -n "$running" ] && [ "$running" != none ]; then
         sleep 0.1
     done
 fi
+# Kodi's wrapper (/usr/bin/kodi) ends as soon as it passes the launcher's
+# SIGTERM on, so the launcher reports "none" while kodi.bin still takes 2-3 s
+# to exit and keeps the display: a player started then can't open it and quits
+for _ in $(seq 1 50); do
+    pgrep -x kodi.bin >/dev/null || break
+    sleep 0.1
+done
 rm -f "$STATE_DIR/quick-video.current"
 out=$(launcher start-app "$APP")
 case "$out" in
