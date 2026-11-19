@@ -2047,23 +2047,55 @@
     },
     {
       "position": [18, 4],
-      "label": "Blank 17",
-      "description": "Empty: does nothing. Keeps the warp arrows in a cross.",
-      "icon_type": "static",
+      "label": "Mirror H",
+      "description": "3x QVue: mirrors the warped picture left-right across all three panels (the panel order reversed, each panel flipped), for a reflection that needs it. Warp tuning still moves the picture the way the arrows point on the panel. Kept over reboots. Lit while mirrored. Only while Warp is on.",
+      "icon_type": "toggle",
       "icons": {
-        "default": "blank.bmp"
+        "on": "qvue-warp-mirror-h-on.bmp",
+        "off": "qvue-warp-mirror-h-off.bmp"
       },
-      "action": null
+      "initial_state": "off",
+      "notification_id": "display.qvue_warp_mirror_x",
+      "enabled_when": {"key": "display.qvue_warp", "state": "on"},
+      "state_watch": {
+        "path": ["/run/qvue-warp/state.json"],
+        "json_key": "mirror_x",
+        "poll_interval_sec": 1,
+        "default_state": "off"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/qvue-warp.sh mirror-x {state}",
+          "async": true
+        }
+      }
     },
     {
       "position": [19, 0],
-      "label": "Blank 18",
-      "description": "Empty: does nothing. Keeps the warp arrows in a cross.",
-      "icon_type": "static",
+      "label": "Mirror V",
+      "description": "3x QVue: mirrors the warped picture top-bottom, for a reflection that needs it. Kept over reboots. Lit while mirrored. Only while Warp is on.",
+      "icon_type": "toggle",
       "icons": {
-        "default": "blank.bmp"
+        "on": "qvue-warp-mirror-v-on.bmp",
+        "off": "qvue-warp-mirror-v-off.bmp"
       },
-      "action": null
+      "initial_state": "off",
+      "notification_id": "display.qvue_warp_mirror_y",
+      "enabled_when": {"key": "display.qvue_warp", "state": "on"},
+      "state_watch": {
+        "path": ["/run/qvue-warp/state.json"],
+        "json_key": "mirror_y",
+        "poll_interval_sec": 1,
+        "default_state": "off"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/qvue-warp.sh mirror-y {state}",
+          "async": true
+        }
+      }
     },
     {
       "position": [19, 1],

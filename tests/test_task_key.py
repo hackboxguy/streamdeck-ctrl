@@ -379,14 +379,16 @@ class TestTaskConfig:
         assert pages.get_physical_pos(by_label["Warp"]["position"]) == (2, 2)
         assert pages.is_nav_key((2, 4)) == "right"
         pages.switch_page("right")
-        # page 7: the warp tuning keys, the arrows in a cross
+        # page 7: the warp tuning keys, the arrows in a cross; Mirror H and
+        # Mirror V (2026-11-19) took Blank 17's and Blank 18's places
         assert {n: pages.get_physical_pos(by_label[n]["position"]) for n in (
             "Warp Tune", "Warp Panel", "Warp Handle", "Warp Step 5", "Warp Save",
-            "Warp Revert", "Warp Reset", "Warp Grid", "Warp Up",
-            "Warp Left", "Warp Down", "Warp Right")} == {
+            "Warp Revert", "Warp Reset", "Warp Grid", "Warp Up", "Mirror H",
+            "Mirror V", "Warp Left", "Warp Down", "Warp Right")} == {
             "Warp Tune": (0, 0), "Warp Panel": (0, 1), "Warp Handle": (0, 2),
             "Warp Step 5": (0, 3), "Warp Save": (0, 4), "Warp Revert": (1, 0),
             "Warp Reset": (1, 1), "Warp Grid": (1, 2), "Warp Up": (1, 3),
+            "Mirror H": (1, 4), "Mirror V": (2, 1),
             "Warp Left": (2, 2), "Warp Down": (2, 3), "Warp Right": (2, 4)}
         assert pages.is_nav_key((2, 0)) == "left"
 
@@ -415,6 +417,31 @@ class TestTaskConfig:
         tuning = [k for k in warp if k["label"] not in ("Warp", "Warp Tune")]
         assert all(k["enabled_when"] == {"key": "display.qvue_warp_tune", "state": "on"} for k in tuning)
         assert by_label["Warp Tune"]["enabled_when"] == {"key": "display.qvue_warp", "state": "on"}
+
+    def test_qvue_mirror_keys(self):
+        """Mirror H / Mirror V: toggles of qvue-warpd's canvas mirror, state
+        from state.json (mirror_x / mirror_y), usable while Warp is on (not
+        only while tuning)."""
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        cfg = load_config(os.path.join(repo, "screens", "display-control",
+                                       "display-control.json"))
+        by_label = {k["label"]: k for k in cfg["keys"]}
+        from streamdeck_ctrl.daemon import StreamDeckDaemon as Daemon
+        state = ('{"state": "on", "enabled": true, "warping": true, "resuming": false, '
+                 '"mirror_x": true, "mirror_y": false, "tune": false}')
+        for label, axis, json_key, want in (("Mirror H", "x", "mirror_x", "on"),
+                                            ("Mirror V", "y", "mirror_y", "off")):
+            k = by_label[label]
+            assert k["icon_type"] == "toggle"
+            assert k["action"]["on_press"]["command"].endswith(
+                f"scripts/qvue-warp.sh mirror-{axis} {{state}}")
+            assert k["enabled_when"] == {"key": "display.qvue_warp", "state": "on"}
+            sw = k["state_watch"]
+            assert sw["path"] == ["/run/qvue-warp/state.json"] and sw["json_key"] == json_key
+            assert Daemon._watch_state(sw, ("text", state), set()) == want
+            assert Daemon._watch_state(sw, ("missing",), set()) == "off"
+            for icon in k["icons"].values():
+                assert os.path.isfile(os.path.join(repo, "screens", "display-control", icon)), icon
 
     def test_page1_bottom_row(self):
         """Display Power took Local Dimming's slot, Local Dimming Sync Video's."""

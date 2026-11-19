@@ -3,6 +3,8 @@
 # br-wrapper's qvue-warpd, driven through its client qvue-warpctl.
 #
 #   qvue-warp.sh warp on|off        Warp key ({state} = the requested state)
+#   qvue-warp.sh mirror-x on|off    Mirror H key: picture mirrored left-right (whole canvas)
+#   qvue-warp.sh mirror-y on|off    Mirror V key: picture mirrored top-bottom
 #   qvue-warp.sh tune on|off        Warp Tune key: tuning overlay on the panel
 #   qvue-warp.sh grid on|off        Warp Grid key: built-in straight test grid as the picture
 #   qvue-warp.sh step5 on|off       Warp Step 5 key: nudge step 5 px (on) or 1 px (off)
@@ -17,10 +19,12 @@
 #   qvue-warp.sh grid-state         "on"/"off" for the Warp Grid key's state_watch
 #   qvue-warp.sh step-state         "5"/"1" ... for the Warp Step 5 key's state_watch
 #
-# The daemon's /run/qvue-warp/state.json is the source of truth: the Warp and
-# Warp Tune keys watch it directly (json_key enabled / tune), the others
+# The daemon's /run/qvue-warp/state.json is the source of truth: the Warp,
+# Warp Tune and Mirror keys watch it directly (json_key enabled / tune /
+# mirror_x / mirror_y), the others
 # through the *-state / *-value commands. qvue-warpd saves the warp setting
-# itself (/data/qvue-warp/warp.conf); "save" stores the trim (trim.json).
+# and the mirror itself (/data/qvue-warp/warp.conf); "save" stores the trim
+# (trim.json).
 SOCK="${NOTIFY_SOCK:-/run/streamdeck-ctrl/notify.sock}"
 STATE_JSON="${QVUE_WARP_STATE:-/run/qvue-warp/state.json}"
 
@@ -72,6 +76,8 @@ onoff() {
 
 case "${1:-}" in
     warp)   onoff "${2:-}"; toggle display.qvue_warp "$2" "$2" ;;
+    mirror-x) onoff "${2:-}"; toggle display.qvue_warp_mirror_x "$2" mirror x "$2" ;;
+    mirror-y) onoff "${2:-}"; toggle display.qvue_warp_mirror_y "$2" mirror y "$2" ;;
     tune)   onoff "${2:-}"; toggle display.qvue_warp_tune "$2" tune "$2" ;;
     grid)
         onoff "${2:-}"
@@ -122,7 +128,7 @@ case "${1:-}" in
         echo "${s:-1}"
         ;;
     *)
-        echo "usage: qvue-warp.sh warp|tune|grid|step5 on|off | panel | handle | up|down|left|right |" >&2
+        echo "usage: qvue-warp.sh warp|mirror-x|mirror-y|tune|grid|step5 on|off | panel | handle | up|down|left|right |" >&2
         echo "       save --id=ID | revert | reset | panel-value | handle-value | grid-state | step-state" >&2
         exit 2
         ;;

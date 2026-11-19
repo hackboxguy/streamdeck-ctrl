@@ -96,6 +96,37 @@ def crosshair(d, colour):
     d.rectangle((cx - 3 * S, cy - 3 * S, cx + 3 * S, cy + 3 * S), fill=(255, 0, 255))
 
 
+def mirror(axis, on):
+    """MIRROR H / V: an "R" and its mirror image across a dashed axis"""
+    img, d, frame = tile(on, BLUE)
+    colour = (230, 235, 245) if on else (120, 120, 130)
+    f = font(17)
+    box = d.textbbox((0, 0), "R", font=f)
+    gw, gh = box[2] - box[0], box[3] - box[1]
+    glyph = Image.new("L", (gw, gh), 0)
+    ImageDraw.Draw(glyph).text((-box[0], -box[1]), "R", font=f, fill=255)
+    flipped = glyph.transpose(Image.FLIP_LEFT_RIGHT if axis == "h" else Image.FLIP_TOP_BOTTOM)
+    dim = tuple(c // 2 for c in colour)
+    if axis == "h":
+        cx, y = 36 * S, 23 * S - gh // 2
+        img.paste(colour, (cx - 3 * S - gw, y), glyph)
+        img.paste(dim, (cx + 3 * S, y), flipped)
+        for yy in range(6 * S, 38 * S, 5 * S):
+            d.line((cx, yy, cx, yy + 2 * S), fill=frame, width=S)
+    else:
+        x, cy = 36 * S - gw // 2, 21 * S
+        g2 = glyph.resize((gw, gh * 7 // 10))
+        f2 = flipped.resize((gw, gh * 7 // 10))
+        h2 = g2.size[1]
+        img.paste(colour, (x, cy - 2 * S - h2), g2)
+        img.paste(dim, (x, cy + 2 * S), f2)
+        for xx in range(20 * S, 52 * S, 5 * S):
+            d.line((xx, cy, xx + 2 * S, cy), fill=frame, width=S)
+    centred(d, 41 * S, "MIRROR " + axis.upper(), font(9), (235, 235, 240))
+    pill(d, on, frame)
+    return img.resize((SIZE, SIZE), Image.LANCZOS)
+
+
 def main(directory):
     out = lambda name, img: img.save(os.path.join(directory, name))
     for on in (True, False):
@@ -103,6 +134,8 @@ def main(directory):
         out(f"qvue-warp-{st}.bmp", toggle("WARP", on, bent_grid))
         out(f"qvue-warp-tune-{st}.bmp", toggle("TUNE", on, crosshair, AMBER))
         out(f"qvue-warp-grid-{st}.bmp", toggle("TEST GRID", on, lambda d, c: bent_grid(d, c, straight=True), AMBER))
+        out(f"qvue-warp-mirror-h-{st}.bmp", mirror("h", on))
+        out(f"qvue-warp-mirror-v-{st}.bmp", mirror("v", on))
         out(f"qvue-warp-step5-{st}.bmp", toggle("STEP", on, text_pic("5 px" if on else "1 px"), AMBER,
                                                  "5 px", "1 px"))
     # live_value bases: label at the top, the value is drawn at the bottom
