@@ -338,10 +338,12 @@ class TestTaskConfig:
         # so it is a full middle page; page 6 the Qvue-Legacy FPGA key and
         # Blank 14 (a last page holds up to 14 keys, so page 6 only exists
         # while more than 14 keys follow page 4).
+        # Page 7 (2026-11-18): the QVue warp tuning keys; the Warp key itself
+        # and Blank 16 end page 6, which is now a middle page.
         # The deck's arrows take one slot each, so a key inserted ahead of
         # these shifts them.
         pages = PageManager(cfg["keys"], cfg["device"].get("layout", [3, 5]))
-        assert pages.page_count == 6
+        assert pages.page_count == 7
         by_label = {k["label"]: k for k in cfg["keys"]}
         pages.switch_page("right")
         assert pages._left_arrow_pos == (2, 0)
@@ -373,6 +375,46 @@ class TestTaskConfig:
         assert pages.is_nav_key((2, 0)) == "left"
         # Sync Video moved here from page 1 (2026-11-04): row 2, column 1.
         assert pages.get_physical_pos(by_label["Sync Video"]["position"]) == (1, 0)
+        assert pages.get_physical_pos(by_label["Quick Video"]["position"]) == (2, 1)
+        assert pages.get_physical_pos(by_label["Warp"]["position"]) == (2, 2)
+        assert pages.is_nav_key((2, 4)) == "right"
+        pages.switch_page("right")
+        # page 7: the warp tuning keys, the arrows in a cross
+        assert {n: pages.get_physical_pos(by_label[n]["position"]) for n in (
+            "Warp Tune", "Warp Panel", "Warp Handle", "Warp Step 5", "Warp Save",
+            "Warp Revert", "Warp Reset", "Warp Grid", "Warp Up",
+            "Warp Left", "Warp Down", "Warp Right")} == {
+            "Warp Tune": (0, 0), "Warp Panel": (0, 1), "Warp Handle": (0, 2),
+            "Warp Step 5": (0, 3), "Warp Save": (0, 4), "Warp Revert": (1, 0),
+            "Warp Reset": (1, 1), "Warp Grid": (1, 2), "Warp Up": (1, 3),
+            "Warp Left": (2, 2), "Warp Down": (2, 3), "Warp Right": (2, 4)}
+        assert pages.is_nav_key((2, 0)) == "left"
+
+    def test_qvue_warp_keys(self):
+        """The warp keys drive qvue-warp.sh and follow qvue-warpd's state.json;
+        the tuning keys work only while Warp Tune is on."""
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        cfg = load_config(os.path.join(repo, "screens", "display-control",
+                                       "display-control.json"))
+        warp = [k for k in cfg["keys"] if k["label"].startswith("Warp")]
+        assert len(warp) == 13
+        for k in warp:
+            assert "scripts/qvue-warp.sh " in k["action"]["on_press"]["command"], k["label"]
+        by_label = {k["label"]: k for k in warp}
+        for label, json_key in (("Warp", "enabled"), ("Warp Tune", "tune")):
+            sw = by_label[label]["state_watch"]
+            assert sw["path"] == ["/run/qvue-warp/state.json"] and sw["json_key"] == json_key
+        # qvue-warpd writes JSON booleans; state_watch maps true/false to on/off
+        from streamdeck_ctrl.daemon import StreamDeckDaemon as Daemon
+        state = ('{"state": "on", "enabled": true, "warping": true, "tune": false, '
+                 '"source": "fb0", "panel": 1, "handle": "c", "step": 1}')
+        assert Daemon._watch_state(by_label["Warp"]["state_watch"], ("text", state), set()) == "on"
+        assert Daemon._watch_state(by_label["Warp Tune"]["state_watch"], ("text", state), set()) == "off"
+        # no daemon (no /run/qvue-warp/state.json): the keys show off
+        assert Daemon._watch_state(by_label["Warp"]["state_watch"], ("missing",), set()) == "off"
+        tuning = [k for k in warp if k["label"] not in ("Warp", "Warp Tune")]
+        assert all(k["enabled_when"] == {"key": "display.qvue_warp_tune", "state": "on"} for k in tuning)
+        assert by_label["Warp Tune"]["enabled_when"] == {"key": "display.qvue_warp", "state": "on"}
 
     def test_page1_bottom_row(self):
         """Display Power took Local Dimming's slot, Local Dimming Sync Video's."""

@@ -301,7 +301,7 @@ so systemd (`Restart=on-failure`) restarts it with the matching file.
 A deck **without** its own variant simply gets the loaded config's keys re-paginated for
 its size, with navigation arrows — at start-up and live, when a deck of another size is
 plugged in while the daemon runs (no restart; key states are kept). For example, the
-68 keys of `display-control.json` span 6 pages on a 15-key deck. `setup.sh` resolves
+93 keys of `display-control.json` span 7 pages on a 15-key deck. `setup.sh` resolves
 `{INSTALL_DIR}` in the variants too. Keys that appear in both files should keep the same
 `notification_id`, so state and scripts are shared.
 
@@ -389,7 +389,7 @@ committed tree, so the version names a commit anyone can check out.
 
 ## Real-World Example: Display Control
 
-The included `screens/display-control/` is micropanel's screen, six pages on a 15-key deck:
+The included `screens/display-control/` is micropanel's screen, seven pages on a 15-key deck:
 
 | Page | Keys |
 |---|---|
@@ -398,9 +398,10 @@ The included `screens/display-control/` is micropanel's screen, six pages on a 1
 | 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Blank 15 (Cluster Stop's former place); DMS Link |
 | 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice) on the top row, the four IOC flash tasks and the OLED-IB touch flash task below them, and the Qvue-Legacy / Qvue-New IOC flash and Qvue-New FPGA flash tasks on the bottom row (after ←) |
 | 5 | the SDR/HDR10+ demo clip keys, Stop and the Player keys (-10s, Pause, +10s, Loop), Dual Video, Mute, and Volume Down / Volume / Volume Up on the bottom row (in the places of the former Blank 8-13) |
-| 6 | Qvue-Legacy/FPGA-Flash, OTA-IOC, OTA-983, OTA-FPGA, OTA-System; Sync Video, Privacy (film on/off), Privacy Level Down (row 2); Privacy Level, Privacy Level Up (row 2); Quick Video (row 3, after ←) |
+| 6 | Qvue-Legacy/FPGA-Flash, OTA-IOC, OTA-983, OTA-FPGA, OTA-System; Sync Video, Privacy (film on/off), Privacy Level Down (row 2); Privacy Level, Privacy Level Up (row 2); Quick Video, Warp, Blank 16 (row 3, after ←) |
+| 7 | QVue warp tuning: Warp Tune, Warp Panel, Warp Handle, Warp Step 5, Warp Save; Warp Revert, Warp Reset, Warp Grid, Warp Up, Blank 17 (row 2); Blank 18, Warp Left, Warp Down, Warp Right (row 3, after ←: the arrows in a cross) |
 
-The paginator has no page break: a last page holds up to 14 keys (13 + ←), so page 6 exists only while more than 14 keys follow page 4. Blank 8-13 fill page 5 to a full middle page and Blank 14 after the Qvue-Legacy FPGA key keeps the count above 14. Page 6's top row is full (the OTA keys took Blank 14-17's places), so Sync Video sits at row 2, column 1; a new page-6 key goes after Quick Video (room for 3 more); a new page-5 key replaces one of Blank 8-13.
+The paginator has no page break: a last page holds up to 14 keys (13 + ←), so page 6 exists only while more than 14 keys follow page 4. Blank 8-13 fill page 5 to a full middle page and Blank 14 after the Qvue-Legacy FPGA key keeps the count above 14. Page 6's top row is full (the OTA keys took Blank 14-17's places), so Sync Video sits at row 2, column 1; page 6 is full since Warp and Blank 16 (a new page-6 key replaces Blank 16); a new page-5 key replaces one of Blank 8-13. Page 7 is the last page; Blank 17 and 18 keep the warp arrows in a cross, so a new key goes after Warp Right (a last page holds 14 keys: page 7 has room for none, the next key starts page 8).
 
 The arrows take one slot on each page (→ bottom right on all but the last, ← bottom left on
 all but the first), so page 1 holds 14 keys, the middle pages 13 and the last up to 14; the
@@ -490,6 +491,17 @@ The A / B images are the ones `--check` names (`image=`, plus its `_otaB` siblin
 7. A write that fails leaves the session open (display off, `PROGRAM_B` low) and the key red: keep power and hold it again; the rerun goes through the same flow and the address-0 check resumes correctly.
 
 The progress bar: checks 0-4 %, GOLDEN 5-50 %, the slot 50-97 % (5-97 % without GOLDEN), the boot 97-100 %. After every FPGA run OTA-FPGA is checked again.
+
+**QVue warp (page 6 Warp, page 7 tuning)**: keys for br-wrapper's `qvue-warpd`, the realtime warp of the 3x QVue HDMI output (the picture is pre-distorted so its windshield reflection looks straight). All go through `scripts/qvue-warp.sh`, which calls the daemon's client `qvue-warpctl` (`/home/pi/micropanel/bin`); on any other display type the daemon does not run and the presses fail harmlessly (the toggles go back).
+
+- **Warp** switches the warp on or off; the daemon keeps the setting (`/data/qvue-warp/warp.conf`). Off is for content that is already pre-warped. The key follows `"enabled"` in the daemon's `/run/qvue-warp/state.json` (`state_watch`), so a change made over the socket shows too.
+- **Warp Tune** (only while Warp is on) shows the tuning overlay on the panel: the warp grid of the selected panel and its 3x3 handles, the selected one in magenta. The other page-7 keys work only while it is on (`enabled_when`).
+- **Warp Panel** / **Warp Handle** select what the arrows move and show it (`P1`..`P3`; `tl t tr l c r bl b br`, `panel`, `all`): a corner bends the picture like a projector keystone, an edge middle bows it, the centre bulges it, `panel` moves the whole panel, `all` all three.
+- **Warp Up / Down / Left / Right** move the selection by one step; **Warp Step 5** switches the step between 1 px and 5 px (lit: 5 px).
+- **Warp Grid** replaces the running app by a built-in straight test grid while tuning, so the warp can be tuned on any screen.
+- **Warp Save** (a `task` key: green when saved, red on failure) stores the tuning in `/data/qvue-warp/trim.json`; **Warp Revert** goes back to the saved tuning, **Warp Reset** to none (not saved until Warp Save). The factory calibration is never changed.
+
+Icons: `images/make-qvue-warp-icons.py`.
 
 **Pixel Compensation** is greyed out and ignores presses while Local Dimming is off (`"enabled_when": {"key": "display.local_dimming", "state": "on"}`): pixel compensation has no effect without local dimming. Its own on/off still shows under the grey, and it comes back as it was when LD is switched on.
 

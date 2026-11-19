@@ -1794,6 +1794,327 @@
           "timeout_sec": 30
         }
       }
+    },
+    {
+      "position": [16, 3],
+      "label": "Warp",
+      "description": "3x QVue only: the realtime warp of the HDMI output on or off. On, the picture is pre-distorted so its windshield reflection looks straight; off for content that is already pre-warped. The setting is kept over reboots. Lit while on.",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "qvue-warp-on.bmp",
+        "off": "qvue-warp-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "display.qvue_warp",
+      "state_watch": {
+        "path": ["/run/qvue-warp/state.json"],
+        "json_key": "enabled",
+        "poll_interval_sec": 1,
+        "default_state": "off"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/qvue-warp.sh warp {state}",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [16, 4],
+      "label": "Blank 16",
+      "description": "Empty: does nothing. Keeps the warp tuning keys together on the next page.",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [17, 0],
+      "label": "Warp Tune",
+      "description": "3x QVue warp fine tuning on or off. On, the panel shows the warp grid of the selected panel with the selected handle marked (magenta); the keys on this page then move it, like a projector keystone. Lit while tuning.",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "qvue-warp-tune-on.bmp",
+        "off": "qvue-warp-tune-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "display.qvue_warp_tune",
+      "enabled_when": {"key": "display.qvue_warp", "state": "on"},
+      "state_watch": {
+        "path": ["/run/qvue-warp/state.json"],
+        "json_key": "tune",
+        "poll_interval_sec": 1,
+        "default_state": "off"
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/qvue-warp.sh tune {state}",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [17, 1],
+      "label": "Warp Panel",
+      "description": "Selects the next QVue panel to tune (P1 = left, P2, P3). Shows the selected panel. Only while Warp Tune is on.",
+      "icon_type": "live_value",
+      "icons": {
+        "base": "qvue-warp-panel.png"
+      },
+      "notification_id": "display.qvue_warp_panel",
+      "enabled_when": {"key": "display.qvue_warp_tune", "state": "on"},
+      "live": {
+        "source": "poll+notify",
+        "poll_command": "{INSTALL_DIR}/screens/display-control/scripts/qvue-warp.sh panel-value",
+        "poll_interval_sec": 2,
+        "format": "{value}",
+        "text_anchor": "bottom",
+        "text_color": "#FFFFFF",
+        "font_size": 22
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/qvue-warp.sh panel",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [17, 2],
+      "label": "Warp Handle",
+      "description": "Selects the next handle the arrows move: the corners (tl tr bl br) bend the picture like a keystone, the edge middles (t b l r) bow it, the centre (c) bulges it; 'panel' moves the whole panel, 'all' all three panels. Shows the selection. Only while Warp Tune is on.",
+      "icon_type": "live_value",
+      "icons": {
+        "base": "qvue-warp-handle.png"
+      },
+      "notification_id": "display.qvue_warp_handle",
+      "enabled_when": {"key": "display.qvue_warp_tune", "state": "on"},
+      "live": {
+        "source": "poll+notify",
+        "poll_command": "{INSTALL_DIR}/screens/display-control/scripts/qvue-warp.sh handle-value",
+        "poll_interval_sec": 2,
+        "format": "{value}",
+        "text_anchor": "bottom",
+        "text_color": "#FFFFFF",
+        "font_size": 22
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/qvue-warp.sh handle",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [17, 3],
+      "label": "Warp Step 5",
+      "description": "Arrow step for warp tuning: 5 px (lit) or 1 px. Only while Warp Tune is on.",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "qvue-warp-step5-on.bmp",
+        "off": "qvue-warp-step5-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "display.qvue_warp_step5",
+      "enabled_when": {"key": "display.qvue_warp_tune", "state": "on"},
+      "state_watch": {
+        "command": "{INSTALL_DIR}/screens/display-control/scripts/qvue-warp.sh step-state",
+        "text_map": {
+          "5": "on",
+          "*": "off"
+        },
+        "poll_interval_sec": 2
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/qvue-warp.sh step5 {state}",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [17, 4],
+      "label": "Warp Save",
+      "description": "Saves the warp tuning so it is kept over reboots (the factory calibration is never changed). Green when saved, red when it failed. Only while Warp Tune is on.",
+      "icon_type": "task",
+      "icons": {
+        "default": "qvue-warp-save.png"
+      },
+      "notification_id": "display.qvue_warp_save",
+      "enabled_when": {"key": "display.qvue_warp_tune", "state": "on"},
+      "task": {
+        "blink_interval_sec": 0.5,
+        "border_width": 6,
+        "colors": {
+          "running": "#00FF00",
+          "success": "#00FF00",
+          "failure": "#FF0000"
+        }
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/qvue-warp.sh save --id=display.qvue_warp_save",
+          "async": true,
+          "timeout_sec": 20
+        }
+      }
+    },
+    {
+      "position": [18, 0],
+      "label": "Warp Revert",
+      "description": "Throws away unsaved warp tuning: back to the last saved state. Only while Warp Tune is on.",
+      "icon_type": "static",
+      "icons": {
+        "default": "qvue-warp-revert.bmp"
+      },
+      "enabled_when": {"key": "display.qvue_warp_tune", "state": "on"},
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/qvue-warp.sh revert",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [18, 1],
+      "label": "Warp Reset",
+      "description": "Sets the warp tuning of all panels back to zero (the factory calibration). Not saved until Warp Save. Only while Warp Tune is on.",
+      "icon_type": "static",
+      "icons": {
+        "default": "qvue-warp-reset.bmp"
+      },
+      "enabled_when": {"key": "display.qvue_warp_tune", "state": "on"},
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/qvue-warp.sh reset",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [18, 2],
+      "label": "Warp Grid",
+      "description": "Shows a built-in straight test grid instead of the running app while tuning, so the warp can be tuned on any screen. Lit while the grid is shown; Warp Tune off returns to the app. Only while Warp Tune is on.",
+      "icon_type": "toggle",
+      "icons": {
+        "on": "qvue-warp-grid-on.bmp",
+        "off": "qvue-warp-grid-off.bmp"
+      },
+      "initial_state": "off",
+      "notification_id": "display.qvue_warp_grid",
+      "enabled_when": {"key": "display.qvue_warp_tune", "state": "on"},
+      "state_watch": {
+        "command": "{INSTALL_DIR}/screens/display-control/scripts/qvue-warp.sh grid-state",
+        "text_map": {
+          "on": "on",
+          "off": "off"
+        },
+        "poll_interval_sec": 2
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/qvue-warp.sh grid {state}",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [18, 3],
+      "label": "Warp Up",
+      "description": "Moves the selected warp handle (or panel) up by one step. Only while Warp Tune is on.",
+      "icon_type": "static",
+      "icons": {
+        "default": "qvue-warp-up.bmp"
+      },
+      "enabled_when": {"key": "display.qvue_warp_tune", "state": "on"},
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/qvue-warp.sh up",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [18, 4],
+      "label": "Blank 17",
+      "description": "Empty: does nothing. Keeps the warp arrows in a cross.",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [19, 0],
+      "label": "Blank 18",
+      "description": "Empty: does nothing. Keeps the warp arrows in a cross.",
+      "icon_type": "static",
+      "icons": {
+        "default": "blank.bmp"
+      },
+      "action": null
+    },
+    {
+      "position": [19, 1],
+      "label": "Warp Left",
+      "description": "Moves the selected warp handle (or panel) left by one step. Only while Warp Tune is on.",
+      "icon_type": "static",
+      "icons": {
+        "default": "qvue-warp-left.bmp"
+      },
+      "enabled_when": {"key": "display.qvue_warp_tune", "state": "on"},
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/qvue-warp.sh left",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [19, 2],
+      "label": "Warp Down",
+      "description": "Moves the selected warp handle (or panel) down by one step. Only while Warp Tune is on.",
+      "icon_type": "static",
+      "icons": {
+        "default": "qvue-warp-down.bmp"
+      },
+      "enabled_when": {"key": "display.qvue_warp_tune", "state": "on"},
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/qvue-warp.sh down",
+          "async": true
+        }
+      }
+    },
+    {
+      "position": [19, 3],
+      "label": "Warp Right",
+      "description": "Moves the selected warp handle (or panel) right by one step. Only while Warp Tune is on.",
+      "icon_type": "static",
+      "icons": {
+        "default": "qvue-warp-right.bmp"
+      },
+      "enabled_when": {"key": "display.qvue_warp_tune", "state": "on"},
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/qvue-warp.sh right",
+          "async": true
+        }
+      }
     }
   ]
 }
