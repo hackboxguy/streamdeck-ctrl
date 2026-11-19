@@ -64,6 +64,18 @@ class Rig:
         shutil.copy(os.path.join(FIX, "fake-disptool-xc7s50.sh"),
                     os.path.join(home, "bin", "disptool"))
         open(os.path.join(share, "spiOverJtag_xc7s50.bit.gz"), "wb").write(b"bridge")
+        # the Platform Cable USB II path: xc3sprog, its bscan bridge, the FX2 firmware
+        bscan = os.path.join(home, "fpga", "share", "xc3sprog", "bscan_spi")
+        os.makedirs(bscan, exist_ok=True)
+        shutil.copy(os.path.join(FIX, "fake-xc3sprog-xc7s50.sh"),
+                    os.path.join(home, "fpga", "bin", "xc3sprog"))
+        open(os.path.join(bscan, "xc7s50csga324-1.bit"), "wb").write(b"bscan")
+        open(os.path.join(home, "fpga", "bin", "xusb_xp2.hex"), "w").write(":00000001FF\n")
+        self.fxload = os.path.join(home, "bin", "fxload")
+        open(self.fxload, "w").write(
+            '#!/bin/bash\necho "fxload $*" >> %s/calls\n'
+            '[ "$1" = -t ] || exit 1\necho loaded > %s/xpcfw\n' % (self.state, self.state))
+        os.chmod(self.fxload, 0o755)
         upd = os.path.join(home, "bin", "update-fpga.sh")
         open(upd, "w").write(
             '#!/bin/bash\nr=$(%s/bin/disptool --device=fpganew --command=activbitstream)\n'
@@ -71,7 +83,11 @@ class Rig:
             ' && echo ok || echo failed)"\n' % home)
         os.chmod(upd, 0o755)
         self.lsusb = os.path.join(home, "bin", "lsusb")
-        open(self.lsusb, "w").write('#!/bin/bash\n[ "$(cat %s/blaster)" = ok ]\n' % self.state)
+        open(self.lsusb, "w").write(
+            '#!/bin/bash\ncase "$2" in\n'
+            '09fb:6001) [ "$(cat {s}/blaster)" = ok ] && echo "Bus 001 Device 003: ID 09fb:6001 Altera Blaster" ;;\n'
+            '03fd:0013) [ "$(cat {s}/xpc)" = ok ] && echo "Bus 001 Device 004: ID 03fd:0013 Xilinx, Inc." ;;\n'
+            '*) exit 1 ;;\nesac\n'.format(s=self.state))
         os.chmod(self.lsusb, 0o755)
 
         self.golden = golden if golden is not None else bitstream(True)
@@ -101,7 +117,7 @@ class Rig:
         self.flash_before = bytes(flash)
 
         defaults = dict(jtag="ok", jedec="0x9d6018", failwrite="0", fpga="image",
-                        ioc="ok", power="on", blaster="ok",
+                        ioc="ok", power="on", blaster="ok", xpc="none", xpcfw="none",
                         golden=self.gpath, update=self.upath)
         defaults.update(state)
         for k, v in defaults.items():
@@ -117,7 +133,7 @@ class Rig:
                         OTA_TMP=self.otatmp, OTA_NOTIFY_SOCK=self.sock_path,
                         OTA_CONFIRM_SEC="20", FPGA_BACKUP_DIR=self.backups,
                         FPGA_AB_OFL_SUDO="0", FPGA_AB_POWER_OFF_SEC="0",
-                        FPGA_AB_BOOT_WAIT_SEC="3", LSUSB=self.lsusb)
+                        FPGA_AB_BOOT_WAIT_SEC="3", LSUSB=self.lsusb, FXLOAD=self.fxload)
 
     def _serve(self):
         while True:
@@ -329,11 +345,17 @@ class TestRefusals:
         assert msg in r.log()
         assert r.states()[-1] == "failure"
 
-    def test_no_blaster(self, rig):
+    def test_no_cable(self, rig):
         r = rig(blaster="none")
         assert r.run() == 1
+        assert "no JTAG cable attached" in r.log()
+        assert r.calls() == [] and r.calls("xc3") == []
+
+    def test_forced_blaster_that_is_missing(self, rig):
+        r = rig(blaster="none", xpc="ok", xpcfw="loaded")
+        assert r.run(FPGA_JTAG_TRANSPORT="usb-blaster") == 1
         assert "no USB-Blaster" in r.log()
-        assert r.calls() == []
+        assert r.calls() == [] and r.calls("xc3") == []
 
     def test_wrong_flash_id_writes_nothing(self, rig):
         r = rig(addr0="vendor", jedec="0xffffff")
@@ -351,3 +373,77 @@ class TestRefusals:
         open(fake, "w").write(body)
         assert r.run() == 1
         assert "does not run the UPDATE" in r.log()
+
+
+class TestPlatformCable:
+    """The Waveshare / Xilinx Platform Cable USB II (03fd:0013) through xc3sprog."""
+
+    def xpc(self, rig, **kw):
+        kw.setdefault("blaster", "none")
+        kw.setdefault("xpc", "ok")
+        return rig(**kw)
+
+    def xwrites(self, r):
+        return [c for c in r.calls("xc3") if ":W:" in c]
+
+    def test_vendor_board_loads_the_firmware_and_migrates_in_one_run(self, rig):
+        r = self.xpc(rig, addr0="vendor", slot="blank")      # the cable's FX2 is empty
+        p = r.start()
+        assert wait_for(os.path.join(r.otatmp, "fpga-ab-confirm.wait"))
+        assert self.xwrites(r) == []
+        assert r.run() == 0
+        assert p.wait(timeout=120) == 0
+        time.sleep(0.2)
+        assert r.installed()
+        assert r.calls("fxload -t fx2lp")                    # firmware loaded once
+        assert r.calls() == []                               # openFPGALoader never used
+        w = self.xwrites(r)
+        assert len(w) == 1 and "combined.bin:W:0:BIN" in w[0]   # one session, from 0
+        assert all("-I" in c for c in r.calls("xc3") if ":R:" in c or ":W:" in c)
+        bks = [f for f in os.listdir(r.backups) if f.endswith(".bin")]
+        assert len(bks) == 1
+        assert open(os.path.join(r.backups, bks[0]), "rb").read() == r.flash_before
+        assert r.calls("disptool --device=ioc --command=disppower --value=off")
+        log = r.log()
+        assert "JTAG cable: xpc2 (xc3sprog)" in log
+        assert "readback: identical" in log and "SUCCESS: migrated" in log
+
+    def test_golden_present_writes_only_the_slot(self, rig):
+        r = self.xpc(rig, addr0="golden", slot="other", xpcfw="loaded")
+        assert r.run() == 0
+        w = self.xwrites(r)
+        assert len(w) == 1 and "12-3-inch-new_ota.bin:W:%d:BIN" % SLOT in w[0]
+        assert r.calls("fxload") == []                       # already answering
+        assert r.installed()
+        assert "SUCCESS: updated" in r.log()
+
+    def test_a_failed_write_is_caught_even_with_exit_0(self, rig):
+        r = self.xpc(rig, addr0="golden", slot="other", xpcfw="loaded", failwrite="100")
+        assert r.run() == 1
+        assert "writing the slot failed" in r.log()
+        assert r.states()[-1] == "failure"
+
+    def test_without_the_ioc_there_is_no_jtag_reset(self, rig):
+        r = self.xpc(rig, addr0="golden", slot="other", xpcfw="loaded", ioc="none")
+        assert r.run() == 1
+        assert r.calls() == []                               # no openFPGALoader --reset
+        assert "cannot reset a 7-series FPGA" in r.log()
+        assert "power-cycle the display" in r.log()
+
+    def test_wrong_flash_id_writes_nothing(self, rig):
+        r = self.xpc(rig, addr0="vendor", xpcfw="loaded", jedec="0xffffff")
+        assert r.run() == 1
+        assert self.xwrites(r) == [] and r.flash() == r.flash_before
+        assert "not the IS25LP128" in r.log()
+
+    def test_auto_prefers_the_usb_blaster(self, rig):
+        r = rig(addr0="golden", slot="match", xpc="ok", xpcfw="loaded")
+        assert r.run() == 0
+        assert r.calls("xc3") == [] and r.calls()
+        assert "JTAG cable: usb-blaster" in r.log()
+
+    def test_forced_xpc2_with_both_attached(self, rig):
+        r = rig(addr0="golden", slot="match", xpc="ok", xpcfw="loaded")
+        assert r.run(FPGA_JTAG_TRANSPORT="xpc2") == 0
+        assert r.calls() == [] and r.calls("xc3")
+        assert "SUCCESS: already installed" in r.log()
