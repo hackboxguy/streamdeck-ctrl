@@ -1833,7 +1833,7 @@
     {
       "position": [17, 0],
       "label": "Warp Tune",
-      "description": "3x QVue warp fine tuning on or off. On, the panel shows the warp grid of the selected panel with the selected handle marked (magenta); the keys on this page then move it, like a projector keystone. Lit while tuning.",
+      "description": "3x QVue warp fine tuning on or off. On, the selected panel shows its warp grid as yellow lines over the picture and the 3x3 handles (cyan, the selected one magenta); the keys on this page then move them, like a projector keystone. With Warp Grid on, only the handles are drawn over the test pattern. Lit while tuning.",
       "icon_type": "toggle",
       "icons": {
         "on": "qvue-warp-tune-on.bmp",
@@ -2003,7 +2003,7 @@
     {
       "position": [18, 2],
       "label": "Warp Grid",
-      "description": "Shows a built-in straight test grid instead of the running app while tuning, so the warp can be tuned on any screen. Lit while the grid is shown; Warp Tune off returns to the app. Only while Warp Tune is on.",
+      "description": "Shows a built-in test pattern instead of the running app while tuning, so the warp can be tuned on any screen: grey grid lines with white dots on the nodes, the panel's coloured border, centre cross and PANEL label, orange diagonals and a circle. In the reflection the lines should look straight and the circle round. The yellow tuning lines are hidden while it is shown (the pattern is the grid); the handles stay. Lit while the pattern is shown; Warp Tune off returns to the app. Only while Warp Tune is on.",
       "icon_type": "toggle",
       "icons": {
         "on": "qvue-warp-grid-on.bmp",
