@@ -88,7 +88,9 @@ def test_descriptions_reach_the_page(builder):
 
 
 def test_retired_labels_map_to_their_successor(builder):
-    # older USB files and saved layouts name Player Stop / Cluster Stop
+    # older USB files and saved layouts name Player Stop / Cluster Stop, and
+    # Blank 15, whose place the Harman-26 theme key took
     data = builder.build_data(CONFIG)
-    assert data["aliases"] == {"Player Stop": "Stop", "Cluster Stop": "Stop"}
-    assert not {"Player Stop", "Cluster Stop"} & {k["label"] for k in data["keys"]}
+    assert data["aliases"] == {"Player Stop": "Stop", "Cluster Stop": "Stop",
+                               "Blank 15": "Cluster V2 Harman-26"}
+    assert not {"Player Stop", "Cluster Stop", "Blank 15"} & {k["label"] for k in data["keys"]}

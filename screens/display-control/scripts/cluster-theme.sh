@@ -1,6 +1,6 @@
 #!/bin/bash
 # Cluster Demo V2 with a theme: start the launcher's cluster-v2-<theme> tile.
-# $1 = analog | ev | harman | fable1 | tiles | atelier | neo | auto
+# $1 = analog | ev | harman | fable1 | tiles | atelier | neo | harman2026 | auto
 #
 # Another app running (another theme, the old cluster, a video) is stopped
 # first and the launcher's home awaited: a
@@ -11,7 +11,7 @@ DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 . "$DIR/launcher-lib.sh"
 
 case "${1:-}" in
-    analog|ev|harman|fable1|tiles|atelier|neo|auto) TILE="cluster-v2-$1" ;;
+    analog|ev|harman|fable1|tiles|atelier|neo|harman2026|auto) TILE="cluster-v2-$1" ;;
     *) echo "cluster-theme: unknown theme '${1:-}'" >&2; exit 2 ;;
 esac
 

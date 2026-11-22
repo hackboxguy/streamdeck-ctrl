@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Draw the display-control screen's Cluster Demo V2 keys that the stand-alone
-qt-cluster-demo screen does not have (Atelier, Neo, Auto, DMS, Stop, DMS Link), in that
+qt-cluster-demo screen does not have (Atelier, Neo, Harman-26, Auto, DMS, Stop, DMS Link), in that
 screen's style: 72x72, navy, a rounded border (green on / blue off), a white
 glyph (grey when off) and a bold label.
 
@@ -19,12 +19,12 @@ LABEL = (255, 255, 255)
 FONT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "fonts", "DejaVuSans-Bold.ttf")
 
 
-def key(label, state, draw_glyph):
+def key(label, state, draw_glyph, label_size=None):
     im = Image.new("RGB", (SIZE, SIZE), BG)
     d = ImageDraw.Draw(im)
     d.rounded_rectangle((1, 1, SIZE - 2, SIZE - 2), radius=10, outline=BORDER[state], width=3)
     draw_glyph(d, GLYPH[state])
-    font = ImageFont.truetype(FONT, 14 if len(label) <= 6 else 11)
+    font = ImageFont.truetype(FONT, label_size or (14 if len(label) <= 6 else 11))
     w = d.textlength(label, font=font)
     d.text(((SIZE - w) / 2, 52 if len(label) <= 6 else 54), label, font=font, fill=LABEL)
     return im
@@ -40,6 +40,14 @@ def neo(d, c):          # a road into the scene and its horizon
     d.line((12, 28, 60, 28), fill=c, width=2)
     d.polygon([(30, 28), (42, 28), (54, 44), (18, 44)], outline=c, width=3)
     d.line((36, 32, 36, 40), fill=c, width=2)
+
+
+def harman26(d, c):     # the Harman-2026 design: a big speed over its light bar
+    f = ImageFont.truetype(FONT, 26)
+    w = d.textlength("26", font=f)
+    d.text(((SIZE - w) / 2, 8), "26", font=f, fill=c)
+    d.line((14, 41, 58, 41), fill=c, width=2)
+    d.line((26, 43, 46, 43), fill=c, width=1)
 
 
 def auto(d, c):         # "A" in a circling arrow: the theme follows the vehicle
@@ -68,6 +76,10 @@ def main(out_dir):
                                ("auto", "AUTO", auto), ("dms", "DMS", dms)):
         for state in ("on", "off"):
             key(label, state, glyph).save(os.path.join(out_dir, f"cluster-{name}-{state}.bmp"))
+    # eight letters: 10 pt keeps them off the border
+    for state in ("on", "off"):
+        key("HARMAN26", state, harman26, label_size=10).save(
+            os.path.join(out_dir, f"cluster-harman2026-{state}.bmp"))
     # a task key: one picture, the daemon draws the green/red state border
     key("DMS LINK", "off", dms_link).save(os.path.join(out_dir, "cluster-dms-link.bmp"))
 

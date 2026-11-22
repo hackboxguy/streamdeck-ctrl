@@ -395,7 +395,7 @@ The included `screens/display-control/` is micropanel's screen, seven pages on a
 |---|---|
 | 1 | Home, Media Player, Slideshow, Default Ref Video, Display Settings, Brightness Up/Down, ALS Adaptive, Cluster Demo (the modern cluster: Legacy theme, DMS panel off, map on), IP Address, Display Power (on/off), Local Dimming, Pixel Compensation |
 | 2 | the thirteen HDMI timing radios (12.3 NQ1, 15.6 2K5, 14.6 FHD DD, EDID, 12.3 NQ5, 14.6 2K5, 17.3 3K, 17.3 OTS-OLED, 3×QVue, 12.3 NQ1v1.1, 27", 14.6 FHD EJ, 17" IB-OLED) |
-| 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Blank 15 (Cluster Stop's former place); DMS Link |
+| 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Harman-26 (in Blank 15's place, which held Cluster Stop's); DMS Link |
 | 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice) on the top row, the four IOC flash tasks and the OLED-IB touch flash task below them, and the Qvue-Legacy / Qvue-New IOC flash and Qvue-New FPGA flash tasks on the bottom row (after ←) |
 | 5 | the SDR/HDR10+ demo clip keys, Stop and the Player keys (-10s, Pause, +10s, Loop), Dual Video, Mute, and Volume Down / Volume / Volume Up on the bottom row (in the places of the former Blank 8-13) |
 | 6 | Qvue-Legacy/FPGA-Flash, OTA-IOC, OTA-983, OTA-FPGA, OTA-System; Sync Video, Privacy (film on/off), Privacy Level Down (row 2); Privacy Level, Privacy Level Up (row 2); Quick Video, Warp, Blank 16 (row 3, after ←) |

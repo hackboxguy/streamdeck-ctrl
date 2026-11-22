@@ -843,13 +843,32 @@
     },
     {
       "position": [11, 1],
-      "label": "Blank 15",
-      "description": "Empty: does nothing. Holds Cluster Stop's former place (now the Stop key), so the keys after it stay on their pages.",
-      "icon_type": "static",
+      "label": "Cluster V2 Harman-26",
+      "aliases": ["Blank 15"],
+      "description": "Starts the instrument-cluster demo (Cluster V2) with the Harman-2026 theme (the 2026 Figma design: big speed and ADAS row, the road view while the assist drives, doors, tyres and charging screens), stopping whatever runs first. Lit while this theme is running. Takes Blank 15's place (page 3, third row, third column).",
+      "icon_type": "radio",
       "icons": {
-        "default": "blank.bmp"
+        "on": "cluster-harman2026-on.bmp",
+        "off": "cluster-harman2026-off.bmp"
       },
-      "action": null
+      "initial_state": "off",
+      "notification_id": "cluster.theme_harman2026",
+      "state_watch": {
+        "command": "/home/pi/micropanel/usr/bin/launcher-client --srv=127.0.0.1:8081 --command=get-running-app",
+        "text_map": {
+          "cluster-v2-harman2026": "on",
+          "*": "off"
+        },
+        "poll_interval_sec": 1
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/cluster-theme.sh harman2026",
+          "async": true,
+          "timeout_sec": 20
+        }
+      }
     },
     {
       "position": [11, 2],

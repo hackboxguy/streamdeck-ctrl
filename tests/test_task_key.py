@@ -352,9 +352,10 @@ class TestTaskConfig:
         assert pages.get_physical_pos(by_label["HDMI 27"]["position"]) == (2, 1)
 
         pages.switch_page("right")
-        # Page 3: DMS Link after Blank 15 (Cluster Stop's place: it became
-        # an alias of Stop, 2026-11-17) and before the next-page arrow
-        assert pages.get_physical_pos(by_label["Blank 15"]["position"]) == (2, 2)
+        # Page 3: DMS Link after Harman-26 (in Blank 15's place, which held
+        # Cluster Stop's: it became an alias of Stop, 2026-11-17) and before
+        # the next-page arrow; Harman-26 is third row, third column
+        assert pages.get_physical_pos(by_label["Cluster V2 Harman-26"]["position"]) == (2, 2)
         assert pages.get_physical_pos(by_label["DMS Link"]["position"]) == (2, 3)
         assert pages.is_nav_key((2, 4)) == "right"
         pages.switch_page("right")
