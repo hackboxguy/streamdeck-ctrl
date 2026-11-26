@@ -1841,13 +1841,27 @@
     },
     {
       "position": [16, 4],
-      "label": "Blank 16",
-      "description": "Empty: does nothing. Keeps the warp tuning keys together on the next page.",
-      "icon_type": "static",
+      "label": "PC Source",
+      "description": "Who feeds the display. Lit (USB ON): an external PC drives it through its DP output into the 983, and the Pi's USB-C port gives that PC the touch screen and display control (brightness, ALS, power) as USB HID; the Pi's launcher does not run. Off: the Pi drives it through its HDMI, as usual. The choice holds across reboots. The video cable is not switched: plug the PC's DP or the Pi's HDMI adapter into the 983 to match.",
+      "icon_type": "toggle",
       "icons": {
-        "default": "blank.bmp"
+        "on": "pc-source-on.bmp",
+        "off": "pc-source-off.bmp"
       },
-      "action": null
+      "initial_state": "off",
+      "notification_id": "display.pc_source",
+      "state_watch": {
+        "command": "{INSTALL_DIR}/screens/display-control/scripts/pc-source.sh state",
+        "text_map": {"on": "on", "off": "off"},
+        "poll_interval_sec": 3
+      },
+      "action": {
+        "on_press": {
+          "type": "script",
+          "command": "{INSTALL_DIR}/screens/display-control/scripts/pc-source.sh {state}",
+          "async": true
+        }
+      }
     },
     {
       "position": [17, 0],

@@ -339,7 +339,8 @@ class TestTaskConfig:
         # Blank 14 (a last page holds up to 14 keys, so page 6 only exists
         # while more than 14 keys follow page 4).
         # Page 7 (2026-11-18): the QVue warp tuning keys; the Warp key itself
-        # and Blank 16 end page 6, which is now a middle page.
+        # and PC Source (in Blank 16's place, 2026-11-26) end page 6, which is
+        # now a middle page.
         # The deck's arrows take one slot each, so a key inserted ahead of
         # these shifts them.
         pages = PageManager(cfg["keys"], cfg["device"].get("layout", [3, 5]))

@@ -398,10 +398,10 @@ The included `screens/display-control/` is micropanel's screen, seven pages on a
 | 3 | Cluster Demo V2: the themes Legacy, EV, Harman, Horizon (fable1), Tiles, Atelier, Neo, Auto; Map, Camera, DMS; Harman-26 (in Blank 15's place, which held Cluster Stop's); DMS Link |
 | 4 | the five FPGA flash tasks (12.3-NQ5, 15.6-0OD, 14.6-EJ: `14-6-fhd-ej-new.bin`, 14.6-DD: `14-6-fhd-new.bin`, 12.3-NQ11: `12-3-nq1v11.bit`, Lattice) on the top row, the four IOC flash tasks and the OLED-IB touch flash task below them, and the Qvue-Legacy / Qvue-New IOC flash and Qvue-New FPGA flash tasks on the bottom row (after ←) |
 | 5 | the SDR/HDR10+ demo clip keys, Stop and the Player keys (-10s, Pause, +10s, Loop), Dual Video, Mute, and Volume Down / Volume / Volume Up on the bottom row (in the places of the former Blank 8-13) |
-| 6 | Qvue-Legacy/FPGA-Flash, OTA-IOC, OTA-983, OTA-FPGA, OTA-System; Sync Video, Privacy (film on/off), Privacy Level Down (row 2); Privacy Level, Privacy Level Up (row 2); Quick Video, Warp, Blank 16 (row 3, after ←) |
+| 6 | Qvue-Legacy/FPGA-Flash, OTA-IOC, OTA-983, OTA-FPGA, OTA-System; Sync Video, Privacy (film on/off), Privacy Level Down (row 2); Privacy Level, Privacy Level Up (row 2); Quick Video, Warp, PC Source (row 3, after ←) |
 | 7 | QVue warp tuning: Warp Tune, Warp Panel, Warp Handle, Warp Step 5, Warp Save; Warp Revert, Warp Reset, Warp Grid, Warp Up, Mirror H (row 2); Mirror V, Warp Left, Warp Down, Warp Right (row 3, after ←: the arrows in a cross) |
 
-The paginator has no page break: a last page holds up to 14 keys (13 + ←), so page 6 exists only while more than 14 keys follow page 4. Blank 8-13 fill page 5 to a full middle page and Blank 14 after the Qvue-Legacy FPGA key keeps the count above 14. Page 6's top row is full (the OTA keys took Blank 14-17's places), so Sync Video sits at row 2, column 1; page 6 is full since Warp and Blank 16 (a new page-6 key replaces Blank 16); a new page-5 key replaces one of Blank 8-13. Page 7 is the last page and full; Mirror H and Mirror V sit in the places of the former Blank 17 and 18, which kept the warp arrows in a cross, so a new key goes after Warp Right (a last page holds 14 keys: page 7 has room for none, the next key starts page 8).
+The paginator has no page break: a last page holds up to 14 keys (13 + ←), so page 6 exists only while more than 14 keys follow page 4. Blank 8-13 fill page 5 to a full middle page and Blank 14 after the Qvue-Legacy FPGA key keeps the count above 14. Page 6's top row is full (the OTA keys took Blank 14-17's places), so Sync Video sits at row 2, column 1; page 6 is full since Warp and PC Source (PC Source took Blank 16's place); a new page-5 key replaces one of Blank 8-13. Page 7 is the last page and full; Mirror H and Mirror V sit in the places of the former Blank 17 and 18, which kept the warp arrows in a cross, so a new key goes after Warp Right (a last page holds 14 keys: page 7 has room for none, the next key starts page 8).
 
 The arrows take one slot on each page (→ bottom right on all but the last, ← bottom left on
 all but the first), so page 1 holds 14 keys, the middle pages 13 and the last up to 14; the
@@ -640,6 +640,19 @@ greyed out. States as Dual Video below, except that a press while it plays (`suc
 Stop, Home and the Player keys work on it (`20-dual-video-player.sh`). Reasons for a failed
 start: `journalctl -t quick-video-key`. On page 6 of the 15-key deck, not on the Mini; the
 layout builder can put it anywhere. Needs an image with br-wrapper's `quick-video` entry.
+
+**PC Source** — a toggle (`display.pc_source`, `pc-source-on.bmp`/`-off.bmp` from
+`images/make-pc-source-icons.py`) that chooses who feeds the display. Lit (USB ON): an
+external PC drives it through its DP output into the 983, and the Pi's USB-C port becomes a
+USB HID device for that PC, with the display's touch screen and a control channel
+(brightness, ALS mode, panel power, through br-wrapper's `fpd-hid-bridge`); the Pi's launcher
+does not run, so keys that start Pi apps have nothing to start. Off: the Pi's HDMI, as
+before. `scripts/pc-source.sh` calls `fpd-bridge-mode.sh set external|pi`, which switches at
+once and keeps the choice on the data partition across reboots; the key follows
+`fpd-bridge-mode.sh get` (`state_watch`, 3 s). The video cable is not switched: plug the
+PC's DP or the Pi's HDMI adapter into the 983 to match. On an image without
+`fpd-hid-bridge` the key goes back and does nothing. Page 6 of the 15-key deck, in Blank
+16's place; not on the Mini.
 
 **Default Ref Video** (`scripts/launch-default-ref-video.sh`) — Kodi with the first video on
 the stick, else the image's `ref-video.mp4`. It opens the video as soon as Kodi's JSON-RPC
