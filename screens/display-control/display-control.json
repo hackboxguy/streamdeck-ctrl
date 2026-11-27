@@ -911,11 +911,10 @@
     {
       "position": [5, 4],
       "label": "12.3-NQ5 FPGA Flash",
-      "description": "Service: installs our FPGA images into the 12.3\" NQ5 display board over JTAG (GOLDEN at 0, UPDATE in the slot), then restarts the FPGA and checks that the UPDATE runs. Hold the key 1.5 s to start. A board that still has the factory (vendor) image asks \"GOLDEN?\" (blinking amber): hold again within 60 s to confirm. The flash is backed up to /data/fpga-backups first. Takes about 15 min the first time; keep the display powered while it blinks. Green: running the new image. Red: failed (see /tmp/fpga-flash.log); run it again.",
+      "description": "Service: installs our FPGA images into the 12.3\" NQ5 display board over JTAG (GOLDEN at 0, UPDATE in the slot), then restarts the FPGA and checks that the UPDATE runs. Hold the key 1.5 s to start. No questions while it runs: a board that still has the factory (vendor) image is backed up to /data/fpga-backups first, then gets both images. Takes about 15 min the first time; keep the display powered while it blinks. Green: running the new image. Red: failed (see /tmp/fpga-flash.log); run it again.",
       "icon_type": "task",
       "icons": {
-        "default": "12-3-nq5-fpga-flash.png",
-        "confirm": "fpga-golden-confirm.png"
+        "default": "12-3-nq5-fpga-flash.png"
       },
       "notification_id": "fpga.flash_12_3_nq5",
       "task": {
@@ -923,7 +922,6 @@
         "border_width": 6,
         "hold_sec": 1.5,
         "colors": {
-          "confirm": "#FF8C00",
           "running": "#00FF00",
           "success": "#00FF00",
           "failure": "#FF0000"
@@ -968,11 +966,10 @@
     {
       "position": [4, 4],
       "label": "14.6-EJ FPGA Flash",
-      "description": "Service: installs our FPGA images into the 14.6\" Full-HD EJ display board over JTAG (GOLDEN at 0, UPDATE in the slot), then restarts the FPGA and checks that the UPDATE runs. Hold the key 1.5 s to start. A board that still has the factory (vendor) image asks \"GOLDEN?\" (blinking amber): hold again within 60 s to confirm. The flash is backed up to /data/fpga-backups first. Takes about 15 min the first time; keep the display powered while it blinks. Green: running the new image. Red: failed (see /tmp/fpga-flash.log); run it again.",
+      "description": "Service: installs our FPGA images into the 14.6\" Full-HD EJ display board over JTAG (GOLDEN at 0, UPDATE in the slot), then restarts the FPGA and checks that the UPDATE runs. Hold the key 1.5 s to start. No questions while it runs: a board that still has the factory (vendor) image is backed up to /data/fpga-backups first, then gets both images. Takes about 15 min the first time; keep the display powered while it blinks. Green: running the new image. Red: failed (see /tmp/fpga-flash.log); run it again.",
       "icon_type": "task",
       "icons": {
-        "default": "14-6-ej-fpga-flash.png",
-        "confirm": "fpga-golden-confirm.png"
+        "default": "14-6-ej-fpga-flash.png"
       },
       "notification_id": "fpga.flash_14_6_ej",
       "task": {
@@ -980,7 +977,6 @@
         "border_width": 6,
         "hold_sec": 1.5,
         "colors": {
-          "confirm": "#FF8C00",
           "running": "#00FF00",
           "success": "#00FF00",
           "failure": "#FF0000"
@@ -998,11 +994,10 @@
     {
       "position": [6, 1],
       "label": "14.6-DD FPGA Flash",
-      "description": "Service: installs our FPGA images into the 14.6\" Full-HD DD display board over JTAG (GOLDEN at 0, UPDATE in the slot), then restarts the FPGA and checks that the UPDATE runs. Hold the key 1.5 s to start. A board that still has the factory (vendor) image asks \"GOLDEN?\" (blinking amber): hold again within 60 s to confirm. The flash is backed up to /data/fpga-backups first. Takes about 15 min the first time; keep the display powered while it blinks. Green: running the new image. Red: failed (see /tmp/fpga-flash.log); run it again.",
+      "description": "Service: installs our FPGA images into the 14.6\" Full-HD DD display board over JTAG (GOLDEN at 0, UPDATE in the slot), then restarts the FPGA and checks that the UPDATE runs. Hold the key 1.5 s to start. No questions while it runs: a board that still has the factory (vendor) image is backed up to /data/fpga-backups first, then gets both images. Takes about 15 min the first time; keep the display powered while it blinks. Green: running the new image. Red: failed (see /tmp/fpga-flash.log); run it again.",
       "icon_type": "task",
       "icons": {
-        "default": "14-6-dd-fpga-flash.png",
-        "confirm": "fpga-golden-confirm.png"
+        "default": "14-6-dd-fpga-flash.png"
       },
       "notification_id": "fpga.flash_14_6_dd",
       "task": {
@@ -1010,7 +1005,6 @@
         "border_width": 6,
         "hold_sec": 1.5,
         "colors": {
-          "confirm": "#FF8C00",
           "running": "#00FF00",
           "success": "#00FF00",
           "failure": "#FF0000"
@@ -1247,8 +1241,7 @@
       "description": "Service: writes the new FPGA image into the 3x QVue display, through its controller (run Qvue-New/IOC-Flash first). Hold the key 1.5 s to start. Can take about 10 minutes: keep the display powered.",
       "icon_type": "task",
       "icons": {
-        "default": "qvue-new-fpga-flash.png",
-        "confirm": "fpga-golden-confirm.png"
+        "default": "qvue-new-fpga-flash.png"
       },
       "notification_id": "fpga.flash_qvue_new",
       "task": {
@@ -1256,7 +1249,6 @@
         "border_width": 6,
         "hold_sec": 1.5,
         "colors": {
-          "confirm": "#FF8C00",
           "running": "#00FF00",
           "success": "#00FF00",
           "failure": "#FF0000"
@@ -1631,11 +1623,10 @@
     {
       "position": [15, 0],
       "label": "OTA-FPGA",
-      "description": "Updates the 3x QVue display's FPGA image. Grey: up to date. Yellow: an update is available, hold the key 1.5 s. A unit that still has the factory image asks \"GOLDEN?\" (blinking amber): hold again to confirm the one-time first install (about 10 minutes, keep powered).",
+      "description": "Updates the 3x QVue display's FPGA image. Grey: up to date. Yellow: an update is available, hold the key 1.5 s. No questions while it runs: a unit that still has the factory image gets our GOLDEN first, in the same press (about 10 minutes, keep powered).",
       "icon_type": "task",
       "icons": {
-        "default": "ota-fpga.png",
-        "confirm": "fpga-golden-confirm.png"
+        "default": "ota-fpga.png"
       },
       "notification_id": "ota.fpga",
       "initial_state": "idle",
@@ -1643,11 +1634,10 @@
         "blink_interval_sec": 0.5,
         "border_width": 6,
         "hold_sec": 1.5,
-        "press_states": ["available", "failure", "confirm"],
+        "press_states": ["available", "failure"],
         "grey_states": ["idle"],
         "colors": {
           "available": "#FFD000",
-          "confirm": "#FF8C00",
           "running": "#00FF00",
           "success": "#00FF00",
           "failure": "#FF0000"

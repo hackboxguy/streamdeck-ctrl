@@ -34,9 +34,8 @@
 # updated that the check does not call outdated, so a rolled-back image
 # (update-iocs exit 5) is never installed again from here.
 #
-# The FPGA question: while it waits, this run leaves $CONFIRM_WAIT ("<pid>
-# <id>"); a press of the same key runs this script again, which finds it,
-# leaves $CONFIRM_YES and exits without touching anything else.
+# The FPGA update asks nothing: one press does it all, GOLDEN included where
+# flash address 0 is not ours. A second press while it runs is refused by the lock.
 #
 # Locks: /tmp/target-flash.lock (every flash script and the deck's pollers)
 # and /tmp/system-update.lock (System Manager and its badge; this pid inside).
@@ -61,16 +60,6 @@ for a in "$@"; do
         *) echo "$0 $TARGET: unknown argument $a" >&2; exit 2 ;;
     esac
 done
-
-# A press that answers the FPGA question of the run already going: say yes
-# and leave everything else to that run (it holds the locks).
-if [ "$TARGET" = fpga ] && [ -e "$CONFIRM_WAIT" ]; then
-    read -r wpid wid < "$CONFIRM_WAIT" 2>/dev/null
-    if [ "${wid:-}" = "$ID" ] && [ -n "${wpid:-}" ] && kill -0 "$wpid" 2>/dev/null; then
-        echo yes > "$CONFIRM_YES"
-        exit 0
-    fi
-fi
 
 log() { echo "[ota/$TARGET] $*" | tee -a "$OTA_LOG"; }
 
@@ -100,10 +89,10 @@ TICKER=""
 cleanup() {
     [ -n "$TICKER" ] && kill "$TICKER" 2>/dev/null
     if [ "$TARGET" = fpga ]; then
-        # Interrupted before any write (e.g. while asking): give the FPGA back.
+        # Interrupted before any write: give the FPGA back.
         # After a write began a failure keeps the session open on purpose.
         [ "${SESSION_OPEN:-0}" = 1 ] && [ "${WRITING:-0}" = 0 ] && fpga_abort
-        rm -f "$CONFIRM_WAIT" "$CONFIRM_YES" "$FPGA_STEP_OUT"
+        rm -f "$FPGA_STEP_OUT"
         # The FPGA may have changed (Qvue-New/FPGA-Flash runs this too):
         # refresh OTA-FPGA once the locks are released.
         # 9>&-: not the flash lock's fd, or the check would hold the very lock
@@ -192,7 +181,6 @@ update_iocs() {
 FPGA_GOLDEN="3xqvue.bin"           # GOLDEN 0xD7, flash address 0, jumps to the UPDATE slot
 FPGA_VENDOR="3xqvue-legacy.bin"    # the vendor image, byte-identical to delivered units
 FPGA_MIN_MCU=0103                  # display_manager v01.03: the golden arm on the direct path
-CONFIRM_SEC=${OTA_CONFIRM_SEC:-60}
 SESSION_OPEN=0                     # a direct session this run opened and not closed
 WRITING=0                          # 1 once a write began: a failure leaves the session open
 
@@ -273,29 +261,6 @@ fpga_holds() {
     grep -q -E '^verify 0x[0-9A-Fa-f]+\+[0-9]+: flash CRC-32 0x[0-9A-Fa-f]+, file 0x[0-9A-Fa-f]+ +MATCH' "$FPGA_STEP_OUT" && return 0
     grep -q -E '^verify .* MISMATCH' "$FPGA_STEP_OUT" && return 1
     return 2
-}
-
-# fpga_confirm <question>: the key turns amber and asks; 0 = yes (the key held
-# again within CONFIRM_SEC), 1 = no answer.
-fpga_confirm() {
-    rm -f "$CONFIRM_YES"
-    echo "$$ $ID" > "$CONFIRM_WAIT" || return 1
-    push "$ID" confirm
-    log "$1"
-    log "waiting $CONFIRM_SEC s: hold the key again = yes. About 10 min with the display off; keep the QVue powered (a power loss while GOLDEN is written leaves the FPGA dark until this is run again; no JTAG needed)"
-    for _ in $(seq 1 $(( CONFIRM_SEC * 2 ))); do
-        [ -e "$CONFIRM_YES" ] && break
-        sleep 0.5
-    done
-    rm -f "$CONFIRM_WAIT"
-    if [ -e "$CONFIRM_YES" ]; then
-        rm -f "$CONFIRM_YES"
-        push "$ID" running 4
-        log "answer: yes"
-        return 0
-    fi
-    log "answer: none within $CONFIRM_SEC s"
-    return 1
 }
 
 update_fpga() {
@@ -381,16 +346,12 @@ update_fpga() {
         if [ "$found" = golden ]; then
             from=5; span=92
         else
-            local question
             if [ "$found" = vendor ]; then
-                question="Flash address 0 holds the vendor FPGA image, as delivered. It never starts the UPDATE slot, so an update alone would not run. Install our GOLDEN ($FPGA_GOLDEN) at address 0 once, then write the update?"
+                log "flash address 0 holds the vendor FPGA image (it never starts the UPDATE slot): installing our GOLDEN ($FPGA_GOLDEN) there first"
             else
-                question="Flash address 0 holds neither our GOLDEN nor the vendor image: a GOLDEN write cut short, or an unknown image. Write our GOLDEN ($FPGA_GOLDEN) there, then the update?"
+                log "flash address 0 holds neither our GOLDEN nor the vendor image (a GOLDEN write cut short, or an unknown image): writing our GOLDEN ($FPGA_GOLDEN) there first"
             fi
-            if ! fpga_confirm "$question"; then
-                fpga_abort
-                fail "nothing was written: flash address 0 holds the $found image, which would boot instead of the update. Hold the key again and confirm to install GOLDEN"
-            fi
+            log "about 10 min with the display off; keep the QVue powered (a power loss while GOLDEN is written leaves the FPGA dark until this is run again; no JTAG needed)"
             WRITING=1
             log "writing GOLDEN at flash address 0 (about 4.5 min)"
             fpgaflash 5 45 "write:$golden_file,0x0,golden"; rc=$?

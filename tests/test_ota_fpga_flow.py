@@ -60,7 +60,7 @@ class Rig:
 
         self.env = dict(os.environ, MICROPANEL_HOME=home, FAKE_STATE=self.state,
                         OTA_TMP=self.otatmp, OTA_NOTIFY_SOCK=self.sock_path,
-                        OTA_RECHECK="0", OTA_CONFIRM_SEC="20")
+                        OTA_RECHECK="0")
 
     def _serve(self):
         while True:
@@ -132,25 +132,10 @@ def rig(tmp_path):
         r.close()
 
 
-def wait_for(path, timeout=20):
-    end = time.time() + timeout
-    while time.time() < end:
-        if os.path.exists(path):
-            return True
-        time.sleep(0.1)
-    return False
-
-
 class TestDirectPath:
-    def test_vendor_unit_asks_and_installs_golden_then_the_slot(self, rig):
+    def test_vendor_unit_installs_golden_then_the_slot_in_one_press(self, rig):
         r = rig(link="02", addr0="vendor")
-        p = r.start()
-        assert wait_for(os.path.join(r.otatmp, "qvue-fpga-confirm.wait"))
-        assert r.calls()[-1].startswith("fpgaflash verify:")   # nothing written yet
-        # The second hold of the key: the same command, answered and gone.
-        assert r.run() == 0
-        assert p.wait(timeout=60) == 0
-        time.sleep(0.2)
+        assert r.run() == 0                                   # no question in the middle
         calls = r.calls()
         assert calls[0] == "fpgaflash abort"
         assert calls[1] == "fpgaflash begin"
@@ -159,25 +144,16 @@ class TestDirectPath:
         assert writes[0].endswith("3xqvue.bin,0x0,golden")
         assert "3xqvue-update.bin,0x400000" in writes[1]
         assert calls[-1] == "fpgaflash end"
-        assert "confirm" in r.states()
+        assert "confirm" not in r.states()
         assert r.states()[-1] == "success"
         assert (r.get("link"), r.get("image"), r.get("golden")) == ("01", "DC", "0")
-        assert not os.path.exists(os.path.join(r.otatmp, "qvue-fpga-confirm.wait"))
 
-    def test_no_answer_writes_nothing_and_closes_the_session(self, rig):
-        r = rig(link="02", addr0="vendor")
-        assert r.run(OTA_CONFIRM_SEC="1") == 1
-        calls = r.calls()
-        assert not any(c.startswith("fpgaflash write:") for c in calls)
-        assert calls[-1] == "fpgaflash abort"
-        assert r.get("session") == "0"
-        assert r.states()[-1] == "failure"
-        assert "nothing was written" in r.log()
-
-    def test_unknown_image_at_zero_also_asks(self, rig):
+    def test_unknown_image_at_zero_gets_golden_too(self, rig):
         r = rig(link="FF", addr0="other")
-        assert r.run(OTA_CONFIRM_SEC="1") == 1
-        assert "confirm" in r.states()
+        assert r.run() == 0
+        writes = [c for c in r.calls() if c.startswith("fpgaflash write:")]
+        assert writes[0].endswith("3xqvue.bin,0x0,golden")
+        assert "confirm" not in r.states()
         assert "holds: unknown" in r.log()
 
     def test_our_golden_at_zero_writes_only_the_slot(self, rig):
@@ -210,22 +186,9 @@ class TestDirectPath:
     def test_a_rerun_resumes_through_the_same_flow(self, rig):
         # A GOLDEN write cut short: 0 holds neither image, the session is open.
         r = rig(link="FF", addr0="other", session="direct")
-        p = r.start()
-        assert wait_for(os.path.join(r.otatmp, "qvue-fpga-confirm.wait"))
         assert r.run() == 0
-        assert p.wait(timeout=60) == 0
         assert r.calls()[0] == "fpgaflash abort"
         assert (r.get("link"), r.get("image")) == ("01", "DC")
-
-    def test_the_answer_must_come_from_the_same_key(self, rig):
-        r = rig(link="02", addr0="vendor")
-        p = r.start()
-        assert wait_for(os.path.join(r.otatmp, "qvue-fpga-confirm.wait"))
-        # Qvue-New/FPGA-Flash pressed meanwhile: not an answer; the lock refuses it.
-        assert r.run("--id=fpga.flash_qvue_new", "--force") == 1
-        assert not os.path.exists(os.path.join(r.otatmp, "qvue-fpga-confirm.yes"))
-        assert r.run() == 0
-        assert p.wait(timeout=60) == 0
 
 
 class TestEnginePath:

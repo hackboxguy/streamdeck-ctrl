@@ -131,7 +131,7 @@ class Rig:
         threading.Thread(target=self._serve, daemon=True).start()
         self.env = dict(os.environ, MICROPANEL_HOME=home, FAKE_STATE=self.state,
                         OTA_TMP=self.otatmp, OTA_NOTIFY_SOCK=self.sock_path,
-                        OTA_CONFIRM_SEC="20", FPGA_BACKUP_DIR=self.backups,
+                        FPGA_BACKUP_DIR=self.backups,
                         FPGA_AB_OFL_SUDO="0", FPGA_AB_POWER_OFF_SEC="0",
                         FPGA_AB_BOOT_WAIT_SEC="3", LSUSB=self.lsusb, FXLOAD=self.fxload)
 
@@ -208,26 +208,10 @@ def rig(tmp_path):
         r.close()
 
 
-def wait_for(path, timeout=20):
-    end = time.time() + timeout
-    while time.time() < end:
-        if os.path.exists(path):
-            return True
-        time.sleep(0.1)
-    return False
-
-
 class TestVendorBoard:
-    def test_asks_backs_up_and_writes_both_in_one_session(self, rig):
+    def test_one_press_backs_up_and_writes_both_in_one_session(self, rig):
         r = rig(addr0="vendor", slot="blank")
-        p = r.start()
-        wait = os.path.join(r.otatmp, "fpga-ab-confirm.wait")
-        assert wait_for(wait)
-        assert r.writes() == []                       # nothing written while asking
-        assert r.run() == 0                           # the second hold: yes
-        assert p.wait(timeout=120) == 0
-        time.sleep(0.2)
-
+        assert r.run() == 0                           # no question in the middle
         assert r.installed()
         writes = r.writes()
         assert len(writes) == 1                       # GOLDEN + UPDATE in ONE session
@@ -244,54 +228,36 @@ class TestVendorBoard:
         assert os.path.exists(os.path.join(r.backups, bks[0] + ".sha256"))
         # one deliberate reconfiguration, through the IOC
         assert r.calls("disptool --device=ioc --command=disppower --value=off")
-        assert "confirm" in r.states() and r.states()[-1] == "success"
+        assert "confirm" not in r.states() and r.states()[-1] == "success"
         log = r.log()
         assert "readback: identical" in log
         assert "SUCCESS: migrated" in log
-        assert not os.path.exists(wait)
 
-    def test_no_answer_writes_nothing_and_gives_the_vendor_image_back(self, rig):
-        r = rig(addr0="vendor")
-        assert r.run(OTA_CONFIRM_SEC="1") == 1
-        assert r.writes() == []
-        assert r.flash() == r.flash_before
-        assert not os.path.exists(r.backups) or os.listdir(r.backups) == []
-        assert r.calls("disptool --device=ioc --command=disppower --value=on")
-        assert r.states()[-1] == "failure"
-        assert "no answer: nothing was written" in r.log()
-
-    def test_blank_address_zero_also_asks(self, rig):
+    def test_blank_address_zero_is_installed_too(self, rig):
         r = rig(addr0="blank")
-        assert r.run(OTA_CONFIRM_SEC="1") == 1
-        assert "confirm" in r.states()
+        assert r.run() == 0
+        assert r.installed()
+        assert "confirm" not in r.states()
         assert "an empty address 0" in r.log()
 
-    def _cut_then_rerun(self, r, asks_again):
-        p = r.start()
-        assert wait_for(os.path.join(r.otatmp, "fpga-ab-confirm.wait"))
-        r.run()
-        assert p.wait(timeout=120) == 1
-        time.sleep(0.2)
+    def _cut_then_rerun(self, r, rewrites_golden):
+        assert r.run() == 1
         assert r.states()[-1] == "failure"
         assert not r.installed()
         r.set("failwrite", "0")
         r.messages.clear()
-        p = r.start()
-        if asks_again:
-            assert wait_for(os.path.join(r.otatmp, "fpga-ab-confirm.wait"))
-            r.run()
-        assert p.wait(timeout=120) == 0
-        time.sleep(0.2)
+        assert r.run() == 0
         assert r.installed()
-        assert ("confirm" in r.states()) == asks_again
+        assert "confirm" not in r.states()
+        assert ("SUCCESS: migrated" in r.log()) == rewrites_golden
 
-    def test_write_cut_inside_golden_asks_again_and_completes(self, rig):
-        # address 0 now holds a partial GOLDEN: unknown, so the question again
-        self._cut_then_rerun(rig(addr0="vendor", failwrite="40"), asks_again=True)
+    def test_write_cut_inside_golden_completes_on_the_next_press(self, rig):
+        # address 0 now holds a partial GOLDEN: the rerun writes both again
+        self._cut_then_rerun(rig(addr0="vendor", failwrite="40"), rewrites_golden=True)
 
-    def test_write_cut_after_golden_completes_the_slot_without_asking(self, rig):
+    def test_write_cut_after_golden_completes_the_slot_on_the_next_press(self, rig):
         # GOLDEN verifies at 0: the rerun writes only the slot
-        self._cut_then_rerun(rig(addr0="vendor", failwrite="8192"), asks_again=False)
+        self._cut_then_rerun(rig(addr0="vendor", failwrite="8192"), rewrites_golden=False)
 
 
 class TestOurBoard:
@@ -388,12 +354,7 @@ class TestPlatformCable:
 
     def test_vendor_board_loads_the_firmware_and_migrates_in_one_run(self, rig):
         r = self.xpc(rig, addr0="vendor", slot="blank")      # the cable's FX2 is empty
-        p = r.start()
-        assert wait_for(os.path.join(r.otatmp, "fpga-ab-confirm.wait"))
-        assert self.xwrites(r) == []
         assert r.run() == 0
-        assert p.wait(timeout=120) == 0
-        time.sleep(0.2)
         assert r.installed()
         assert r.calls("fxload -t fx2lp")                    # firmware loaded once
         assert r.calls() == []                               # openFPGALoader never used

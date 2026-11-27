@@ -26,10 +26,8 @@
 #        GOLDEN at 0 and UPDATE in the slot  -> nothing to write
 #        GOLDEN at 0, the slot differs       -> the slot only (GOLDEN is never rewritten)
 #        anything else at 0 (vendor, blank, a cut write)
-#                                            -> the key turns amber and asks: hold it
-#                                               again within $CONFIRM_SEC s = yes.
-#                                               No answer: nothing is written.
-#      On "yes": the whole 16 MiB flash is backed up first (to $BACKUP_DIR; its
+#                                            -> GOLDEN + UPDATE, without asking
+#      Before that write the whole 16 MiB flash is backed up (to $BACKUP_DIR; its
 #      first range must equal the step-3 read), then GOLDEN + UPDATE are written
 #      as ONE image in ONE JTAG session (write + verify, no reset): the old
 #      image never runs between the two writes.
@@ -43,9 +41,8 @@
 # A power loss or a failure in any step is safe to rerun: the JTAG path needs no
 # configured FPGA, and the flow verifies before it writes.
 #
-# The question: while it waits, this run leaves $CONFIRM_WAIT ("<pid> <id>"); a
-# press of the same key runs this script again, which finds it, leaves
-# $CONFIRM_YES and exits without touching anything else.
+# One press does everything: there is no question in the middle. A second press
+# while a run is going finds the lock held and is ignored.
 #
 # Locks: /tmp/target-flash.lock (every flash script and the deck's pollers) and
 # System Manager's /tmp/system-update.lock. als-dimmer is stopped for the run.
@@ -67,9 +64,6 @@ IMAGE_TOOL="$PWD/fpga-ab-image.py"
 BACKUP_DIR="${FPGA_BACKUP_DIR:-/data/fpga-backups}"
 WORK="${FPGA_AB_WORK:-$OTA_TMP/fpga-ab}"
 LOG_FILE="$OTA_TMP/fpga-flash.log"
-CONFIRM_WAIT="$OTA_TMP/fpga-ab-confirm.wait"
-CONFIRM_YES="$OTA_TMP/fpga-ab-confirm.yes"
-CONFIRM_SEC=${OTA_CONFIRM_SEC:-60}
 POWER_OFF_SEC=${FPGA_AB_POWER_OFF_SEC:-3}
 BOOT_WAIT_SEC=${FPGA_AB_BOOT_WAIT_SEC:-30}
 # Tests run unprivileged against a fake openFPGALoader / xc3sprog
@@ -95,16 +89,6 @@ done
 [ -n "$ID" ] && [ -n "$GOLDEN" ] && [ -n "$UPDATE" ] || {
     echo "usage: $0 --id=<id> --golden=<file> --update=<file> [--label=<name>]" >&2; exit 2; }
 LABEL=${LABEL:-$GOLDEN}
-
-# A press that answers the question of the run already going: say yes and leave
-# everything else to that run (it holds the locks).
-if [ -e "$CONFIRM_WAIT" ]; then
-    read -r wpid wid < "$CONFIRM_WAIT" 2>/dev/null
-    if [ "${wid:-}" = "$ID" ] && [ -n "${wpid:-}" ] && kill -0 "$wpid" 2>/dev/null; then
-        echo yes > "$CONFIRM_YES"
-        exit 0
-    fi
-fi
 
 log() { echo "[fpga-ab/$LABEL] $*" | tee -a "$LOG_FILE"; }
 
@@ -139,7 +123,6 @@ ALS_WAS_ACTIVE=0
 TICKER=""
 cleanup() {
     [ -n "$TICKER" ] && kill "$TICKER" 2>/dev/null
-    rm -f "$CONFIRM_WAIT" "$CONFIRM_YES"
     rm -rf "$WORK"
     [ "$(cat "$SYSTEM_LOCK" 2>/dev/null)" = "$$" ] && rm -f "$SYSTEM_LOCK"
     if [ "$ALS_WAS_ACTIVE" -eq 1 ]; then
@@ -299,27 +282,6 @@ reconfigure() {
     wait_answer
 }
 
-confirm() {
-    rm -f "$CONFIRM_YES"
-    echo "$$ $ID" > "$CONFIRM_WAIT" || return 1
-    push "$ID" confirm
-    log "$1"
-    log "waiting $CONFIRM_SEC s: hold the key again = yes. About 15 min (backup, then write); keep the display powered. A power loss while writing leaves the FPGA dark until this key is run again (JTAG needs no working image)"
-    for _ in $(seq 1 $(( CONFIRM_SEC * 2 ))); do
-        [ -e "$CONFIRM_YES" ] && break
-        sleep 0.5
-    done
-    rm -f "$CONFIRM_WAIT"
-    if [ -e "$CONFIRM_YES" ]; then
-        rm -f "$CONFIRM_YES"
-        push "$ID" running 10
-        log "answer: yes"
-        return 0
-    fi
-    log "answer: none within $CONFIRM_SEC s"
-    return 1
-}
-
 # ---- 1. images --------------------------------------------------------------------
 G="$FPGA_DIR/$GOLDEN"; U="$FPGA_DIR/$UPDATE"
 for f in "$G" "$U" "$FPGA_MANIFEST"; do [ -r "$f" ] || fail "missing $f"; done
@@ -397,8 +359,8 @@ else
         blank) what="an empty address 0" ;;
         *)     what="an image at address 0 that is not our GOLDEN (the vendor image, or a cut write)" ;;
     esac
-    confirm "the board has $what: install GOLDEN at 0 and the UPDATE in the slot?" \
-        || fail "no answer: nothing was written"
+    log "the board has $what: installing GOLDEN at 0 and the UPDATE in the slot"
+    log "backup, then the write; keep the display powered. A power loss while writing leaves the FPGA dark until this key is run again (JTAG needs no working image)"
 
     mkdir -p "$BACKUP_DIR" 2>/dev/null || priv mkdir -p "$BACKUP_DIR" \
         || fail "cannot create $BACKUP_DIR; nothing was written"

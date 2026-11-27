@@ -485,25 +485,25 @@ class TestTaskConfig:
             if k["notification_id"] == "fpga.flash_qvue_new":
                 # No JTAG on the QVue: its FPGA flash goes through its MCU, by
                 # the same flow as OTA-FPGA (GOLDEN only where 0 is not ours),
-                # forced so it also rewrites a current UPDATE slot.
+                # forced so it also rewrites a current UPDATE slot. No question.
                 assert "scripts/ota-update.sh fpga " in cmd
                 assert cmd.rstrip().endswith("--force")
                 assert k["task"]["hold_sec"] > 0
-                assert "confirm" in k["icons"]
+                assert "confirm" not in k["icons"]
                 assert k["action"]["on_press"]["timeout_sec"] >= 1800
                 continue
             ab_pairs = {"fpga.flash_12_3_nq5": "12-3-inch-new",
                         "fpga.flash_14_6_ej": "14-6-fhd-ej-new",
                         "fpga.flash_14_6_dd": "14-6-fhd-new"}
             if k["notification_id"] in ab_pairs:
-                # The Spartan-7 A/B pair (GOLDEN at 0, UPDATE in the slot), with
-                # the "GOLDEN?" question on a vendor board, like the QVue keys.
+                # The Spartan-7 A/B pair (GOLDEN at 0, UPDATE in the slot), in
+                # one press: no question in the middle, even on a vendor board.
                 stem = ab_pairs[k["notification_id"]]
                 assert "scripts/flash-fpga-ab.sh " in cmd
                 assert f"--golden={stem}.bin " in cmd
                 assert cmd.rstrip().endswith(f"--update={stem}_ota.bin")
                 assert k["task"]["hold_sec"] > 0
-                assert "confirm" in k["icons"]
+                assert "confirm" not in k["icons"]
                 assert k["action"]["on_press"]["timeout_sec"] >= 1800
                 continue
             if k["notification_id"].startswith("fpga."):

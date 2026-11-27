@@ -40,11 +40,6 @@ FLASH_LOCK="$OTA_TMP/target-flash.lock"
 SYSTEM_LOCK="$OTA_TMP/system-update.lock"
 NOTICE_FILE="$OTA_TMP/micropanel-notice"
 OTA_LOG="$OTA_TMP/ota-update.log"
-# The FPGA update's question to the user (ota-update.sh fpga): "<pid> <id>"
-# while it waits, and the answer a second press leaves. Owned by the deck's
-# user (pi), like every other file the keys share in /tmp.
-CONFIRM_WAIT="$OTA_TMP/qvue-fpga-confirm.wait"
-CONFIRM_YES="$OTA_TMP/qvue-fpga-confirm.yes"
 FPGA_STEP_OUT="$OTA_TMP/ota-fpga-step.out"
 
 ID_IOC="ota.ioc"
